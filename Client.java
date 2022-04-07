@@ -41,12 +41,6 @@ public class Client
 
             while(true)
             {
-/*                System.out.println("Client");
-                DatagramPacket request = new DatagramPacket(new byte[1], 1, address, port);
-                socket.send(request);*/
-
-                //byte[] textToSend = "Hello World!".getBytes("UTF-8");
-
                 System.out.println("Enter file name or Q to quite: ");
                 fileName = sc.next();
 
@@ -66,6 +60,8 @@ public class Client
                     DatagramPacket sfn = new DatagramPacket(sendFileName, sendFileName.length, address, port);
 
                     socket.send(sfn);
+
+                    Thread.sleep(5000);
 
                     // Convert file to byte array.
                     byte[] sendData = Files.readAllBytes(targetFile.toPath());
@@ -88,23 +84,32 @@ public class Client
 
             ResultSet rs = manager.selectData();
 
-            while(rs.next())
+            if(rs == null)
             {
-                int id = rs.getInt("ID");
-                String fn = rs.getString("FileName");
-                Blob b = rs.getBlob("Data");
-
-
-                System.out.println(id);
-                System.out.println(fn);
+                System.out.println("uh oh!");
             }
 
-            manager.closeConnection();
+            else
+            {
+                while(rs.next())
+                {
+                    int id = rs.getInt("ID");
+                    String fn = rs.getString("FileName");
+                    byte[] buffer = rs.getBytes("Data");
+
+                    System.out.println(id);
+                    System.out.println(fn);
+                    System.out.println(buffer.length);
+                    //System.out.println(new String(buffer, 0, buffer.length));
+                }
+
+                manager.closeConnection();
+            }
         }
 
         catch(Exception e)
         {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
