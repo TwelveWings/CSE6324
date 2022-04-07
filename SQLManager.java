@@ -21,7 +21,7 @@ public class SQLManager
     {
         try 
         {
-            //Class.forName("org.sqlite.JDBC");
+            Class.forName("org.sqlite.JDBC");
             conn = DriverManager.getConnection("jdbc:sqlite:test.db");
         } 
         catch (Exception e) 
@@ -88,7 +88,7 @@ public class SQLManager
 
     public void insertData(byte[] data)
     {
-        String sql = "INSERT INTO Files " + 
+        String sql = "INSERT INTO Files (FileName, Data)" + 
             " VALUES (?, ?)";
 
         try
@@ -96,14 +96,14 @@ public class SQLManager
             PreparedStatement ps = conn.prepareStatement(sql);
 
             ps.setString(1, fileName);
-            ps.setBlob(2, new SerialBlob(data));
+            ps.setBytes(2, data);
 
-            ps.executeUpdate(sql);
+            ps.executeUpdate();
         }
 
         catch(Exception e)
         {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 

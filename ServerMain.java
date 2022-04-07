@@ -8,7 +8,7 @@ public class ServerMain
 
         manager.setDBConnection();
 
-        if(args.length > 0 && args[0] == "new")
+        if(args.length > 0 && args[0].equals("new"))
         {
             manager.dropTable();
         }
