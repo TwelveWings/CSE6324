@@ -31,10 +31,9 @@ public class Server
                 // Instantiate DatagramPacket object based on buffer.
                 DatagramPacket receiveFileName = new DatagramPacket(buffer, buffer.length);
 
-                // Receive data from client program.
+                // Receive file name from client program.
                 socket.receive(receiveFileName);
 
-                socket.receive(receiveFileName);
                 String fileName = new String(buffer, 0, receiveFileName.getLength());
 
                 SQLManager manager = new SQLManager(fileName);
@@ -45,15 +44,15 @@ public class Server
 
                 DatagramPacket receiveData = new DatagramPacket(buffer, buffer.length);
 
+                // Receive file data
                 socket.receive(receiveData);
 
+                // Insert file into database
                 manager.insertData(buffer);
 
                 manager.closeConnection();
 
                 System.out.println(new String(buffer, 0, receiveData.getLength()));
-
-
             }
         }
 
