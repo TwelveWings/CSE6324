@@ -87,11 +87,22 @@ public class SQLManager
 
     public void insertData(byte[] data)
     {
+
+        //ResultSet rs = selectFileByName(fileName);
+
         String sql = "INSERT INTO Files (FileName, Data)" + 
             " VALUES (?, ?)";
 
         try
         {
+            /*
+            if(rs.next())
+            {
+                System.out.println("File already exists in server. Continue (1 - Yes, 2 - No)?");
+                return;
+            }
+            */
+    
             PreparedStatement ps = conn.prepareStatement(sql);
 
             ps.setString(1, fileName);
@@ -106,7 +117,7 @@ public class SQLManager
         }
     }
 
-    public ResultSet selectData()
+    public ResultSet selectAllFiles()
     {
         ResultSet rs = null;
         try 
@@ -114,6 +125,43 @@ public class SQLManager
             stmt = conn.createStatement();
 
             rs =  stmt.executeQuery("SELECT * FROM Files;");
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return rs;
+    }
+
+
+    public ResultSet selectFileByName(String fileName)
+    {
+        ResultSet rs = null;
+        try 
+        {
+            stmt = conn.createStatement();
+
+            rs =  stmt.executeQuery("SELECT * FROM Files WHERE FileName = '" + fileName + "';");
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return rs;
+    }
+
+    public ResultSet selectFileByID(String fileID)
+    {
+        ResultSet rs = null;
+        try 
+        {
+            stmt = conn.createStatement();
+
+            rs =  stmt.executeQuery("SELECT * FROM Files WHERE ID = " + fileID + ";");
         }
 
         catch(Exception e)
