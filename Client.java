@@ -6,6 +6,7 @@ import java.util.*;
 public class Client
 {
     public DatagramSocket socket;
+    public byte[] buffer;
     public InetAddress address;
     public int port;
     public Scanner sc;
@@ -43,33 +44,41 @@ public class Client
             while(!endProgram)
             {
                 System.out.println("What action do you want to perform? (1 - Upload, 2 - Download, 3 - Edit, 0 - Quit)");
-                int action = sc.nextInt();
 
-                byte[] sendAction = String.valueOf(action).getBytes("UTF-8");
-
-                DatagramPacket sAction = new DatagramPacket(sendAction, sendAction.length, address, port);
-
-                socket.send(sAction);
-    
-                // Wait for 2500 ms to ensure previous datagram packet has been sent.
-                Thread.sleep(2500);
-
-                switch(action)
+                try 
                 {
-                    case 0:
-                        endProgram = true;
-                        break;
-                    case 1:
-                        uploadFile();
-                        break;
-                    case 2:
-                        downloadFile();
-                        break;
-                    case 3:
-                        editFile();
-                        break;
-                    default:
-                        System.out.println("Invalid action. Please try again.");
+                    int action = sc.nextInt();
+                    byte[] sendAction = String.valueOf(action).getBytes("UTF-8");
+
+                    DatagramPacket sAction = new DatagramPacket(sendAction, sendAction.length, address, port);
+    
+                    socket.send(sAction);
+        
+                    // Wait for 2500 ms to ensure previous datagram packet has been sent.
+                    Thread.sleep(2500);
+    
+                    switch(action)
+                    {
+                        case 0:
+                            endProgram = true;
+                            break;
+                        case 1:
+                            uploadFile();
+                            break;
+                        case 2:
+                            downloadFile();
+                            break;
+                        case 3:
+                            editFile();
+                            break;
+                        default:
+                            System.out.println("Invalid action. Please try again.");
+                    }
+                }
+
+                catch(InputMismatchException ime)
+                {
+                    continue;
                 }
             }
         }
@@ -99,31 +108,14 @@ public class Client
 
             byte[] sendFileName = fileName.getBytes("UTF-8");
 
-            DatagramPacket sfn = new DatagramPacket(sendFileName, sendFileName.length, address, port);
-
-            socket.send(sfn);
-
-            // Wait for 2500 ms to ensure previous datagram packet has been sent.
-            Thread.sleep(2500);
+            sendPacketToServer(sendFileName, 2500);
 
             // Convert file to byte array.
             byte[] sendData = Files.readAllBytes(targetFile.toPath());
-
             byte[] sendSize = String.valueOf(sendData.length).getBytes();
 
-            // Instantiate datagram packet to send.
-            DatagramPacket fileSize = new DatagramPacket(sendSize, sendSize.length, address, port);
-
-            socket.send(fileSize);
-
-            Thread.sleep(2500);
-
-            // Instantiate datagram packet to send.
-            DatagramPacket fileData = new DatagramPacket(sendData, sendData.length, address, port);
-
-            socket.send(fileData);
-
-            Thread.sleep(2500);
+            sendPacketToServer(sendSize, 2500);
+            sendPacketToServer(sendData, 2500);
         }
 
         catch(Exception e)
@@ -155,6 +147,15 @@ public class Client
 
             // Wait for 5000 ms to ensure previous datagram packet has been sent.
             Thread.sleep(5000);
+
+            buffer = new byte[1024 * 1024 * 4];
+
+            // Instantiate DatagramPacket object based on buffer.
+            DatagramPacket receivedMessage = receivePacketFromServer(buffer);
+
+            String message = new String(buffer, 0, receivedMessage.getLength());
+
+            System.out.println(message);
         }
 
         catch(Exception e)
@@ -168,4 +169,39 @@ public class Client
         return;
     }
 
+    public DatagramPacket receivePacketFromServer(byte[] buffer)
+    {
+        // Instantiate DatagramPacket object based on buffer.
+        DatagramPacket receivedPacket = new DatagramPacket(buffer, buffer.length);
+
+        try
+        {
+            // Receive file name from client program.
+            socket.receive(receivedPacket);
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return receivedPacket;
+    }
+
+    public void sendPacketToServer(byte[] data, int timeout)
+    {
+        try
+        {
+            DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
+
+            socket.send(packet);
+
+            Thread.sleep(timeout);
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
 }
