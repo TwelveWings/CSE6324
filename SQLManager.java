@@ -1,5 +1,4 @@
 import java.sql.*;
-import javax.sql.rowset.serial.SerialBlob;
 
 public class SQLManager
 {
@@ -26,7 +25,7 @@ public class SQLManager
         } 
         catch (Exception e) 
         {
-            System.out.println(e);
+            e.printStackTrace();
         }
 
         System.out.println("Connection successful!");
@@ -49,7 +48,7 @@ public class SQLManager
 
         catch(Exception e)
         {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
@@ -63,7 +62,7 @@ public class SQLManager
 
         catch(Exception e)
         {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
@@ -82,7 +81,7 @@ public class SQLManager
 
         catch(Exception e)
         {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
@@ -119,7 +118,7 @@ public class SQLManager
 
         catch(Exception e)
         {
-            System.out.println(e);
+            e.printStackTrace();
         }
 
         return rs;
