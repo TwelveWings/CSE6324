@@ -40,7 +40,15 @@ public class Server
 
                 manager.setDBConnection();
 
-                buffer = new byte[1024 * 1024 * 4];
+                buffer = new byte[1024 * 1024 * 4];     
+                
+                DatagramPacket receiveSize = new DatagramPacket(buffer, buffer.length);
+
+                socket.receive(receiveSize);
+
+                int fileSize = Integer.valueOf(new String(buffer, 0, receiveSize.getLength()));
+
+                buffer = new byte[fileSize];
 
                 DatagramPacket receiveData = new DatagramPacket(buffer, buffer.length);
 
@@ -58,7 +66,7 @@ public class Server
 
         catch(Exception e)
         {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 }

@@ -50,9 +50,9 @@ public class Client
                     break;
                 }
 
-                // Get file to transfer.
                 try
                 {
+                    // Get file to transfer.
                     File targetFile = new File(fileName);
 
                     byte[] sendFileName = fileName.getBytes("UTF-8");
@@ -61,10 +61,20 @@ public class Client
 
                     socket.send(sfn);
 
+                    // Wait for 5000 ms to ensure previous datagram packet has been sent.
                     Thread.sleep(5000);
 
                     // Convert file to byte array.
                     byte[] sendData = Files.readAllBytes(targetFile.toPath());
+
+                    byte[] sendSize = String.valueOf(sendData.length).getBytes();
+
+                    // Instantiate datagram packet to send.
+                    DatagramPacket fileSize = new DatagramPacket(sendSize, sendSize.length, address, port);
+
+                    socket.send(fileSize);
+
+                    Thread.sleep(5000);
 
                     // Instantiate datagram packet to send.
                     DatagramPacket fileData = new DatagramPacket(sendData, sendData.length, address, port);
@@ -99,8 +109,7 @@ public class Client
 
                     System.out.println(id);
                     System.out.println(fn);
-                    System.out.println(buffer.length);
-                    //System.out.println(new String(buffer, 0, buffer.length));
+                    System.out.println(new String(buffer, 0, buffer.length));
                 }
 
                 manager.closeConnection();
