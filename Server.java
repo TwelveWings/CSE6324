@@ -6,7 +6,7 @@ import java.util.*;
 public class Server
 {
     public DatagramSocket socket;
-    public InetAddress address;
+    public byte[] buffer;
     public int port;
     public Scanner sc;
     public String fileName;
@@ -29,15 +29,11 @@ public class Server
                 System.out.println("Server waiting on client...");
 
                 // 4 MB buffer to receive data
-                byte[] buffer = new byte[1024 * 1024 * 4];
+                buffer = new byte[1024 * 1024 * 4];
 
-                // Instantiate DatagramPacket object based on buffer.
-                DatagramPacket receiveAction = new DatagramPacket(buffer, buffer.length);
+                DatagramPacket receivedMessage = receivePacketFromClient(buffer);
 
-                // Receive file name from client program.
-                socket.receive(receiveAction);
-
-                int action = Integer.valueOf(new String(buffer, 0, receiveAction.getLength()));
+                int action = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
 
                 switch(action)
                 {
@@ -65,41 +61,35 @@ public class Server
         try
         {
             // 4 MB buffer to receive data
-            byte[] buffer = new byte[1024 * 1024 * 4];
+            buffer = new byte[1024 * 1024 * 4];
 
             // Instantiate DatagramPacket object based on buffer.
-            DatagramPacket receiveFileName = new DatagramPacket(buffer, buffer.length);
+            DatagramPacket receivedMessage = receivePacketFromClient(buffer);
 
-            // Receive file name from client program.
-            socket.receive(receiveFileName);
-
-            String fileName = new String(buffer, 0, receiveFileName.getLength());
+            String fileName = new String(buffer, 0, receivedMessage.getLength());
 
             SQLManager manager = new SQLManager(fileName);
-
             manager.setDBConnection();
 
             buffer = new byte[1024 * 1024 * 4];     
             
-            DatagramPacket receiveSize = new DatagramPacket(buffer, buffer.length);
+            // Instantiate DatagramPacket object based on buffer.
+            receivedMessage = receivePacketFromClient(buffer);
 
-            socket.receive(receiveSize);
-
-            int fileSize = Integer.valueOf(new String(buffer, 0, receiveSize.getLength()));
-
+            int fileSize = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
             buffer = new byte[fileSize];
 
-            DatagramPacket receiveData = new DatagramPacket(buffer, buffer.length);
-
-            // Receive file data
-            socket.receive(receiveData);
+            // Instantiate DatagramPacket object based on buffer.
+            receivedMessage = receivePacketFromClient(buffer);
 
             // Insert file into database
             manager.insertData(buffer);
 
+            // Close connection to DB
             manager.closeConnection();
 
-            System.out.println(new String(buffer, 0, receiveData.getLength()));
+            byte[] message = "File uploaded successfully!".getBytes("UTF-8");
+            sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 2500);  
         }
 
         catch(Exception e)
@@ -110,7 +100,7 @@ public class Server
 
     public void downloadFile()
     {
-            byte[] buffer = new byte[1024 * 1024 * 4];
+            buffer = new byte[1024 * 1024 * 4];
 
             SQLManager manager = new SQLManager();
 
@@ -119,24 +109,26 @@ public class Server
             try
             {
                 // Instantiate DatagramPacket object based on buffer.
-                DatagramPacket receiveFileName = new DatagramPacket(buffer, buffer.length);
+                DatagramPacket receivedMessage = receivePacketFromClient(buffer);
 
-                // Receive file name from client program.
-                socket.receive(receiveFileName);
-
-                String fileName = new String(buffer, 0, receiveFileName.getLength());
+                String fileName = new String(buffer, 0, receivedMessage.getLength());
 
                 ResultSet rs = manager.selectFileByName(fileName);
 
+                int count = 0;
                 while(rs.next())
                 {
-                    int id = rs.getInt("ID");
-                    String fn = rs.getString("FileName");
+                    count++;
+
                     byte[] fileData = rs.getBytes("Data");
 
-                    System.out.println(id);
-                    System.out.println(fn);
-                    System.out.println(new String(fileData, 0, fileData.length));
+                    sendPacketToClient(fileData, receivedMessage.getAddress(), receivedMessage.getPort(), 2500);
+                }
+
+                if(count == 0)
+                {
+                    byte[] message = "File does not exist in server.".getBytes("UTF-8");
+                    sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 2500);
                 }
             }
 
@@ -146,5 +138,41 @@ public class Server
             }
 
             manager.closeConnection();
+    }
+
+    public DatagramPacket receivePacketFromClient(byte[] buffer)
+    {
+        // Instantiate DatagramPacket object based on buffer.
+        DatagramPacket receivedPacket = new DatagramPacket(buffer, buffer.length);
+
+        try
+        {
+            // Receive file name from client program.
+            socket.receive(receivedPacket);
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return receivedPacket;
+    }
+
+    public void sendPacketToClient(byte[] data, InetAddress clientAddress, int clientPort, int timeout)
+    {
+        try
+        {
+            DatagramPacket packet = new DatagramPacket(data, data.length, clientAddress, clientPort);
+
+            socket.send(packet);
+
+            Thread.sleep(timeout);
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 }
