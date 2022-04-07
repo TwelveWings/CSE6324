@@ -1,14 +1,15 @@
 import java.io.*;
 import java.nio.file.Files;
 import java.net.*;
-import java.sql.*;
 import java.util.*;
-import javax.sql.rowset.serial.SerialBlob;
 
 public class Client
 {
+    public DatagramSocket socket;
+    public InetAddress address;
     public int port;
     public Scanner sc;
+
 
     public Client(int p)
     {
@@ -31,88 +32,45 @@ public class Client
         try
         {
             // Get address of local host.
-            InetAddress address = InetAddress.getLocalHost();
+            address = InetAddress.getLocalHost();
             System.out.println(address);
 
             // Establish socket connection.
-            DatagramSocket socket = new DatagramSocket();
+            socket = new DatagramSocket();
 
-            String fileName = "";
+            boolean endProgram = false;
 
-            while(true)
+            while(!endProgram)
             {
-                System.out.println("Enter file name or Q to quite: ");
-                fileName = sc.next();
+                System.out.println("What action do you want to perform? (1 - Upload, 2 - Download, 3 - Edit, 0 - Quit)");
+                int action = sc.nextInt();
 
-                if(fileName.toLowerCase().equals("q"))
-                {  
-                    System.out.println("Client closed.");
-                    break;
-                }
+                byte[] sendAction = String.valueOf(action).getBytes("UTF-8");
 
-                try
+                DatagramPacket sAction = new DatagramPacket(sendAction, sendAction.length, address, port);
+
+                socket.send(sAction);
+    
+                // Wait for 2500 ms to ensure previous datagram packet has been sent.
+                Thread.sleep(2500);
+
+                switch(action)
                 {
-                    // Get file to transfer.
-                    File targetFile = new File(fileName);
-
-                    byte[] sendFileName = fileName.getBytes("UTF-8");
-
-                    DatagramPacket sfn = new DatagramPacket(sendFileName, sendFileName.length, address, port);
-
-                    socket.send(sfn);
-
-                    // Wait for 5000 ms to ensure previous datagram packet has been sent.
-                    Thread.sleep(5000);
-
-                    // Convert file to byte array.
-                    byte[] sendData = Files.readAllBytes(targetFile.toPath());
-
-                    byte[] sendSize = String.valueOf(sendData.length).getBytes();
-
-                    // Instantiate datagram packet to send.
-                    DatagramPacket fileSize = new DatagramPacket(sendSize, sendSize.length, address, port);
-
-                    socket.send(fileSize);
-
-                    Thread.sleep(5000);
-
-                    // Instantiate datagram packet to send.
-                    DatagramPacket fileData = new DatagramPacket(sendData, sendData.length, address, port);
-
-                    socket.send(fileData);
+                    case 0:
+                        endProgram = true;
+                        break;
+                    case 1:
+                        uploadFile();
+                        break;
+                    case 2:
+                        downloadFile();
+                        break;
+                    case 3:
+                        editFile();
+                        break;
+                    default:
+                        System.out.println("Invalid action. Please try again.");
                 }
-
-                catch(Exception e)
-                {
-                    System.out.println(e);
-                }
-            }
-
-            SQLManager manager = new SQLManager();
-
-            manager.setDBConnection();
-
-            ResultSet rs = manager.selectData();
-
-            if(rs == null)
-            {
-                System.out.println("uh oh!");
-            }
-
-            else
-            {
-                while(rs.next())
-                {
-                    int id = rs.getInt("ID");
-                    String fn = rs.getString("FileName");
-                    byte[] buffer = rs.getBytes("Data");
-
-                    System.out.println(id);
-                    System.out.println(fn);
-                    System.out.println(new String(buffer, 0, buffer.length));
-                }
-
-                manager.closeConnection();
             }
         }
 
@@ -120,6 +78,94 @@ public class Client
         {
             e.printStackTrace();
         }
+    }
+
+    public void uploadFile()
+    {
+        String fileName = "";
+        System.out.println("Enter file name or 0 to cancel:");
+        fileName = sc.next();
+
+        if(fileName.equals("0") || fileName.trim().equals(""))
+        {
+            System.out.println("Upload cancelled.");
+            return;
+        }
+
+        try
+        {
+            // Get file to transfer.
+            File targetFile = new File(fileName);
+
+            byte[] sendFileName = fileName.getBytes("UTF-8");
+
+            DatagramPacket sfn = new DatagramPacket(sendFileName, sendFileName.length, address, port);
+
+            socket.send(sfn);
+
+            // Wait for 2500 ms to ensure previous datagram packet has been sent.
+            Thread.sleep(2500);
+
+            // Convert file to byte array.
+            byte[] sendData = Files.readAllBytes(targetFile.toPath());
+
+            byte[] sendSize = String.valueOf(sendData.length).getBytes();
+
+            // Instantiate datagram packet to send.
+            DatagramPacket fileSize = new DatagramPacket(sendSize, sendSize.length, address, port);
+
+            socket.send(fileSize);
+
+            Thread.sleep(2500);
+
+            // Instantiate datagram packet to send.
+            DatagramPacket fileData = new DatagramPacket(sendData, sendData.length, address, port);
+
+            socket.send(fileData);
+
+            Thread.sleep(2500);
+        }
+
+        catch(Exception e)
+        {
+            System.out.println(e);
+        }
+    }
+
+    public void downloadFile()
+    {
+        String fileName = "";
+        System.out.println("Enter file name or 0 to cancel:");
+        fileName = sc.next();
+
+        if(fileName.equals("0") || fileName.trim().equals(""))
+        {
+            System.out.println("Download cancelled.");
+            return;
+        }
+
+        try
+        {
+            // Get file to transfer.
+            byte[] sendFileName = fileName.getBytes("UTF-8");
+
+            DatagramPacket sfn = new DatagramPacket(sendFileName, sendFileName.length, address, port);
+
+            socket.send(sfn);
+
+            // Wait for 5000 ms to ensure previous datagram packet has been sent.
+            Thread.sleep(5000);
+        }
+
+        catch(Exception e)
+        {
+            System.out.println(e);
+        }
+    }
+
+    public void editFile()
+    {
+        return;
     }
 
 }

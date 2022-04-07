@@ -2,7 +2,7 @@ public class ServerMain
 {
     public static void main(String[] args)
     {
-        Server s = new Server(17, "test.txt");
+        Server s = new Server(17);
 
         SQLManager manager = new SQLManager();
 
