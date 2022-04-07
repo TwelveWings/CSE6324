@@ -1,4 +1,3 @@
-import java.io.*;
 import java.net.*;
 import java.sql.*;
 import java.util.*;
@@ -44,7 +43,10 @@ public class Server
                         downloadFile();
                         break;
                     case 3:
-                        // Edit a File
+                        editFile();
+                        break;
+                    case 4:
+                        deleteFile();
                         break;
                 }
             }
@@ -56,46 +58,9 @@ public class Server
         }
     }
 
-    public void uploadFile()
+    public void deleteFile()
     {
-        try
-        {
-            // 4 MB buffer to receive data
-            buffer = new byte[1024 * 1024 * 4];
-
-            // Instantiate DatagramPacket object based on buffer.
-            DatagramPacket receivedMessage = receivePacketFromClient(buffer);
-
-            String fileName = new String(buffer, 0, receivedMessage.getLength());
-
-            SQLManager manager = new SQLManager(fileName);
-            manager.setDBConnection();
-
-            buffer = new byte[1024 * 1024 * 4];     
-            
-            // Instantiate DatagramPacket object based on buffer.
-            receivedMessage = receivePacketFromClient(buffer);
-
-            int fileSize = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
-            buffer = new byte[fileSize];
-
-            // Instantiate DatagramPacket object based on buffer.
-            receivedMessage = receivePacketFromClient(buffer);
-
-            // Insert file into database
-            manager.insertData(buffer);
-
-            // Close connection to DB
-            manager.closeConnection();
-
-            byte[] message = "File uploaded successfully!".getBytes("UTF-8");
-            sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 2500);  
-        }
-
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
+        return;
     }
 
     public void downloadFile()
@@ -140,6 +105,11 @@ public class Server
             manager.closeConnection();
     }
 
+    public void editFile()
+    {
+        return;
+    }
+
     public DatagramPacket receivePacketFromClient(byte[] buffer)
     {
         // Instantiate DatagramPacket object based on buffer.
@@ -168,6 +138,48 @@ public class Server
             socket.send(packet);
 
             Thread.sleep(timeout);
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public void uploadFile()
+    {
+        try
+        {
+            // 4 MB buffer to receive data
+            buffer = new byte[1024 * 1024 * 4];
+
+            // Instantiate DatagramPacket object based on buffer.
+            DatagramPacket receivedMessage = receivePacketFromClient(buffer);
+
+            String fileName = new String(buffer, 0, receivedMessage.getLength());
+
+            SQLManager manager = new SQLManager(fileName);
+            manager.setDBConnection();
+
+            buffer = new byte[1024 * 1024 * 4];     
+            
+            // Instantiate DatagramPacket object based on buffer.
+            receivedMessage = receivePacketFromClient(buffer);
+
+            int fileSize = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
+            buffer = new byte[fileSize];
+
+            // Instantiate DatagramPacket object based on buffer.
+            receivedMessage = receivePacketFromClient(buffer);
+
+            // Insert file into database
+            manager.insertData(buffer);
+
+            // Close connection to DB
+            manager.closeConnection();
+
+            byte[] message = "File uploaded successfully!".getBytes("UTF-8");
+            sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 2500);  
         }
 
         catch(Exception e)

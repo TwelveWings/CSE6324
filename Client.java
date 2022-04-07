@@ -11,7 +11,6 @@ public class Client
     public int port;
     public Scanner sc;
 
-
     public Client(int p)
     {
         port = p;
@@ -43,7 +42,7 @@ public class Client
 
             while(!endProgram)
             {
-                System.out.println("What action do you want to perform? (1 - Upload, 2 - Download, 3 - Edit, 0 - Quit)");
+                System.out.println("What action do you want to perform? (1 - Upload, 2 - Download, 3 - Edit, 4 - Delete, 0 - Quit)");
 
                 try 
                 {
@@ -71,8 +70,12 @@ public class Client
                         case 3:
                             editFile();
                             break;
+                        case 4:
+                            deleteFile();
+                            break;
                         default:
                             System.out.println("Invalid action. Please try again.");
+                            break;
                     }
                 }
 
@@ -89,39 +92,9 @@ public class Client
         }
     }
 
-    public void uploadFile()
+    public void deleteFile()
     {
-        String fileName = "";
-        System.out.println("Enter file name or 0 to cancel:");
-        fileName = sc.next();
-
-        if(fileName.equals("0") || fileName.trim().equals(""))
-        {
-            System.out.println("Upload cancelled.");
-            return;
-        }
-
-        try
-        {
-            // Get file to transfer.
-            File targetFile = new File(fileName);
-
-            byte[] sendFileName = fileName.getBytes("UTF-8");
-
-            sendPacketToServer(sendFileName, 2500);
-
-            // Convert file to byte array.
-            byte[] sendData = Files.readAllBytes(targetFile.toPath());
-            byte[] sendSize = String.valueOf(sendData.length).getBytes();
-
-            sendPacketToServer(sendSize, 2500);
-            sendPacketToServer(sendData, 2500);
-        }
-
-        catch(Exception e)
-        {
-            System.out.println(e);
-        }
+        return;
     }
 
     public void downloadFile()
@@ -202,6 +175,41 @@ public class Client
         catch(Exception e)
         {
             e.printStackTrace();
+        }
+    }
+
+    public void uploadFile()
+    {
+        String fileName = "";
+        System.out.println("Enter file name or 0 to cancel:");
+        fileName = sc.next();
+
+        if(fileName.equals("0") || fileName.trim().equals(""))
+        {
+            System.out.println("Upload cancelled.");
+            return;
+        }
+
+        try
+        {
+            // Get file to transfer.
+            File targetFile = new File(fileName);
+
+            byte[] sendFileName = fileName.getBytes("UTF-8");
+
+            sendPacketToServer(sendFileName, 2500);
+
+            // Convert file to byte array.
+            byte[] sendData = Files.readAllBytes(targetFile.toPath());
+            byte[] sendSize = String.valueOf(sendData.length).getBytes();
+
+            sendPacketToServer(sendSize, 2500);
+            sendPacketToServer(sendData, 2500);
+        }
+
+        catch(Exception e)
+        {
+            System.out.println(e);
         }
     }
 }
