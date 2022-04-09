@@ -1,9 +1,9 @@
 # CSE6324
 To run the program, first run:
-java -classpath ".sqlite-jdbc-3.36.0.3.jar" ServerMain
+java -classpath ";sqlite-jdbc-3.36.0.3.jar" ServerMain
 
 To reset the tables run:
-java -classpath ".sqlite-jdbc-3.36.0.3.jar" ServerMain new
+java -classpath ";sqlite-jdbc-3.36.0.3.jar" ServerMain new
  
 Then run:
-java -classpath ".sqlite-jdbc-3.36.0.3.jar" ClientMain
+java -classpath ";sqlite-jdbc-3.36.0.3.jar" ClientMain
