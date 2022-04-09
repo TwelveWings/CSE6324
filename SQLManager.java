@@ -85,6 +85,30 @@ public class SQLManager
         }
     }
 
+    public ResultSet deleteFile(String fileName)
+    {
+        try 
+        {
+            stmt = conn.createStatement();
+
+            String sql = "DELETE FROM Files WHERE FileName = '" + fileName + "';";
+
+            stmt.executeUpdate(sql);
+
+            stmt.close();
+
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        ResultSet rs = selectFileByName(fileName);
+        return rs;
+
+    }
+
     public void insertData(byte[] data)
     {
 

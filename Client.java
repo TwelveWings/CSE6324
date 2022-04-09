@@ -96,7 +96,33 @@ public class Client
 
     public void deleteFile()
     {
-        return;
+        String fileName = "";
+        System.out.println("Enter file name or 0 to cancel:");
+        fileName = sc.next();
+
+        if(fileName.equals("0") || fileName.trim().equals(""))
+        {
+            System.out.println("Download cancelled.");
+            return;
+        }
+
+        try
+        {
+            // Get file to transfer.
+            byte[] sendFileName = fileName.getBytes("UTF-8");
+
+            DatagramPacket sfn = new DatagramPacket(sendFileName, sendFileName.length, address, port);
+
+            socket.send(sfn);
+
+            // Wait for 5000 ms to ensure previous datagram packet has been sent.
+            Thread.sleep(5000);
+        }
+
+        catch (Exception e)
+        {
+            System.out.println(e);
+        }
     }
 
     public void downloadFile()
