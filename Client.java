@@ -3,39 +3,24 @@ import java.nio.file.Files;
 import java.net.*;
 import java.util.*;
 
-//Commit Test # 2
-
 public class Client
 {
-    public DatagramSocket socket;
-    public byte[] buffer;
-    public InetAddress address;
-    public int port;
-    public Scanner sc;
+    public static DatagramSocket socket;
+    public static byte[] buffer;
+    public static InetAddress address;
+    public static int port;
+    public static Scanner sc;
 
-    public Client(int p)
-    {
-        port = p;
-    }
-
-    public int getPort()
-    {
-        return port;
-    }
-
-    public void setPort(int p)
-    {
-        port = p;
-    }
-
-    public void startClient()
+    public static void main(String[] args)
     {
         sc = new Scanner(System.in);
         try
         {
             // Get address of local host.
             address = InetAddress.getLocalHost();
-            System.out.println(address);
+            port = 17;
+
+            buffer = new byte[1024 * 1024 * 4];
 
             // Establish socket connection.
             socket = new DatagramSocket();
@@ -51,12 +36,7 @@ public class Client
                     int action = sc.nextInt();
                     byte[] sendAction = String.valueOf(action).getBytes("UTF-8");
 
-                    DatagramPacket sAction = new DatagramPacket(sendAction, sendAction.length, address, port);
-    
-                    socket.send(sAction);
-        
-                    // Wait for 2500 ms to ensure previous datagram packet has been sent.
-                    Thread.sleep(2500);
+                    sendPacketToServer(sendAction, 5000);
     
                     switch(action)
                     {
@@ -79,6 +59,9 @@ public class Client
                             System.out.println("Invalid action. Please try again.");
                             break;
                     }
+
+                    // Clear buffer at the end of each operation.
+                    Arrays.fill(buffer, (byte)0);
                 }
 
                 catch(InputMismatchException ime)
@@ -94,7 +77,7 @@ public class Client
         }
     }
 
-    public void deleteFile()
+    public static void deleteFile()
     {
         String fileName = "";
         System.out.println("Enter file name or 0 to cancel:");
@@ -111,12 +94,16 @@ public class Client
             // Get file to transfer.
             byte[] sendFileName = fileName.getBytes("UTF-8");
 
-            DatagramPacket sfn = new DatagramPacket(sendFileName, sendFileName.length, address, port);
+            sendPacketToServer(sendFileName, 5000);
 
-            socket.send(sfn);
+            Arrays.fill(buffer, (byte)0);
 
-            // Wait for 5000 ms to ensure previous datagram packet has been sent.
-            Thread.sleep(5000);
+            // Instantiate DatagramPacket object based on buffer.
+            DatagramPacket receivedMessage = receivePacketFromServer(buffer);
+
+            String message = new String(buffer, 0, receivedMessage.getLength());
+
+            System.out.println(message);
         }
 
         catch (Exception e)
@@ -125,7 +112,7 @@ public class Client
         }
     }
 
-    public void downloadFile()
+    public static void downloadFile()
     {
         String fileName = "";
         System.out.println("Enter file name or 0 to cancel:");
@@ -142,14 +129,9 @@ public class Client
             // Get file to transfer.
             byte[] sendFileName = fileName.getBytes("UTF-8");
 
-            DatagramPacket sfn = new DatagramPacket(sendFileName, sendFileName.length, address, port);
+            sendPacketToServer(sendFileName, 5000);
 
-            socket.send(sfn);
-
-            // Wait for 5000 ms to ensure previous datagram packet has been sent.
-            Thread.sleep(5000);
-
-            buffer = new byte[1024 * 1024 * 4];
+            Arrays.fill(buffer, (byte)0);
 
             // Instantiate DatagramPacket object based on buffer.
             DatagramPacket receivedMessage = receivePacketFromServer(buffer);
@@ -165,12 +147,12 @@ public class Client
         }
     }
 
-    public void editFile()
+    public static void editFile()
     {
         return;
     }
 
-    public DatagramPacket receivePacketFromServer(byte[] buffer)
+    public static DatagramPacket receivePacketFromServer(byte[] buffer)
     {
         // Instantiate DatagramPacket object based on buffer.
         DatagramPacket receivedPacket = new DatagramPacket(buffer, buffer.length);
@@ -189,7 +171,7 @@ public class Client
         return receivedPacket;
     }
 
-    public void sendPacketToServer(byte[] data, int timeout)
+    public static void sendPacketToServer(byte[] data, int timeout)
     {
         try
         {
@@ -206,7 +188,7 @@ public class Client
         }
     }
 
-    public void uploadFile()
+    public static void uploadFile()
     {
         String fileName = "";
         System.out.println("Enter file name or 0 to cancel:");
@@ -225,14 +207,21 @@ public class Client
 
             byte[] sendFileName = fileName.getBytes("UTF-8");
 
-            sendPacketToServer(sendFileName, 2500);
+            sendPacketToServer(sendFileName, 5000);
 
             // Convert file to byte array.
             byte[] sendData = Files.readAllBytes(targetFile.toPath());
             byte[] sendSize = String.valueOf(sendData.length).getBytes();
 
-            sendPacketToServer(sendSize, 2500);
-            sendPacketToServer(sendData, 2500);
+            sendPacketToServer(sendSize, 5000);
+            sendPacketToServer(sendData, 5000);
+
+            // Instantiate DatagramPacket object based on buffer.
+            DatagramPacket receivedMessage = receivePacketFromServer(buffer);
+
+            String message = new String(buffer, 0, receivedMessage.getLength());
+
+            System.out.println(message);
         }
 
         catch(Exception e)

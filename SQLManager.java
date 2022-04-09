@@ -85,27 +85,41 @@ public class SQLManager
         }
     }
 
-    public ResultSet deleteFile(String fileName)
+    public int deleteFile(String fileName)
     {
+        ResultSet rs = selectFileByName(fileName);
+
+        int success = -1;
+
         try 
         {
-            stmt = conn.createStatement();
+            if(!rs.next())
+            {
+                success = 0;
+            }
 
-            String sql = "DELETE FROM Files WHERE FileName = '" + fileName + "';";
+            else
+            {
+                stmt = conn.createStatement();
 
-            stmt.executeUpdate(sql);
+                String sql = "DELETE FROM Files WHERE FileName = '" + fileName + "';";
 
-            stmt.close();
+                stmt.executeUpdate(sql);
+
+                stmt.close();
+
+                success = 1;
+            }
 
         }
 
         catch(Exception e)
         {
             e.printStackTrace();
+            success = -1;
         }
 
-        ResultSet rs = selectFileByName(fileName);
-        return rs;
+        return success;
 
     }
 
