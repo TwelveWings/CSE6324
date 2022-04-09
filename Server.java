@@ -202,8 +202,6 @@ public class Server
 
             String fileName = new String(buffer, 0, receivedMessage.getLength());
 
-            System.out.println(fileName);
-
             SQLManager manager = new SQLManager(fileName);
             manager.setDBConnection();
 
@@ -214,14 +212,10 @@ public class Server
 
             int fileSize = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
 
-            System.out.println(fileSize);
-
             buffer = new byte[fileSize];
 
             // Instantiate DatagramPacket object based on buffer.
             receivedMessage = receivePacketFromClient(buffer);
-
-            System.out.println(new String(buffer, 0, buffer.length));
 
             // Insert file into database
             manager.insertData(buffer);
