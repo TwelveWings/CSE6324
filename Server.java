@@ -60,7 +60,45 @@ public class Server
 
     public void deleteFile()
     {
-        return;
+        SQLManager manager = new SQLManager();
+
+        manager.setDBConnection();
+
+        try
+        {
+            DatagramPacket receivedMessage = receivePacketFromClient(buffer);
+
+            String fileName = new String(buffer, 0, receivedMessage.getLength());
+
+            ResultSet rs = manager.deleteFile(fileName);
+
+            int count = 0;
+            while (rs.next())
+            {
+                count++;
+                
+                byte[] fileData = rs.getBytes("Data");
+
+                sendPacketToClient(fileData, receivedMessage.getAddress(), receivedMessage.getPort(), 2500);
+            }
+
+            if(count == 0)
+            {
+                byte[] message = "File does not exist in server.".getBytes("UTF-8");
+                sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 2500);
+            }
+
+            byte[] message = "File deleted successfully!".getBytes("UTF-8");
+            sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 2500);  
+    
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        manager.closeConnection();
     }
 
     public void downloadFile()
