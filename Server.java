@@ -225,7 +225,7 @@ public class Server
             receivedMessage = receivePacketFromClient(dataBuffer);
 
             // Insert file into database
-            int fileAdded = manager.insertData(dataBuffer, true);
+            int fileAdded = manager.insertData(dataBuffer);
             int clientResponse = 0;
 
             byte[] resultCode = String.valueOf(fileAdded).getBytes();

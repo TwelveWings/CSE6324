@@ -121,7 +121,7 @@ public class SQLManager
 
     }
 
-    public int insertData(byte[] data, boolean keepFile)
+    public int insertData(byte[] data)
     {
 
         ResultSet rs = selectFileByName(fileName);
@@ -134,7 +134,7 @@ public class SQLManager
         try
         {
             
-            if(rs.next() && keepFile)
+            if(rs.next())
             {
                 success = 0;
             }
