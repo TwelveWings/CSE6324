@@ -233,9 +233,15 @@ public class Server
                 byte[] message = "File already exists.".getBytes("UTF-8");
                 sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000); 
                 
-                receivedMessage = receivePacketFromClient(dataBuffer);
+                receivedMessage = receivePacketFromClient(buffer);
                 clientResponse = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
-                manager.updateFileByName(fileName, dataBuffer);
+
+                if(clientResponse == 1)
+                {
+                    manager.updateFileByName(fileName, dataBuffer);
+                    message = "File uploaded successfully!".getBytes("UTF-8");
+                    sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);                      
+                }
             }
 
             else if(fileAdded == 1)

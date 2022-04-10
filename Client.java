@@ -255,6 +255,12 @@ public class Client
                     byte[] sendAction = String.valueOf(overrideFileInDB).getBytes("UTF-8");
 
                     sendPacketToServer(sendAction, 5000);
+
+                    receivedMessage = receivePacketFromServer(buffer);
+
+                    message = new String(buffer, 0, receivedMessage.getLength());
+
+                    System.out.println(message);
                 }
 
                 else
