@@ -140,6 +140,10 @@ public class Server
 
                 if(count == 0)
                 {
+                    int fileSize = 0;
+                    byte[] sendSize = String.valueOf(fileSize).getBytes();
+                    sendPacketToClient(sendSize, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);
+
                     byte[] message = "File does not exist in server.".getBytes("UTF-8");
                     sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);
                 }
@@ -221,7 +225,6 @@ public class Server
             receivedMessage = receivePacketFromClient(dataBuffer);
 
             // Insert file into database
-
             int fileAdded = manager.insertData(dataBuffer, true);
             int clientResponse = 0;
 

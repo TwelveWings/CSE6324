@@ -25,8 +25,6 @@ public class Client
             // Establish socket connection.
             socket = new DatagramSocket();
 
-            boolean endProgram = false;
-
             while(true)
             {
                 System.out.println("What action do you want to perform? (1 - Upload, 2 - Download, 3 - Edit, 4 - Delete, 0 - Quit)");
@@ -141,19 +139,30 @@ public class Client
 
             int fileSize = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
 
-            byte[] dataBuffer = new byte[fileSize];
-
-            receivedMessage = receivePacketFromServer(dataBuffer);
-            
-            try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/" + fileName))
+            if(fileSize == 0)
             {
-                fos.write(dataBuffer);
-                System.out.println("Download successful!");
+                receivedMessage = receivePacketFromServer(buffer);
+                String message = new String(buffer, 0, receivedMessage.getLength());
+
+                System.out.println(message);
             }
 
-            catch(IOException ioe)
+            else
             {
-                ioe.printStackTrace();
+                byte[] dataBuffer = new byte[fileSize];
+
+                receivedMessage = receivePacketFromServer(dataBuffer);
+                
+                try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/" + fileName))
+                {
+                    fos.write(dataBuffer);
+                    System.out.println("Download successful!");
+                }
+
+                catch(IOException ioe)
+                {
+                    ioe.printStackTrace();
+                }
             }
         }
 
