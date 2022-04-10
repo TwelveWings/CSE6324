@@ -25,24 +25,25 @@ public class Client
             // Establish socket connection.
             socket = new DatagramSocket();
 
-            boolean endProgram = false;
-
-            while(!endProgram)
+            while(true)
             {
                 System.out.println("What action do you want to perform? (1 - Upload, 2 - Download, 3 - Edit, 4 - Delete, 0 - Quit)");
 
                 try 
                 {
                     int action = sc.nextInt();
+
+                    if(action == 0)
+                    {
+                        break;
+                    }
+
                     byte[] sendAction = String.valueOf(action).getBytes("UTF-8");
 
                     sendPacketToServer(sendAction, 5000);
     
                     switch(action)
                     {
-                        case 0:
-                            endProgram = true;
-                            break;
                         case 1:
                             uploadFile();
                             break;
@@ -85,7 +86,7 @@ public class Client
 
         if(fileName.equals("0") || fileName.trim().equals(""))
         {
-            System.out.println("Download cancelled.");
+            System.out.println("Delete request cancelled.");
             return;
         }
 
@@ -136,9 +137,33 @@ public class Client
             // Instantiate DatagramPacket object based on buffer.
             DatagramPacket receivedMessage = receivePacketFromServer(buffer);
 
-            String message = new String(buffer, 0, receivedMessage.getLength());
+            int fileSize = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
 
-            System.out.println(message);
+            if(fileSize == 0)
+            {
+                receivedMessage = receivePacketFromServer(buffer);
+                String message = new String(buffer, 0, receivedMessage.getLength());
+
+                System.out.println(message);
+            }
+
+            else
+            {
+                byte[] dataBuffer = new byte[fileSize];
+
+                receivedMessage = receivePacketFromServer(dataBuffer);
+                
+                try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/" + fileName))
+                {
+                    fos.write(dataBuffer);
+                    System.out.println("Download successful!");
+                }
+
+                catch(IOException ioe)
+                {
+                    ioe.printStackTrace();
+                }
+            }
         }
 
         catch(Exception e)
@@ -219,9 +244,39 @@ public class Client
             // Instantiate DatagramPacket object based on buffer.
             DatagramPacket receivedMessage = receivePacketFromServer(buffer);
 
+            int resultCode = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
+
+            receivedMessage = receivePacketFromServer(buffer);
+
             String message = new String(buffer, 0, receivedMessage.getLength());
 
             System.out.println(message);
+
+            if(resultCode == 0)
+            {
+                int overrideFileInDB = 0;
+
+                System.out.println("Override File? 1 - Yes 2 - No");
+                overrideFileInDB = sc.nextInt();
+        
+                if(overrideFileInDB == 1)
+                {
+                    byte[] sendAction = String.valueOf(overrideFileInDB).getBytes("UTF-8");
+
+                    sendPacketToServer(sendAction, 5000);
+
+                    receivedMessage = receivePacketFromServer(buffer);
+
+                    message = new String(buffer, 0, receivedMessage.getLength());
+
+                    System.out.println(message);
+                }
+
+                else
+                {
+                    System.out.println("Upload cancelled.");
+                }
+            }
         }
 
         catch(Exception e)

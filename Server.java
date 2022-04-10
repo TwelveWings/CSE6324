@@ -89,16 +89,16 @@ public class Server
                 sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);
             }
 
-            else if(fileDeleted == -1)
+            else if(fileDeleted == 1)
             {
-                byte[] message = "Error occurred. File not deleted.".getBytes("UTF-8");
-                sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);                
+                byte[] message = "File deleted successfully!".getBytes("UTF-8");
+                sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);  
             }
 
             else
             {
-                byte[] message = "File deleted successfully!".getBytes("UTF-8");
-                sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);  
+                byte[] message = "Error occurred. File not deleted.".getBytes("UTF-8");
+                sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);                
             }
         }
 
@@ -132,11 +132,18 @@ public class Server
 
                     byte[] fileData = rs.getBytes("Data");
 
+                    byte[] sendSize = String.valueOf(fileData.length).getBytes();
+
+                    sendPacketToClient(sendSize, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);
                     sendPacketToClient(fileData, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);
                 }
 
                 if(count == 0)
                 {
+                    int fileSize = 0;
+                    byte[] sendSize = String.valueOf(fileSize).getBytes();
+                    sendPacketToClient(sendSize, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);
+
                     byte[] message = "File does not exist in server.".getBytes("UTF-8");
                     sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);
                 }
@@ -212,19 +219,49 @@ public class Server
 
             int fileSize = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
 
-            buffer = new byte[fileSize];
+            byte[] dataBuffer = new byte[fileSize];
 
             // Instantiate DatagramPacket object based on buffer.
-            receivedMessage = receivePacketFromClient(buffer);
+            receivedMessage = receivePacketFromClient(dataBuffer);
 
             // Insert file into database
-            manager.insertData(buffer);
+            int fileAdded = manager.insertData(dataBuffer);
+            int clientResponse = 0;
+
+            byte[] resultCode = String.valueOf(fileAdded).getBytes();
+            sendPacketToClient(resultCode, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);
+
+            if(fileAdded == 0)
+            {
+                byte[] message = "File already exists.".getBytes("UTF-8");
+                sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000); 
+                
+                receivedMessage = receivePacketFromClient(buffer);
+                clientResponse = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
+
+                if(clientResponse == 1)
+                {
+                    manager.updateFileByName(fileName, dataBuffer);
+                    message = "File uploaded successfully!".getBytes("UTF-8");
+                    sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);                      
+                }
+            }
+
+            else if(fileAdded == 1)
+            {
+                byte[] message = "File uploaded successfully!".getBytes("UTF-8");
+                sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);  
+            }
+
+            else
+            {
+                byte[] message = "Error occurred. File not uploaded.".getBytes("UTF-8");
+                sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);  
+            }
+
 
             // Close connection to DB
             manager.closeConnection();
-
-            byte[] message = "File uploaded successfully!".getBytes("UTF-8");
-            sendPacketToClient(message, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);  
         }
 
         catch(Exception e)

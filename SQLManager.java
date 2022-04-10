@@ -52,7 +52,6 @@ public class SQLManager
         }
     }
 
-
     public void closeConnection()
     {
         try 
@@ -116,43 +115,49 @@ public class SQLManager
         catch(Exception e)
         {
             e.printStackTrace();
-            success = -1;
         }
 
         return success;
 
     }
 
-    public void insertData(byte[] data)
+    public int insertData(byte[] data)
     {
 
-        //ResultSet rs = selectFileByName(fileName);
+        ResultSet rs = selectFileByName(fileName);
+
+        int success = -1;
 
         String sql = "INSERT INTO Files (FileName, Data)" + 
             " VALUES (?, ?)";
 
         try
         {
-            /*
+            
             if(rs.next())
             {
-                System.out.println("File already exists in server. Continue (1 - Yes, 2 - No)?");
-                return;
+                success = 0;
             }
-            */
     
-            PreparedStatement ps = conn.prepareStatement(sql);
+            else
+            {
+                PreparedStatement ps = conn.prepareStatement(sql);
 
-            ps.setString(1, fileName);
-            ps.setBytes(2, data);
+                ps.setString(1, fileName);
+                ps.setBytes(2, data);
 
-            ps.executeUpdate();
+                ps.executeUpdate();
+
+                success = 1;
+            }
         }
 
         catch(Exception e)
         {
             e.printStackTrace();
         }
+
+        return success;
     }
 
     public ResultSet selectAllFiles()
@@ -208,5 +213,25 @@ public class SQLManager
         }
 
         return rs;
+    }
+
+    public void updateFileByName(String fileName, byte[] data)
+    {
+        String sql = "UPDATE Files SET Data = ?";
+
+        try
+        {
+            PreparedStatement ps = conn.prepareStatement(sql);
+            
+            ps.setBytes(1, data);
+
+            ps.executeUpdate();            
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
     }
 }
