@@ -132,6 +132,9 @@ public class Client
             // Send file name to download.
             sendMessageToServer(fileName, 5000);
 
+            // Send datagram to establish connection
+            sendPacketToServer("1".getBytes(), 5000);
+
             Arrays.fill(buffer, (byte)0);
 
             // Instantiate DatagramPacket object based on buffer.
@@ -283,7 +286,7 @@ public class Client
                 System.out.println("Override File? 1 - Yes 2 - No");
                 String overrideFileInDB = sc.next();
         
-                if(overrideFileInDB == "1")
+                if(overrideFileInDB.equals("1"))
                 {
                     sendMessageToServer(overrideFileInDB, 5000);
 

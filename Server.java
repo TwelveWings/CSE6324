@@ -50,8 +50,6 @@ public class Server
 
                 int action = (receivedMessage != null) ? Integer.valueOf(receivedMessage) : 0;
 
-                System.out.println(receivedMessage);
-
                 switch(action)
                 {
                     case 1:
