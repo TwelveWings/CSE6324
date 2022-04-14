@@ -1,15 +1,17 @@
 import java.io.*;
-import java.nio.file.Files;
 import java.net.*;
+import java.nio.file.Files;
 import java.util.*;
 
 public class Client
 {
-    public static DatagramSocket socket;
+    public static DatagramSocket udpSocket;
     public static byte[] buffer;
     public static InetAddress address;
     public static int port;
+    public static final int bufferSize = 1024 * 1024 * 4;
     public static Scanner sc;
+    public static Socket tcpSocket;
 
     public static void main(String[] args)
     {
@@ -20,10 +22,13 @@ public class Client
             address = InetAddress.getLocalHost();
             port = 17;
 
-            buffer = new byte[1024 * 1024 * 4];
+            buffer = new byte[bufferSize];
 
-            // Establish socket connection.
-            socket = new DatagramSocket();
+            // Establish TCP socket connection
+            tcpSocket = new Socket(address, port);
+
+            // Establish UDP socket connection.
+            udpSocket = new DatagramSocket();
 
             while(true)
             {
@@ -31,18 +36,16 @@ public class Client
 
                 try 
                 {
-                    int action = sc.nextInt();
+                    String action = sc.next();
 
-                    if(action == 0)
+                    if(action.equals("0"))
                     {
                         break;
                     }
 
-                    byte[] sendAction = String.valueOf(action).getBytes("UTF-8");
-
-                    sendPacketToServer(sendAction, 5000);
+                    sendMessageToServer(action, 5000);
     
-                    switch(action)
+                    switch(Integer.valueOf(action))
                     {
                         case 1:
                             uploadFile();
@@ -70,6 +73,9 @@ public class Client
                     continue;
                 }
             }
+
+            tcpSocket.close();
+            udpSocket.close();
         }
 
         catch(Exception e)
@@ -92,17 +98,13 @@ public class Client
 
         try
         {
-            // Get file to transfer.
-            byte[] sendFileName = fileName.getBytes("UTF-8");
-
-            sendPacketToServer(sendFileName, 5000);
+            // Send file to delete.
+            sendMessageToServer(fileName, 5000);
 
             Arrays.fill(buffer, (byte)0);
 
             // Instantiate DatagramPacket object based on buffer.
-            DatagramPacket receivedMessage = receivePacketFromServer(buffer);
-
-            String message = new String(buffer, 0, receivedMessage.getLength());
+            String message = receiveMessageFromServer();
 
             System.out.println(message);
         }
@@ -127,22 +129,20 @@ public class Client
 
         try
         {
-            // Get file to transfer.
-            byte[] sendFileName = fileName.getBytes("UTF-8");
+            // Send file name to download.
+            sendMessageToServer(fileName, 5000);
 
-            sendPacketToServer(sendFileName, 5000);
+            // Send datagram to establish connection
+            sendPacketToServer("1".getBytes(), 5000);
 
             Arrays.fill(buffer, (byte)0);
 
             // Instantiate DatagramPacket object based on buffer.
-            DatagramPacket receivedMessage = receivePacketFromServer(buffer);
-
-            int fileSize = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
+            int fileSize = Integer.valueOf(receiveMessageFromServer());
 
             if(fileSize == 0)
             {
-                receivedMessage = receivePacketFromServer(buffer);
-                String message = new String(buffer, 0, receivedMessage.getLength());
+                String message = receiveMessageFromServer();
 
                 System.out.println(message);
             }
@@ -151,7 +151,7 @@ public class Client
             {
                 byte[] dataBuffer = new byte[fileSize];
 
-                receivedMessage = receivePacketFromServer(dataBuffer);
+                DatagramPacket receivedMessage = receivePacketFromServer(dataBuffer);
                 
                 try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/" + fileName))
                 {
@@ -177,6 +177,25 @@ public class Client
         return;
     }
 
+    public static String receiveMessageFromServer()
+    {
+        String message = "";
+
+        try
+        {
+            BufferedReader fromServer = new BufferedReader(new InputStreamReader(tcpSocket.getInputStream()));
+            message = fromServer.readLine();
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return message;
+    }
+
+
     public static DatagramPacket receivePacketFromServer(byte[] buffer)
     {
         // Instantiate DatagramPacket object based on buffer.
@@ -185,7 +204,7 @@ public class Client
         try
         {
             // Receive file name from client program.
-            socket.receive(receivedPacket);
+            udpSocket.receive(receivedPacket);
         }
 
         catch(Exception e)
@@ -196,13 +215,27 @@ public class Client
         return receivedPacket;
     }
 
+    public static void sendMessageToServer(String message, int timeout)
+    {
+        try
+        {
+            PrintWriter toServer = new PrintWriter(tcpSocket.getOutputStream(), true);
+            toServer.println(message);
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
     public static void sendPacketToServer(byte[] data, int timeout)
     {
         try
         {
             DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
 
-            socket.send(packet);
+            udpSocket.send(packet);
 
             Thread.sleep(timeout);
         }
@@ -230,44 +263,34 @@ public class Client
             // Get file to transfer.
             File targetFile = new File(fileName);
 
-            byte[] sendFileName = fileName.getBytes("UTF-8");
-
-            sendPacketToServer(sendFileName, 5000);
+            sendMessageToServer(fileName, 5000);
 
             // Convert file to byte array.
             byte[] sendData = Files.readAllBytes(targetFile.toPath());
-            byte[] sendSize = String.valueOf(sendData.length).getBytes();
+            String fileSize = String.valueOf(sendData.length);
 
-            sendPacketToServer(sendSize, 5000);
+            // Send information about file via TCP.
+            sendMessageToServer(fileSize, 5000);
+
+            // Send file data via UDP
             sendPacketToServer(sendData, 5000);
 
-            // Instantiate DatagramPacket object based on buffer.
-            DatagramPacket receivedMessage = receivePacketFromServer(buffer);
+            int resultCode = Integer.valueOf(receiveMessageFromServer());
 
-            int resultCode = Integer.valueOf(new String(buffer, 0, receivedMessage.getLength()));
-
-            receivedMessage = receivePacketFromServer(buffer);
-
-            String message = new String(buffer, 0, receivedMessage.getLength());
+            String message = receiveMessageFromServer();
 
             System.out.println(message);
 
             if(resultCode == 0)
             {
-                int overrideFileInDB = 0;
-
                 System.out.println("Override File? 1 - Yes 2 - No");
-                overrideFileInDB = sc.nextInt();
+                String overrideFileInDB = sc.next();
         
-                if(overrideFileInDB == 1)
+                if(overrideFileInDB.equals("1"))
                 {
-                    byte[] sendAction = String.valueOf(overrideFileInDB).getBytes("UTF-8");
+                    sendMessageToServer(overrideFileInDB, 5000);
 
-                    sendPacketToServer(sendAction, 5000);
-
-                    receivedMessage = receivePacketFromServer(buffer);
-
-                    message = new String(buffer, 0, receivedMessage.getLength());
+                    message = receiveMessageFromServer();
 
                     System.out.println(message);
                 }
