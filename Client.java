@@ -265,6 +265,9 @@ public class Client
 
             sendMessageToServer(fileName, 5000);
 
+            // Send datagram to establish connection
+            sendPacketToServer("1".getBytes(), 5000);
+
             // Convert file to byte array.
             byte[] sendData = Files.readAllBytes(targetFile.toPath());
             String fileSize = String.valueOf(sendData.length);
