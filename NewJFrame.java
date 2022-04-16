@@ -2,9 +2,9 @@
 import javax.swing.JFileChooser;
 import java.io.File;
 import java.sql.*;
+import java.util.*;
 
 public class NewJFrame extends javax.swing.JFrame {
-
 
     public NewJFrame() {
         initComponents();
@@ -51,18 +51,29 @@ public class NewJFrame extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Cloud Application");
 
-        jList1.setModel(new javax.swing.AbstractListModel<String>() {
+        jList1.setModel(new javax.swing.AbstractListModel<String>() 
+        {
             // File file = new File("D:\\Others\\LinkedIn Learning\\Java");
             // String[] strings = file.list();
-            SQLManager sm = new SQLManager();
         
-            sm.setDBConnection();
-            String name = rs.getString("FileName");
+            List<String> fileNames = null;
             ResultSet rs = sm.selectAllFiles();
-            String[] strings = rs.list();
-            public int getSize() { return strings.length; }
-            public String getElementAt(int i) { return strings[i]; }
+            
+            public int getSize() 
+            { 
+                fileNames = sm.selectAllFilesNames();
+
+                return fileNames.size(); 
+            }
+            
+            public String getElementAt(int i) 
+            { 
+                fileNames = sm.selectAllFilesNames();
+                
+                return fileNames.get(i); 
+            }
         });
+
         jScrollPane1.setViewportView(jList1);
 
         jButton2.setText("Edit");
@@ -315,6 +326,11 @@ public class NewJFrame extends javax.swing.JFrame {
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
          * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
          */
+
+        sm = new SQLManager();
+
+        sm.setDBConnection();
+
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
@@ -336,6 +352,7 @@ public class NewJFrame extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
+                
                 new NewJFrame().setVisible(true);
             }
         });
@@ -366,5 +383,6 @@ public class NewJFrame extends javax.swing.JFrame {
     private javax.swing.JSeparator jSeparator4;
     private javax.swing.JSeparator jSeparator5;
     private javax.swing.JTextArea jTextArea1;
+    private static SQLManager sm;
     // End of variables declaration                   
 }

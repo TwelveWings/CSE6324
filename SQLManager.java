@@ -1,4 +1,5 @@
 import java.sql.*;
+import java.util.*;
 
 public class SQLManager
 {
@@ -176,6 +177,30 @@ public class SQLManager
         }
 
         return rs;
+    }
+
+    public List<String> selectAllFilesNames()
+    {
+        List<String> fileNames = new ArrayList<String>();
+        ResultSet rs = null;
+        try 
+        {
+            stmt = conn.createStatement();
+
+            rs =  stmt.executeQuery("SELECT * FROM Files;");
+
+            while(rs.next())
+            {
+                fileNames.add(rs.getString("FileName"));
+            }
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return fileNames;
     }
 
 
