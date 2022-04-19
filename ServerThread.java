@@ -10,13 +10,15 @@ public class ServerThread extends Thread
     public int ID;
     public Scanner sc;
     public static byte[] buffer;
+    public static int bufferSize;
 
-    public ServerThread(Socket sSocketTCP, DatagramSocket socketUDP, int tID, byte[] b)
+    public ServerThread(Socket sSocketTCP, DatagramSocket socketUDP, byte[] b, int bs, int tID)
     {
         tcpSocket = sSocketTCP;
         udpSocket = socketUDP;
         ID = tID;
         buffer = b;
+        bufferSize = bs;
     }
 
     public void run()
@@ -158,14 +160,14 @@ public class ServerThread extends Thread
         return message;
     }
 
-    public static DatagramPacket receivePacketFromClient(byte[] buffer)
+    public static DatagramPacket receivePacketFromClient(byte[] rBuffer)
     {
-        // Instantiate DatagramPacket object based on buffer.
-        DatagramPacket receivedPacket = new DatagramPacket(buffer, buffer.length);
+        // Instantiate DatagramPacket object based on received data - rBuffer (received Buffer).
+        DatagramPacket receivedPacket = new DatagramPacket(rBuffer, rBuffer.length);
 
         try
         {
-            // Receive file name from client program.
+            // Receive file data from client program.
             udpSocket.receive(receivedPacket);
 
             Thread.sleep(5000);
@@ -223,16 +225,45 @@ public class ServerThread extends Thread
             manager.setDBConnection();
 
             Arrays.fill(buffer, (byte)0);
-            
-            int fileSize = Integer.valueOf(receiveMessageFromClient());
 
-            byte[] dataBuffer = new byte[fileSize];
+            List<byte[]> blocks = new ArrayList<byte[]>();
+            byte[] dataBuffer = null;
 
-            // Receive data from client using UDP.
-            DatagramPacket receivedMessage = receivePacketFromClient(dataBuffer);
+            int numBlocks = Integer.valueOf(receiveMessageFromClient());
+            int fileSize = 0;
+
+            for(int i = 0; i < numBlocks; i++)
+            {
+                int blockSize = Integer.valueOf(receiveMessageFromClient());
+
+                fileSize += blockSize;
+
+                dataBuffer = new byte[blockSize];
+
+                // Receive block from client.
+                DatagramPacket receivedMessage = receivePacketFromClient(dataBuffer);
+
+                blocks.add(dataBuffer);
+            }
+
+            byte[] fileData = new byte[fileSize];
+
+            int startPosition = 0;
+
+            // Loop through each block. Add blocks to fileData.
+            for(int i = 0; i < blocks.size(); i++)
+            {
+                for(int j = startPosition; j < blocks.get(i).length; j++)
+                {
+                    fileData[j] = blocks.get(i)[j - startPosition];
+                }
+
+                // New start position is based on the end of the last blocks. 
+                startPosition += blocks.get(i).length;
+            }
 
             // Insert file into database
-            int fileAdded = manager.insertData(dataBuffer);
+            int fileAdded = manager.insertData(fileData, fileSize);
             int clientResponse = 0;
 
             String resultCode = String.valueOf(fileAdded);

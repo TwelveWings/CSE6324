@@ -47,7 +47,7 @@ public class Server
             while(true)
             {
                 tcpSocket = serverSocket.accept();
-                sts.add(new ServerThread(tcpSocket, udpSocket, sts.size(), buffer));
+                sts.add(new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, sts.size()));
                 sts.get(sts.size() - 1).start();
             }
         }

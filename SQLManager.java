@@ -1,4 +1,7 @@
 import java.sql.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.*;
 
 public class SQLManager
 {
@@ -40,6 +43,7 @@ public class SQLManager
             String sql = "CREATE TABLE IF NOT EXISTS Files " +
                 "(ID INTEGER PRIMARY KEY AUTOINCREMENT," +
                 " FileName VARCHAR(30) NOT NULL," +
+                " FileSize INT NOT NULL, " +
                 " Data BLOB NOT NULL)";
 
             stmt.executeUpdate(sql);
@@ -121,15 +125,15 @@ public class SQLManager
 
     }
 
-    public int insertData(byte[] data)
+    public int insertData(byte[] data, int fileSize)
     {
 
         ResultSet rs = selectFileByName(fileName);
 
         int success = -1;
 
-        String sql = "INSERT INTO Files (FileName, Data)" + 
-            " VALUES (?, ?)";
+        String sql = "INSERT INTO Files (FileName, FileSize, Data)" + 
+            " VALUES (?, ?, ?)";
 
         try
         {
@@ -144,7 +148,8 @@ public class SQLManager
                 PreparedStatement ps = conn.prepareStatement(sql);
 
                 ps.setString(1, fileName);
-                ps.setBytes(2, data);
+                ps.setInt(2, fileSize);
+                ps.setBytes(3, data);
 
                 ps.executeUpdate();
 
@@ -160,14 +165,20 @@ public class SQLManager
         return success;
     }
 
-    public ResultSet selectAllFiles()
+    public List<String> selectAllFileNames()
     {
+        List<String> fileNames = new ArrayList<String>();
         ResultSet rs = null;
         try 
         {
             stmt = conn.createStatement();
 
-            rs =  stmt.executeQuery("SELECT * FROM Files;");
+            rs =  stmt.executeQuery("SELECT FileName FROM Files;");
+
+            while(rs.next())
+            {
+                fileNames.add(rs.getString("FileName"));
+            }
         }
 
         catch(Exception e)
@@ -175,9 +186,35 @@ public class SQLManager
             e.printStackTrace();
         }
 
-        return rs;
+        return fileNames;
     }
 
+    public ConcurrentHashMap<String, FileData> selectAllFiles()
+    {
+        ConcurrentHashMap<String, FileData> files = new ConcurrentHashMap<String, FileData>();
+        ResultSet rs = null;
+        try 
+        {
+            stmt = conn.createStatement();
+
+            rs =  stmt.executeQuery("SELECT * FROM Files;");
+
+            while(rs.next())
+            {
+                FileData fd = new FileData(rs.getBytes("Data"), rs.getString("FileName"),
+                    rs.getInt("FileSize"));
+
+                files.put(rs.getString("FileName"), fd);
+            }
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return files;
+    }
 
     public ResultSet selectFileByName(String fileName)
     {

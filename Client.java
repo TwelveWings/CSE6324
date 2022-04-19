@@ -151,7 +151,21 @@ public class Client
             {
                 byte[] dataBuffer = new byte[fileSize];
 
+                System.out.println("Before Receiving Data:");
+
+                for(int i = 0; i < dataBuffer.length; i++)
+                {
+                    System.out.print(dataBuffer[i]);
+                }
+
                 DatagramPacket receivedMessage = receivePacketFromServer(dataBuffer);
+
+                System.out.println("After Receiving Data:");                
+
+                for(int i = 0; i < dataBuffer.length; i++)
+                {
+                    System.out.print(dataBuffer[i]);
+                }
                 
                 try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/" + fileName))
                 {
@@ -270,13 +284,23 @@ public class Client
 
             // Convert file to byte array.
             byte[] sendData = Files.readAllBytes(targetFile.toPath());
-            String fileSize = String.valueOf(sendData.length);
 
-            // Send information about file via TCP.
-            sendMessageToServer(fileSize, 5000);
+            FileData fd = new FileData(sendData, fileName, bufferSize, sendData.length);
 
-            // Send file data via UDP
-            sendPacketToServer(sendData, 5000);
+            // Segment data byte array into blocks of size <= bufferSize.
+            fd.createBlocks(sendData);
+
+            // Send server a message with the number of blocks being sent.
+            sendMessageToServer(String.valueOf(fd.blocks.size()), 5000);
+
+            for(int i = 0; i < fd.blocks.size(); i++)
+            {
+                // Send size of block to server via TCP.
+                sendMessageToServer(String.valueOf(fd.blocks.get(i).length), 5000);
+
+                // Send block data to server via UDP
+                sendPacketToServer(fd.blocks.get(i), 5000);
+            }
 
             int resultCode = Integer.valueOf(receiveMessageFromServer());
 
