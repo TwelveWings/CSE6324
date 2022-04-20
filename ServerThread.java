@@ -243,7 +243,7 @@ public class ServerThread extends Thread
                 // Receive block from client.
                 DatagramPacket receivedMessage = receivePacketFromClient(dataBuffer);
 
-                blocks.add(dataBuffer);
+                blocks.add(receivedMessage.getData());
             }
 
             byte[] fileData = new byte[fileSize];
@@ -253,7 +253,7 @@ public class ServerThread extends Thread
             // Loop through each block. Add blocks to fileData.
             for(int i = 0; i < blocks.size(); i++)
             {
-                for(int j = startPosition; j < blocks.get(i).length; j++)
+                for(int j = startPosition; j < fileSize - startPosition; j++)
                 {
                     fileData[j] = blocks.get(i)[j - startPosition];
                 }

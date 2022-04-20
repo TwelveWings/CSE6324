@@ -151,25 +151,11 @@ public class Client
             {
                 byte[] dataBuffer = new byte[fileSize];
 
-                System.out.println("Before Receiving Data:");
-
-                for(int i = 0; i < dataBuffer.length; i++)
-                {
-                    System.out.print(dataBuffer[i]);
-                }
-
                 DatagramPacket receivedMessage = receivePacketFromServer(dataBuffer);
-
-                System.out.println("After Receiving Data:");                
-
-                for(int i = 0; i < dataBuffer.length; i++)
-                {
-                    System.out.print(dataBuffer[i]);
-                }
                 
                 try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/" + fileName))
                 {
-                    fos.write(dataBuffer);
+                    fos.write(receivedMessage.getData());
                     System.out.println("Download successful!");
                 }
 
@@ -279,27 +265,26 @@ public class Client
 
             sendMessageToServer(fileName, 5000);
 
-            // Send datagram to establish connection
-            sendPacketToServer("1".getBytes(), 5000);
-
             // Convert file to byte array.
             byte[] sendData = Files.readAllBytes(targetFile.toPath());
 
-            FileData fd = new FileData(sendData, fileName, bufferSize, sendData.length);
+            FileData fd = new FileData(sendData, fileName, sendData.length);
 
             // Segment data byte array into blocks of size <= bufferSize.
-            fd.createBlocks(sendData);
+            fd.createBlocks(sendData, bufferSize);
+
+            List<byte[]> blocks = fd.getBlocks();
 
             // Send server a message with the number of blocks being sent.
-            sendMessageToServer(String.valueOf(fd.blocks.size()), 5000);
-
-            for(int i = 0; i < fd.blocks.size(); i++)
+            sendMessageToServer(String.valueOf(blocks.size()), 5000);
+            
+            for(int i = 0; i < blocks.size(); i++)
             {
                 // Send size of block to server via TCP.
-                sendMessageToServer(String.valueOf(fd.blocks.get(i).length), 5000);
+                sendMessageToServer(String.valueOf(blocks.get(i).length), 5000);
 
                 // Send block data to server via UDP
-                sendPacketToServer(fd.blocks.get(i), 5000);
+                sendPacketToServer(blocks.get(i), 5000);
             }
 
             int resultCode = Integer.valueOf(receiveMessageFromServer());
