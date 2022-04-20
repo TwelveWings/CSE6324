@@ -1,39 +1,36 @@
-import java.sql.*;
+import java.util.concurrent.*;
 
 public class TableReader
 {
     public static void main(String args[])
     {
-        SQLManager sm = new SQLManager();
+        SQLManager sm = new SQLManager("Name.txt");
 
         sm.setDBConnection();
 
-        ResultSet rs = sm.selectAllFiles();
+        sm.createTable();
 
-        try
+        if(args.length > 0 && args[0].equals("test"))
         {
-            int count = 0;
-            while (rs.next())
-            {        
-                count++;    
-                int ID = rs.getInt("ID");
-                String name = rs.getString("FileName");
-                byte[] fileData = rs.getBytes("Data");
-
-                System.out.println(ID);
-                System.out.println(name);
-                System.out.print(new String(fileData, 0, fileData.length));
-            }
-
-            if(count == 0)
-            {
-                System.out.println("No files exist.");
-            }
+            sm.insertData(new byte[1], 10);
         }
 
-        catch(Exception e)
+        ConcurrentHashMap<String, FileData> fd = sm.selectAllFiles();
+
+        if(fd.size() == 0)
         {
-            e.printStackTrace();
+            System.out.println("No files exist.");
+        }
+
+        else
+        {
+            fd.forEach((k, v) -> System.out.printf("Name: %s\nSize:%d\nData: %s\n", v.fileName, v.fileSize, new String(v.data, 0, v.data.length)));
+        }
+
+
+        if(args.length > 0 && args[0].equals("test"))
+        {
+            sm.dropTable();
         }
     }
 }
