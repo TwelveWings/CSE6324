@@ -6,7 +6,7 @@ public class Server
     public static DatagramSocket udpSocket;
     public static byte[] buffer;
     public static int port;
-    public static final int bufferSize = 1024 * 1024 * 4;
+    public static final int bufferSize = 65535;
     public static Scanner sc;
     public static ServerSocket serverSocket;
     public static Socket tcpSocket;
@@ -45,7 +45,11 @@ public class Server
             while(true)
             {
                 tcpSocket = serverSocket.accept();
-                sts.add(new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, sts.size()));
+
+                TCPManager tcpm = new TCPManager(tcpSocket);
+                UDPManager udpm = new UDPManager(udpSocket);
+
+                sts.add(new ServerThread(tcpm, udpm, buffer, bufferSize, sts.size()));
                 sts.get(sts.size() - 1).start();
             }
         }

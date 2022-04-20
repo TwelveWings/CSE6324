@@ -3,6 +3,7 @@ import java.util.*;
 public class FileData 
 {
     public List<byte[]> blocks;
+    public List<byte[]> packets;
     public byte[] data;
     public String fileName;
     public int fileSize;
@@ -14,24 +15,34 @@ public class FileData
         fileSize = fs;
     }
 
-    public void setBlocks(List<byte[]> b)
-    {
-        blocks = b;
-    }
-
     public List<byte[]> getBlocks()
     {
         return blocks;
     }
 
-    public void createBlocks(byte[] data, int bufferSize)
+    public void setBlocks(List<byte[]> b)
     {
-        List<byte[]> dataBlocks = new ArrayList<byte[]>();
+        blocks = b;
+    }
+
+    public List<byte[]> getPackets()
+    {
+        return packets;
+    }
+
+    public void setPackets(List<byte[]> p)
+    {
+        packets = p;
+    }
+
+    public void createSegments(byte[] data, int size, Segment type)
+    {
+        List<byte[]> segments = new ArrayList<byte[]>();
 
         // Create a temporary (temp) byte array to hold block data and an empty byte array to check
         //  when the array has been emptied.
-        byte[] temp = new byte[bufferSize];
-        byte[] empty = new byte[bufferSize];
+        byte[] temp = new byte[size];
+        byte[] empty = new byte[size];
 
         // Used to see how much of the file data has been processed.
         int remainingData = data.length;
@@ -42,24 +53,32 @@ public class FileData
         {
             // If the array is empty and remaining data is not equal to or greater than the buffer size, 
             // the temp array needs to be sized to ensure only actual data is included in the block.
-            if(Arrays.equals(temp, empty) && remainingData < bufferSize)
+            if(Arrays.equals(temp, empty) && remainingData < size)
             {
                 temp = new byte[remainingData];
             }
 
-            temp[i % bufferSize] = data[i];
+            temp[i % size] = data[i];
 
             // Check to see if the temp array has reached maximum capacity. If so, add the block to the
             // dataBlocks ArrayList and clear it the temp array.
-            if(i > 0 && ((i + 1 % bufferSize == 0) || (i == data.length - 1 && remainingData < bufferSize)))
+            if(i > 0 && ((i + 1 % size == 0) || (i == data.length - 1 && remainingData < size)))
             {
-                dataBlocks.add(temp);
-                temp = new byte[bufferSize];
+                segments.add(temp);
+                temp = new byte[size];
             }
 
             remainingData--;
         }
 
-        setBlocks(dataBlocks);
+        if(type == Segment.Block)
+        {
+            setBlocks(segments);
+        }
+
+        else
+        {
+            setPackets(segments);
+        }
     }
 }

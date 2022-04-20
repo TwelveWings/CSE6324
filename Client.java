@@ -9,9 +9,13 @@ public class Client
     public static byte[] buffer;
     public static InetAddress address;
     public static int port;
-    public static final int bufferSize = 1024 * 1024 * 4;
+    public static final int blockSize = 1024 * 1024 * 4;
+    public static final int bufferSize = 65536;
     public static Scanner sc;
     public static Socket tcpSocket;
+    public static TCPManager tcpm;
+    public static UDPManager udpm;
+
 
     public static void main(String[] args)
     {
@@ -29,6 +33,9 @@ public class Client
 
             // Establish UDP socket connection.
             udpSocket = new DatagramSocket();
+
+            tcpm = new TCPManager(tcpSocket);
+            udpm = new UDPManager(udpSocket);
 
             while(true)
             {
@@ -133,7 +140,7 @@ public class Client
             sendMessageToServer(fileName, 5000);
 
             // Send datagram to establish connection
-            sendPacketToServer("1".getBytes(), 5000);
+            udpm.sendPacketToServer("1".getBytes(), address, port, 5000);
 
             Arrays.fill(buffer, (byte)0);
 
@@ -229,23 +236,6 @@ public class Client
         }
     }
 
-    public static void sendPacketToServer(byte[] data, int timeout)
-    {
-        try
-        {
-            DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
-
-            udpSocket.send(packet);
-
-            Thread.sleep(timeout);
-        }
-
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-    }
-
     public static void uploadFile()
     {
         String fileName = "";
@@ -270,21 +260,21 @@ public class Client
 
             FileData fd = new FileData(sendData, fileName, sendData.length);
 
-            // Segment data byte array into blocks of size <= bufferSize.
-            fd.createBlocks(sendData, bufferSize);
+            // Segment data byte array into packets of size <= bufferSize.
+            fd.createSegments(sendData, bufferSize, Segment.Packet);
 
-            List<byte[]> blocks = fd.getBlocks();
+            List<byte[]> packets = fd.getPackets();
 
-            // Send server a message with the number of blocks being sent.
-            sendMessageToServer(String.valueOf(blocks.size()), 5000);
+            // Send server a message with the number of packets being sent.
+            sendMessageToServer(String.valueOf(packets.size()), 5000);
             
-            for(int i = 0; i < blocks.size(); i++)
+            for(int i = 0; i < packets.size(); i++)
             {
                 // Send size of block to server via TCP.
-                sendMessageToServer(String.valueOf(blocks.get(i).length), 5000);
+                sendMessageToServer(String.valueOf(packets.get(i).length), 5000);
 
                 // Send block data to server via UDP
-                sendPacketToServer(blocks.get(i), 5000);
+                udpm.sendPacketToServer(packets.get(i), address, port, 5000);
             }
 
             int resultCode = Integer.valueOf(receiveMessageFromServer());
