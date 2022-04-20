@@ -35,6 +35,7 @@ public class ServerThread extends Thread
     public void run()
     {
         System.out.println("System " + String.valueOf(ID));
+
         while(true)
         {
             String receivedMessage = tcpm.receiveMessageFromClient();

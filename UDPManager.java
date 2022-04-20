@@ -8,6 +8,7 @@ public class UDPManager
     {
         udpSocket = socket;
     }
+    
     public DatagramPacket receivePacketFromClient(byte[] rBuffer)
     {
         // Instantiate DatagramPacket object based on received data - rBuffer (received Buffer).
