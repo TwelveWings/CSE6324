@@ -34,12 +34,14 @@ public class ServerThread extends Thread
 
     public void run()
     {
-        System.out.println("System " + String.valueOf(ID));
-
         while(true)
         {
             String receivedMessage = tcpm.receiveMessageFromClient();
+
             int action = (receivedMessage != null) ? Integer.valueOf(receivedMessage) : 0;
+
+            System.out.println("System " + String.valueOf(ID));
+
             switch(action)
             {
                 case 1:

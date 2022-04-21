@@ -12,7 +12,6 @@ public class Client
     public static final int blockSize = 1024 * 1024 * 4;
     public static final int bufferSize = 65536;
     public static Scanner sc;
-    public static Socket tcpSocket;
     public static TCPManager tcpm;
     public static UDPManager udpm;
 
@@ -29,7 +28,7 @@ public class Client
             buffer = new byte[bufferSize];
 
             // Establish TCP socket connection
-            tcpSocket = new Socket(address, port);
+            Socket tcpSocket = new Socket(address, port);
 
             // Establish UDP socket connection.
             udpSocket = new DatagramSocket();
@@ -81,8 +80,8 @@ public class Client
                 }
             }
 
-            tcpSocket.close();
-            udpSocket.close();
+            tcpm.closeSocket();
+            udpm.closeSocket();
         }
 
         catch(Exception e)
@@ -190,7 +189,7 @@ public class Client
 
         try
         {
-            BufferedReader fromServer = new BufferedReader(new InputStreamReader(tcpSocket.getInputStream()));
+            BufferedReader fromServer = new BufferedReader(new InputStreamReader(tcpm.tcpSocket.getInputStream()));
             message = fromServer.readLine();
         }
 
@@ -226,7 +225,7 @@ public class Client
     {
         try
         {
-            PrintWriter toServer = new PrintWriter(tcpSocket.getOutputStream(), true);
+            PrintWriter toServer = new PrintWriter(tcpm.tcpSocket.getOutputStream(), true);
             toServer.println(message);
         }
 

@@ -3,11 +3,24 @@ import java.net.*;
 
 public class TCPManager 
 {
-    public static Socket tcpSocket;
+    public Socket tcpSocket;
 
     public TCPManager(Socket socket)
     {
         tcpSocket = socket;
+    }
+
+    public void closeSocket()
+    {
+        try 
+        {
+            tcpSocket.close();
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     public String receiveMessageFromClient()

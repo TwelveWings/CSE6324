@@ -2,11 +2,16 @@ import java.net.*;
 
 public class UDPManager 
 {
-    public static DatagramSocket udpSocket;
+    public DatagramSocket udpSocket;
 
     public UDPManager(DatagramSocket socket)
     {
         udpSocket = socket;
+    }
+
+    public void closeSocket()
+    {
+        udpSocket.close();
     }
     
     public DatagramPacket receivePacketFromClient(byte[] rBuffer)
