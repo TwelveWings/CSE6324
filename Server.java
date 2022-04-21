@@ -13,14 +13,12 @@ public class Server
 
     public static void main(String[] args)
     {
-        port = 17;
+        port = 2023;
 
         // 4 MB buffer to receive data
         buffer = new byte[bufferSize];
 
         SQLManager manager = new SQLManager();
-
-        List<ServerThread> sts = new ArrayList<ServerThread>();
 
         manager.setDBConnection();
 
@@ -42,15 +40,15 @@ public class Server
             // Establish UPD connection with port
             udpSocket = new DatagramSocket(port);
 
+            int i = 0;
+
             while(true)
             {
                 tcpSocket = serverSocket.accept();
 
-                TCPManager tcpm = new TCPManager(tcpSocket);
-                UDPManager udpm = new UDPManager(udpSocket);
+                ServerThread st = new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, ++i);
 
-                sts.add(new ServerThread(tcpm, udpm, buffer, bufferSize, sts.size()));
-                sts.get(sts.size() - 1).start();
+                st.start();
             }
         }
 

@@ -15,20 +15,31 @@ public class Client
     public static TCPManager tcpm;
     public static UDPManager udpm;
 
-
     public static void main(String[] args)
     {
         sc = new Scanner(System.in);
+
+        if(args.length == 0 || args[0].trim().isEmpty())
+        {
+            System.out.println("Please specify a port number to use for the client:");
+
+            port = sc.nextInt();
+        }
+
+        else
+        {
+            port = Integer.valueOf(args[0]);
+        }
+
         try
         {
             // Get address of local host.
             address = InetAddress.getLocalHost();
-            port = 17;
-
+            
             buffer = new byte[bufferSize];
 
             // Establish TCP socket connection
-            Socket tcpSocket = new Socket(address, port);
+            Socket tcpSocket = new Socket(address, 2023);
 
             // Establish UDP socket connection.
             udpSocket = new DatagramSocket();
@@ -49,7 +60,7 @@ public class Client
                         break;
                     }
 
-                    sendMessageToServer(action, 5000);
+                    tcpm.sendMessageToServer(action, 5000);
     
                     switch(Integer.valueOf(action))
                     {
@@ -105,12 +116,12 @@ public class Client
         try
         {
             // Send file to delete.
-            sendMessageToServer(fileName, 5000);
+            tcpm.sendMessageToServer(fileName, 5000);
 
             Arrays.fill(buffer, (byte)0);
 
             // Instantiate DatagramPacket object based on buffer.
-            String message = receiveMessageFromServer();
+            String message = tcpm.receiveMessageFromServer();
 
             System.out.println(message);
         }
@@ -136,19 +147,20 @@ public class Client
         try
         {
             // Send file name to download.
-            sendMessageToServer(fileName, 5000);
+            tcpm.sendMessageToServer(fileName, 5000);
 
             // Send datagram to establish connection
-            udpm.sendPacketToServer("1".getBytes(), address, port, 5000);
+            udpm.sendPacketToServer("1".getBytes(), address, 2023, 5000);
 
             Arrays.fill(buffer, (byte)0);
 
-            // Instantiate DatagramPacket object based on buffer.
-            int fileSize = Integer.valueOf(receiveMessageFromServer());
+            // The server sends the filesize that as been located.
+            int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer());
 
+            // If fileSize == 0, there was no file. Print error from server. Otherwise convert data from server to a file.
             if(fileSize == 0)
             {
-                String message = receiveMessageFromServer();
+                String message = tcpm.receiveMessageFromServer();
 
                 System.out.println(message);
             }
@@ -157,7 +169,7 @@ public class Client
             {
                 byte[] dataBuffer = new byte[fileSize];
 
-                DatagramPacket receivedMessage = receivePacketFromServer(dataBuffer);
+                DatagramPacket receivedMessage = udpm.receivePacketFromServer(dataBuffer);
                 
                 try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/" + fileName))
                 {
@@ -183,58 +195,6 @@ public class Client
         return;
     }
 
-    public static String receiveMessageFromServer()
-    {
-        String message = "";
-
-        try
-        {
-            BufferedReader fromServer = new BufferedReader(new InputStreamReader(tcpm.tcpSocket.getInputStream()));
-            message = fromServer.readLine();
-        }
-
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-
-        return message;
-    }
-
-
-    public static DatagramPacket receivePacketFromServer(byte[] buffer)
-    {
-        // Instantiate DatagramPacket object based on buffer.
-        DatagramPacket receivedPacket = new DatagramPacket(buffer, buffer.length);
-
-        try
-        {
-            // Receive file name from client program.
-            udpSocket.receive(receivedPacket);
-        }
-
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-
-        return receivedPacket;
-    }
-
-    public static void sendMessageToServer(String message, int timeout)
-    {
-        try
-        {
-            PrintWriter toServer = new PrintWriter(tcpm.tcpSocket.getOutputStream(), true);
-            toServer.println(message);
-        }
-
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-    }
-
     public static void uploadFile()
     {
         String fileName = "";
@@ -252,7 +212,8 @@ public class Client
             // Get file to transfer.
             File targetFile = new File(fileName);
 
-            sendMessageToServer(fileName, 5000);
+            System.out.printf("SENDING: %s", fileName);
+            tcpm.sendMessageToServer(fileName, 5000);
 
             // Convert file to byte array.
             byte[] sendData = Files.readAllBytes(targetFile.toPath());
@@ -264,21 +225,25 @@ public class Client
 
             List<byte[]> packets = fd.getPackets();
 
+            System.out.printf("SENDING: %d", packets.size());
+
             // Send server a message with the number of packets being sent.
-            sendMessageToServer(String.valueOf(packets.size()), 5000);
+            tcpm.sendMessageToServer(String.valueOf(packets.size()), 5000);
             
             for(int i = 0; i < packets.size(); i++)
             {
+                System.out.printf("SENDING: %s", packets.get(i).length);
                 // Send size of block to server via TCP.
-                sendMessageToServer(String.valueOf(packets.get(i).length), 5000);
+                tcpm.sendMessageToServer(String.valueOf(packets.get(i).length), 5000);
 
+                System.out.printf("SENDING: UDP DATA");
                 // Send block data to server via UDP
-                udpm.sendPacketToServer(packets.get(i), address, port, 5000);
+                udpm.sendPacketToServer(packets.get(i), address, 2023, 5000);
             }
 
-            int resultCode = Integer.valueOf(receiveMessageFromServer());
+            int resultCode = Integer.valueOf(tcpm.receiveMessageFromServer());
 
-            String message = receiveMessageFromServer();
+            String message = tcpm.receiveMessageFromServer();
 
             System.out.println(message);
 
@@ -289,9 +254,9 @@ public class Client
         
                 if(overrideFileInDB.equals("1"))
                 {
-                    sendMessageToServer(overrideFileInDB, 5000);
+                    tcpm.sendMessageToServer(overrideFileInDB, 5000);
 
-                    message = receiveMessageFromServer();
+                    message = tcpm.receiveMessageFromServer();
 
                     System.out.println(message);
                 }

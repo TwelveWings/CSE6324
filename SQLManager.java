@@ -254,13 +254,14 @@ public class SQLManager
 
     public void updateFileByName(String fileName, byte[] data)
     {
-        String sql = "UPDATE Files SET Data = ?";
+        String sql = "UPDATE Files SET Data = ? WHERE FileName = ?";
 
         try
         {
             PreparedStatement ps = conn.prepareStatement(sql);
             
             ps.setBytes(1, data);
+            ps.setString(2, fileName);
 
             ps.executeUpdate();            
         }

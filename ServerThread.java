@@ -1,31 +1,33 @@
 import java.net.*;
-import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ServerThread extends Thread
 {
-    public static Action action;
+    public Action action;
+    public static byte[] buffer;
+    public DatagramSocket udpSocket;
+    public Socket tcpSocket;
+    public Scanner sc;
     public static TCPManager tcpm;
     public static UDPManager udpm;
     public int ID;
-    public Scanner sc;
-    public static byte[] buffer;
     public static final int blockSize = 1024 * 1024 * 4;
     public static int bufferSize;
 
-    public ServerThread(TCPManager tcpManager, UDPManager udpManager, byte[] b, int bs, int tID)
+    public ServerThread(Socket tcp, DatagramSocket udp, byte[] b, int bs, int tID)
     {
-        tcpm = tcpManager;
-        udpm = udpManager;
+        tcpSocket = tcp;
+        udpSocket = udp;
         ID = tID;
         buffer = b;
         bufferSize = bs;
     }
 
-    public ServerThread(TCPManager tcpManager, UDPManager udpManager, byte[] b, int bs, int tID, Action a)
+    public ServerThread(Socket tcp, DatagramSocket udp, byte[] b, int bs, int tID, Action a)
     {
-        tcpm = tcpManager;
-        udpm = udpManager;
+        tcpSocket = tcp;
+        udpSocket = udp;
         ID = tID;
         buffer = b;
         bufferSize = bs;
@@ -34,34 +36,38 @@ public class ServerThread extends Thread
 
     public void run()
     {
+        tcpm = new TCPManager(tcpSocket);
+        udpm = new UDPManager(udpSocket);
+
+        String action = tcpm.receiveMessageFromClient();
+
+        System.out.println("System " + String.valueOf(ID));
+
         while(true)
         {
-            String receivedMessage = tcpm.receiveMessageFromClient();
-
-            int action = (receivedMessage != null) ? Integer.valueOf(receivedMessage) : 0;
-
-            System.out.println("System " + String.valueOf(ID));
-
             switch(action)
             {
-                case 1:
+                case "1":
                     uploadFile();
                     break;
-                case 2:
+                case "2":
                     downloadFile();
                     break;
-                case 3:
+                case "3":
                     editFile();
                     break;
-                case 4:
+                case "4":
                     deleteFile();
                     break;
             }
+
+            action = tcpm.receiveMessageFromClient();
+
             Arrays.fill(buffer, (byte)0);
         }
     }
 
-    public static void deleteFile()
+    synchronized public static void deleteFile()
     {
         SQLManager manager = new SQLManager();
 
@@ -97,7 +103,7 @@ public class ServerThread extends Thread
         manager.closeConnection();
     }
 
-    public static void downloadFile()
+    synchronized public static void downloadFile()
     {
         SQLManager manager = new SQLManager();
 
@@ -109,25 +115,17 @@ public class ServerThread extends Thread
 
             DatagramPacket receivedMessage = udpm.receivePacketFromClient(buffer);
 
-            ResultSet rs = manager.selectFileByName(fileName);
+            ConcurrentHashMap<String, FileData> files = manager.selectAllFiles();
 
-            int count = 0;
-            while(rs.next())
+            if(files.get(fileName) != null)
             {
-                count++;
+                tcpm.sendMessageToClient(String.valueOf(files.get(fileName).fileSize), 5000);
 
-                byte[] fileData = rs.getBytes("Data");
-
-                String fileSize = String.valueOf(fileData.length);
-
-                // Send file size using TCP
-                tcpm.sendMessageToClient(fileSize, 5000);
-
-                // Send data using UDP
-                udpm.sendPacketToClient(fileData, receivedMessage.getAddress(), receivedMessage.getPort(), 5000);
+                udpm.sendPacketToClient(files.get(fileName).data, 
+                    receivedMessage.getAddress(), receivedMessage.getPort(), 5000);
             }
 
-            if(count == 0)
+            else
             {
                 String fileSize = String.valueOf(0);
 
@@ -146,12 +144,12 @@ public class ServerThread extends Thread
         manager.closeConnection();
     }
 
-    public static void editFile()
+    synchronized public static void editFile()
     {
         return;
     }
 
-    public static void uploadFile()
+    synchronized public static void uploadFile()
     {
         try
         {
@@ -165,16 +163,16 @@ public class ServerThread extends Thread
             List<byte[]> packets = new ArrayList<byte[]>();
             byte[] dataBuffer = null;
 
-            int numBlocks = Integer.valueOf(tcpm.receiveMessageFromClient());
+            int numPackets = Integer.valueOf(tcpm.receiveMessageFromClient());
             int fileSize = 0;
 
-            for(int i = 0; i < numBlocks; i++)
+            for(int i = 0; i < numPackets; i++)
             {
-                int blockSize = Integer.valueOf(tcpm.receiveMessageFromClient());
+                int packetSize = Integer.valueOf(tcpm.receiveMessageFromClient());
 
-                fileSize += blockSize;
+                fileSize += packetSize;
 
-                dataBuffer = new byte[blockSize];
+                dataBuffer = new byte[packetSize];
 
                 // Receive block from client.
                 DatagramPacket receivedMessage = udpm.receivePacketFromClient(dataBuffer);
@@ -198,38 +196,44 @@ public class ServerThread extends Thread
                 startPosition += packets.get(i).length;
             }
 
-            // Insert file into database
-            int fileAdded = manager.insertData(fileData, fileSize);
-            int clientResponse = 0;
+            ConcurrentHashMap<String, FileData> files = manager.selectAllFiles();
 
-            String resultCode = String.valueOf(fileAdded);
+            int resultCode = 0;
+            
+            System.out.println("Test");
 
-            tcpm.sendMessageToClient(resultCode, 5000);
-
-            if(fileAdded == 0)
+            if(files.get(fileName) == null)
             {
-                tcpm.sendMessageToClient("File already exists.", 5000);
-                
-                clientResponse = Integer.valueOf(tcpm.receiveMessageFromClient());
+                resultCode = manager.insertData(fileData, fileSize);
 
-                if(clientResponse == 1)
-                {
-                    manager.updateFileByName(fileName, dataBuffer);
+                System.out.printf("SENDING: %d", resultCode);
 
-                    tcpm.sendMessageToClient("File uploaded successfully!", 5000);
-                }
-            }
+                tcpm.sendMessageToClient(String.valueOf(resultCode), 5000);
 
-            else if(fileAdded == 1)
-            {
-                tcpm.sendMessageToClient("File uploaded successfully!", 5000);
+                String message = (resultCode == 1) ? "File uploaded successfully!" : "Error occurred. File not uploaded.";
+
+                System.out.printf("SENDING: %s", message);
+
+                tcpm.sendMessageToClient(message, 5000);
             }
 
             else
             {
-                tcpm.sendMessageToClient("Error occurred. File not uploaded.", 5000);
-            }
+                tcpm.sendMessageToClient(String.valueOf(resultCode), 5000);
 
+                tcpm.sendMessageToClient("File already exists.", 5000);
+                
+                int clientResponse = Integer.valueOf(tcpm.receiveMessageFromClient());
+
+                if(clientResponse == 1)
+                {
+                    manager.updateFileByName(fileName, fileData);
+
+                    System.out.printf("SENDING: message");
+
+                    tcpm.sendMessageToClient("File uploaded successfully!", 5000);
+                }
+            }
 
             // Close connection to DB
             manager.closeConnection();
