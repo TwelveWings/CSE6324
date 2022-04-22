@@ -23,8 +23,6 @@ public class UDPManager
         {
             // Receive file data from client program.
             udpSocket.receive(receivedPacket);
-
-            Thread.sleep(5000);
         }
 
         catch(Exception e)

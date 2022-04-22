@@ -82,6 +82,8 @@ public class TCPManager
         {
             PrintWriter toServer = new PrintWriter(tcpSocket.getOutputStream(), true);
             toServer.println(message);
+
+            Thread.sleep(timeout);
         }
 
         catch(Exception e)

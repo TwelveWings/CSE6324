@@ -19,18 +19,6 @@ public class Client
     {
         sc = new Scanner(System.in);
 
-        if(args.length == 0 || args[0].trim().isEmpty())
-        {
-            System.out.println("Please specify a port number to use for the client:");
-
-            port = sc.nextInt();
-        }
-
-        else
-        {
-            port = Integer.valueOf(args[0]);
-        }
-
         try
         {
             // Get address of local host.
@@ -212,8 +200,10 @@ public class Client
             // Get file to transfer.
             File targetFile = new File(fileName);
 
-            System.out.printf("SENDING: %s", fileName);
-            tcpm.sendMessageToServer(fileName, 5000);
+            if(!targetFile.exists())
+            {
+                System.out.println("No file exists with that name.");
+            }
 
             // Convert file to byte array.
             byte[] sendData = Files.readAllBytes(targetFile.toPath());
@@ -225,18 +215,17 @@ public class Client
 
             List<byte[]> packets = fd.getPackets();
 
-            System.out.printf("SENDING: %d", packets.size());
+            // Send server the file name of file being sent.
+            tcpm.sendMessageToServer(fileName, 5000);
 
             // Send server a message with the number of packets being sent.
             tcpm.sendMessageToServer(String.valueOf(packets.size()), 5000);
             
             for(int i = 0; i < packets.size(); i++)
             {
-                System.out.printf("SENDING: %s", packets.get(i).length);
                 // Send size of block to server via TCP.
                 tcpm.sendMessageToServer(String.valueOf(packets.get(i).length), 5000);
 
-                System.out.printf("SENDING: UDP DATA");
                 // Send block data to server via UDP
                 udpm.sendPacketToServer(packets.get(i), address, 2023, 5000);
             }
