@@ -11,10 +11,15 @@ To run the program, first compile CloudStorage.java.
 javac -d . CloudStorage.java
 
 Then compile each subdirectory in the following order
+
 javac cloudstorage\enums\*.java
+
 javac cloudstorage\data\*.java
+
 javac cloudstorage\network\*.java
+
 javac cloudstorage\server\*.java
+
 javac cloudstorage\client\*.java
 
 To run the server program, run: 
