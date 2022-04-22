@@ -25,7 +25,7 @@ public class TCPManager
         }
     }
 
-    public String receiveMessageFromClient()
+    public String receiveMessageFromClient(int timeout)
     {
         String message = "";
 
@@ -33,6 +33,8 @@ public class TCPManager
         {
             BufferedReader fromClient = new BufferedReader(new InputStreamReader(tcpSocket.getInputStream()));
             message = fromClient.readLine();
+
+            Thread.sleep(timeout);
         }
 
         catch(Exception e)
@@ -60,7 +62,7 @@ public class TCPManager
         }
     }
 
-    public String receiveMessageFromServer()
+    public String receiveMessageFromServer(int timeout)
     {
         String message = "";
 
@@ -68,6 +70,8 @@ public class TCPManager
         {
             BufferedReader fromServer = new BufferedReader(new InputStreamReader(tcpSocket.getInputStream()));
             message = fromServer.readLine();
+
+            Thread.sleep(timeout);
         }
 
         catch(Exception e)

@@ -7,7 +7,15 @@ The cloudstorage directory contains 5 subdirectories.
 4) network stores the TCP and UDP helper classes as well as their corresponding thread classes.
 5) server contains the server and its related thread classes that will receive data from and respond to the clients.
 
-To run the program, first compile CloudStorage.java. Then compile each subdirectory.
+To run the program, first compile CloudStorage.java. 
+javac -d . CloudStorage.java
+
+Then compile each subdirectory in the following order
+javac cloudstorage\enums\*.java
+javac cloudstorage\data\*.java
+javac cloudstorage\network\*.java
+javac cloudstorage\server\*.java
+javac cloudstorage\client\*.java
 
 To run the server program, run: 
 java -cp ";classpath\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.server.Server

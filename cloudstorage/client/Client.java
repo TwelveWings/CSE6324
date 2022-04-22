@@ -38,45 +38,45 @@ public class Client
 
             ClientThread ct;
 
+            String[] actions = null;
+
             tcpm = new TCPManager(tcpSocket);
             udpm = new UDPManager(udpSocket);
 
             int i = 0;
             while(true)
             {
-                System.out.println("What action do you want to perform? (1 - Upload, 2 - Download, 3 - Edit, 4 - Delete, 0 - Quit)");
+                System.out.println("What action do you want to perform? (Type: upload <FILE>, download <FILE>, edit <FILE>, delete <FILE> or quit)");
 
                 try 
                 {
-                    String action = sc.next();
+                    String action = sc.nextLine();
 
-                    if(action.equals("0"))
+                    if(action.toLowerCase().equals("quit"))
                     {
                         break;
                     }
 
+                    actions = action.split(" ");
+
                     tcpm.sendMessageToServer(action, 5000);
     
-                    switch(Integer.valueOf(action))
+                    switch(actions[0])
                     {
-                        case 1:
-                            //uploadFile();
-                            ct = new ClientThread(tcpSocket, udpSocket, address,  buffer, bufferSize, ++i, Action.Upload);
+                        case "upload":
+                            ct = new ClientThread(tcpSocket, udpSocket, address,  buffer, bufferSize, ++i, actions[1], Action.Upload);
                             ct.start();
                             break;
-                        case 2:
-                            //downloadFile();
-                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i, Action.Download);
+                        case "download":
+                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i,  actions[1], Action.Download);
                             ct.start();
                             break;
-                        case 3:
-                            //editFile();
-                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i, Action.Edit);
+                        case "edit":
+                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i,  actions[1], Action.Edit);
                             ct.start();
                             break;
-                        case 4:
-                            //deleteFile();
-                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i, Action.Delete);
+                        case "delete":
+                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i,  actions[1], Action.Delete);
                             ct.start();
                             break;
                         default:
