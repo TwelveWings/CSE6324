@@ -1,6 +1,6 @@
 package cloudstorage.enums;
 
-public enum Action
+public enum SystemAction
 {
     Upload, Download, Edit, Delete
 };

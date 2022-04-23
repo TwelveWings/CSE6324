@@ -1,7 +1,9 @@
 package cloudstorage.server;
 
+import cloudstorage.enums.*;
 import cloudstorage.data.FileData;
 import cloudstorage.network.*;
+import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -109,16 +111,29 @@ public class ServerThread extends Thread
         {
             String fileName = tcpm.receiveMessageFromClient(2000);
 
+            // Establish UDP connection with client.
             DatagramPacket receivedMessage = udpm.receivePacketFromClient(buffer);
 
             ConcurrentHashMap<String, FileData> files = manager.selectAllFiles();
 
             if(files.get(fileName) != null)
             {
+                FileData fd = new FileData(files.get(fileName).data, fileName, files.get(fileName).fileSize);
+                fd.createSegments(fd.data, bufferSize, Segment.Packet);
+
+                List<byte[]> packets = fd.getPackets();
+
+                // Send client the file size
                 tcpm.sendMessageToClient(String.valueOf(files.get(fileName).fileSize), 2000);
 
-                udpm.sendPacketToClient(files.get(fileName).data, 
-                    receivedMessage.getAddress(), receivedMessage.getPort(), 2000);
+                // Send client the number of packets that will be sent.
+                tcpm.sendMessageToClient(String.valueOf(packets.size()), 2000);
+
+                for(int i = 0; i < packets.size(); i++)
+                {
+                    // Send block data to server via UDP
+                    udpm.sendPacketToClient(packets.get(i), receivedMessage.getAddress(), receivedMessage.getPort(), 2000);
+                }
             }
 
             else
@@ -147,49 +162,57 @@ public class ServerThread extends Thread
 
     synchronized public void uploadFile()
     {
-        List<byte[]> packets = new ArrayList<byte[]>();
-        byte[] dataBuffer = null;
+        byte[][] packets = null;
 
         try
         {
+            // Receive a TCP message indicating the name of the file being sent.
             String fileName = tcpm.receiveMessageFromClient(2000);
 
             SQLManager manager = new SQLManager(fileName);
             manager.setDBConnection();
 
+            int fileSize = Integer.valueOf(tcpm.receiveMessageFromClient(2000));
+
+            // Receive a TCP message indicating the number of UDP packets being sent.
             int numPackets = Integer.valueOf(tcpm.receiveMessageFromClient(2000));
 
-            int fileSize = 0;
+            packets = new byte[numPackets][];
 
+            FileData fd = new FileData();
+            
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+            // Loop through the packets that have been sent.
             for(int i = 0; i < numPackets; i++)
             {
-                int packetSize = Integer.valueOf(tcpm.receiveMessageFromClient(2000));
-
-                fileSize += packetSize;
-
-                dataBuffer = new byte[packetSize];
-
                 // Receive block from client.
-                DatagramPacket receivedMessage = udpm.receivePacketFromClient(dataBuffer);
+                DatagramPacket receivedMessage = udpm.receivePacketFromClient(buffer);
 
-                packets.add(receivedMessage.getData());
-            }
+                byte[] rmBytes = receivedMessage.getData();
+                int identifier = (int)rmBytes[1];
+                int scale = (int)rmBytes[0];
 
-            byte[] fileData = new byte[fileSize];
+                // Remove the extra byte added to identify the order of the packet.
+                rmBytes = fd.stripIdentifier(rmBytes);
 
-            int startPosition = 0;
-
-            // Loop through each block. Add blocks to fileData.
-            for(int i = 0; i < packets.size(); i++)
-            {
-                for(int j = startPosition; j < fileSize - startPosition; j++)
+                // If the fileSize is not evenly divisible by the bufferSize and the identifier is the last packet sent
+                // resize the packet to remove excess bytes.
+                if(fileSize % bufferSize > 0 && identifier == numPackets - 1)
                 {
-                    fileData[j] = packets.get(i)[j - startPosition];
+                    rmBytes = fd.stripPadding(rmBytes, fileSize % bufferSize);
                 }
 
-                // New start position is based on the end of the last blocks. 
-                startPosition += packets.get(i).length;
+                // Remove identifier and assign it in to the packets jagged array based on the identifier
+                packets[identifier + (128 * scale) + scale] = fd.stripIdentifier(rmBytes);
             }
+
+            for(int i = 0; i < packets.length; i++)
+            {
+                bos.write(packets[i]);
+            }
+
+            byte[] fileData = bos.toByteArray();
 
             ConcurrentHashMap<String, FileData> files = manager.selectAllFiles();
 

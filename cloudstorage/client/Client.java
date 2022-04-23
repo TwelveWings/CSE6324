@@ -1,11 +1,8 @@
 package cloudstorage.client;
 
-import cloudstorage.data.FileData;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
-import java.io.*;
 import java.net.*;
-import java.nio.file.Files;
 import java.util.*;
 
 public class Client
@@ -14,7 +11,7 @@ public class Client
     public static InetAddress address;
     public static int port;
     public static final int blockSize = 1024 * 1024 * 4;
-    public static final int bufferSize = 65536;
+    public static final int bufferSize = 65505;
     public static Scanner sc;
     public static TCPManager tcpm;
     public static UDPManager udpm;
@@ -64,19 +61,19 @@ public class Client
                     switch(actions[0])
                     {
                         case "upload":
-                            ct = new ClientThread(tcpSocket, udpSocket, address,  buffer, bufferSize, ++i, actions[1], Action.Upload);
+                            ct = new ClientThread(tcpSocket, udpSocket, address,  buffer, bufferSize, ++i, actions[1], SystemAction.Upload);
                             ct.start();
                             break;
                         case "download":
-                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i,  actions[1], Action.Download);
+                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i,  actions[1], SystemAction.Download);
                             ct.start();
                             break;
                         case "edit":
-                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i,  actions[1], Action.Edit);
+                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i,  actions[1], SystemAction.Edit);
                             ct.start();
                             break;
                         case "delete":
-                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i,  actions[1], Action.Delete);
+                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i,  actions[1], SystemAction.Delete);
                             ct.start();
                             break;
                         default:
