@@ -68,7 +68,7 @@ public class Swing {
         textfield1.setFont( new Font("Sans",Font.PLAIN,10));
         textfield1.setEditable(false);
         s1 = new JScrollPane(textfield1);
-        s1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        s1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         s1.setBounds(360,35, 305,230);     
         f.add(s1);  
         
@@ -105,7 +105,7 @@ public class Swing {
         localfiles = filepath.list();
         JList<String> list = new JList<String>(localfiles);
         s2 = new JScrollPane(list);
-        s2.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        s2.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         s2.setBounds(20,35, 320,300);     
         f.add(s2);  
         
@@ -113,15 +113,14 @@ public class Swing {
         JProgressBar progress = new JProgressBar(0,100);
         progress.setBounds(360,300,230,30);         
         progress.setValue(89);    
-        progress.setStringPainted(true);    
+        progress.setStringPainted(true);  
+        progress.setForeground(new Color(0, 102, 0));   
         f.add(progress); 
 
         //*********************** Application Logic Section **********************//
 
         //Getting System timestamp for events
         SimpleDateFormat formatter= new SimpleDateFormat("HH:mm:ss");
-        Date date = new Date(System.currentTimeMillis());
-        String timestamp = formatter.format(date);
         
         //Upload Button Function - (File Chosing + Log Message)
         button2.addActionListener(new ActionListener()
@@ -130,8 +129,18 @@ public class Swing {
             {  
                 File f = new File(".\\UI\\files");
                 JFileChooser j = new JFileChooser(f, FileSystemView.getFileSystemView());
-                j.showOpenDialog(null);
-                textfield1.append(" [" + timestamp + "] File Upload Started\n");
+                Date date = new Date(System.currentTimeMillis());
+                String timestamp = formatter.format(date);
+                int result = j.showOpenDialog(null);
+                String filename = j.getSelectedFile().getName();
+                switch (result) {
+                    case JOptionPane.OK_OPTION:
+                        textfield1.append(" [" + timestamp + "] File Upload Started - [" + filename + "]\n");
+                        break;
+                    case JOptionPane.NO_OPTION:
+                        textfield1.append(" [" + timestamp + "] File Upload Cancelled\n");
+                        break;
+                }
             }  
         });
 
@@ -140,18 +149,24 @@ public class Swing {
         {  
             public void actionPerformed(ActionEvent e)
             {     
-                int result = JOptionPane.showConfirmDialog(null, "Are you sure about deleting this file?");
-                switch (result) {
-                    case JOptionPane.YES_OPTION:
-                    textfield1.append(" [" + timestamp + "] File Deleted Successfully\n");
-                    break;
-                    case JOptionPane.NO_OPTION:
-                    textfield1.append(" [" + timestamp + "] File Deletion Aborted\n"); 
-                    break;
-                    case JOptionPane.CANCEL_OPTION:
-                    textfield1.append(" [" + timestamp + "] File Deletion Cancelled\n"); 
-                    break;
+                String filename = list.getSelectedValue();
+                Date date = new Date(System.currentTimeMillis());
+                String timestamp = formatter.format(date);
+                if(filename!=null) {                   
+                    int result = JOptionPane.showConfirmDialog(null,"Are you sure about deleting " + filename + "?", "Warning!", JOptionPane.YES_NO_OPTION);
+                    switch (result) {
+                        case JOptionPane.YES_OPTION:
+                            textfield1.append(" [" + timestamp + "] File Deleted Successfully - [" + filename + "]\n");
+                            break;
+                        case JOptionPane.NO_OPTION:
+                            textfield1.append(" [" + timestamp + "] File Deletion Aborted\n"); 
+                            break;
+                    }
                 }
+                else {
+                    textfield1.append(" [" + timestamp + "] [ERROR] No file Selected\n");
+                }
+
             }  
         });
 
@@ -163,12 +178,15 @@ public class Swing {
             {
                 //event is generated in a button
                 int state = itemEvent.getStateChange();
-
+                Date date = new Date(System.currentTimeMillis());
+                String timestamp = formatter.format(date);
                 if (state == ItemEvent.SELECTED) {
                     textfield1.append(" [" + timestamp + "] File Transmission Paused\n");
+                    progress.setForeground(new Color(153, 0, 0));  
                 }
                 else {
                     textfield1.append(" [" + timestamp + "] File Transmission Resumed\n");
+                    progress.setForeground(new Color(0, 102, 0)); 
                 }
             }
         };
@@ -178,9 +196,15 @@ public class Swing {
         {  
             public void actionPerformed(ActionEvent e)
             {  
+                Date date = new Date(System.currentTimeMillis());
+                String timestamp = formatter.format(date);
                 textfield1.append(" [" + timestamp + "] File Transmission Cancelled\n");
+                progress.setValue(0);  
             }  
         });
+
+        
+        //*********************** Testing Section **********************//
 
         
 
