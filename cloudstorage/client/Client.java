@@ -11,7 +11,7 @@ public class Client
     public static InetAddress address;
     public static int port;
     public static final int blockSize = 1024 * 1024 * 4;
-    public static final int bufferSize = 65505;
+    public static final int bufferSize = 65507;
     public static Scanner sc;
     public static TCPManager tcpm;
     public static UDPManager udpm;
@@ -49,14 +49,18 @@ public class Client
                 {
                     String action = sc.nextLine();
 
-                    if(action.toLowerCase().equals("quit"))
-                    {
-                        break;
-                    }
-
                     actions = action.split(" ");
 
-                    tcpm.sendMessageToServer(action, 5000);
+                    tcpm.sendMessageToServer(actions[0], 5000);
+
+                    if(action.toLowerCase().equals("quit"))
+                    {
+                        tcpm.closeSocket();
+                        udpm.closeSocket();
+                        
+                        System.out.println("Program terminated.");
+                        return;
+                    }
     
                     switch(actions[0])
                     {
@@ -87,9 +91,6 @@ public class Client
                     continue;
                 }
             }
-
-            tcpm.closeSocket();
-            udpm.closeSocket();
         }
 
         catch(Exception e)

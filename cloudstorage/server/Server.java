@@ -8,7 +8,7 @@ public class Server
     public static DatagramSocket udpSocket;
     public static byte[] buffer;
     public static int port;
-    public static final int bufferSize = 65505;
+    public static final int bufferSize = 65507;
     public static Scanner sc;
     public static ServerSocket serverSocket;
     public static Socket tcpSocket;

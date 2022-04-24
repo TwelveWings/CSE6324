@@ -33,20 +33,23 @@ public class ServerThread extends Thread
         tcpm = new TCPManager(tcpSocket);
         udpm = new UDPManager(udpSocket);
 
-        String[] actions = null;
-
-        String action = tcpm.receiveMessageFromClient(2000);
-
-        actions = action.split(" ");
+        String action = tcpm.receiveMessageFromClient(1000);
 
         System.out.println("System " + String.valueOf(ID));
 
+        if(action.equals("quit"))
+        {
+            return;
+        }
+
         while(true)
         {
-            switch(actions[0])
+            System.out.println(action);
+
+            switch(action)
             {
                 case "upload":
-                    uploadFile();
+                    uploadFile(false);
                     break;
                 case "download":
                     downloadFile();
@@ -59,7 +62,12 @@ public class ServerThread extends Thread
                     break;
             }
 
-            action = tcpm.receiveMessageFromClient(2000);
+            action = tcpm.receiveMessageFromClient(1000);
+
+            if(action.equals("quit"))
+            {
+                return;
+            }
 
             Arrays.fill(buffer, (byte)0);
         }
@@ -73,23 +81,23 @@ public class ServerThread extends Thread
 
         try
         {
-            String fileName = tcpm.receiveMessageFromClient(2000);
+            String fileName = tcpm.receiveMessageFromClient(1000);
 
             int fileDeleted = manager.deleteFile(fileName);
 
             if(fileDeleted == 0)
             {
-                tcpm.sendMessageToClient("File does not exist in server.", 2000);
+                tcpm.sendMessageToClient("File does not exist in server.", 1000);
             }
 
             else if(fileDeleted == 1)
             {
-                tcpm.sendMessageToClient("File deleted successfully!", 2000);
+                tcpm.sendMessageToClient("File deleted successfully!", 1000);
             }
 
             else
             {
-                tcpm.sendMessageToClient("Error occurred. File not deleted.", 2000);
+                tcpm.sendMessageToClient("Error occurred. File not deleted.", 1000);
             }
         }
 
@@ -109,30 +117,30 @@ public class ServerThread extends Thread
 
         try
         {
-            String fileName = tcpm.receiveMessageFromClient(2000);
+            String fileName = tcpm.receiveMessageFromClient(1000);
 
             // Establish UDP connection with client.
-            DatagramPacket receivedMessage = udpm.receivePacketFromClient(buffer);
+            DatagramPacket receivedMessage = udpm.receivePacketFromClient(buffer, 1000);
 
             ConcurrentHashMap<String, FileData> files = manager.selectAllFiles();
 
             if(files.get(fileName) != null)
             {
                 FileData fd = new FileData(files.get(fileName).data, fileName, files.get(fileName).fileSize);
-                fd.createSegments(fd.data, bufferSize, Segment.Packet);
+                fd.createSegments(fd.data, bufferSize - 2, Segment.Packet);
 
                 List<byte[]> packets = fd.getPackets();
 
                 // Send client the file size
-                tcpm.sendMessageToClient(String.valueOf(files.get(fileName).fileSize), 2000);
+                tcpm.sendMessageToClient(String.valueOf(files.get(fileName).fileSize), 1000);
 
                 // Send client the number of packets that will be sent.
-                tcpm.sendMessageToClient(String.valueOf(packets.size()), 2000);
+                tcpm.sendMessageToClient(String.valueOf(packets.size()), 1000);
 
                 for(int i = 0; i < packets.size(); i++)
                 {
                     // Send block data to server via UDP
-                    udpm.sendPacketToClient(packets.get(i), receivedMessage.getAddress(), receivedMessage.getPort(), 2000);
+                    udpm.sendPacketToClient(packets.get(i), receivedMessage.getAddress(), receivedMessage.getPort(), 1000);
                 }
             }
 
@@ -141,9 +149,9 @@ public class ServerThread extends Thread
                 String fileSize = String.valueOf(0);
 
                 // Send file size using TCP
-                tcpm.sendMessageToClient(fileSize, 2000);
+                tcpm.sendMessageToClient(fileSize, 1000);
 
-                tcpm.sendMessageToClient("File does not exist in server.", 2000);
+                tcpm.sendMessageToClient("File does not exist in server.", 1000);
             }
         }
 
@@ -157,25 +165,26 @@ public class ServerThread extends Thread
 
     synchronized public void editFile()
     {
-        return;
+        downloadFile();
+        uploadFile(true);
     }
 
-    synchronized public void uploadFile()
+    synchronized public void uploadFile(boolean isEdit)
     {
         byte[][] packets = null;
 
         try
         {
             // Receive a TCP message indicating the name of the file being sent.
-            String fileName = tcpm.receiveMessageFromClient(2000);
+            String fileName = tcpm.receiveMessageFromClient(1000);
 
             SQLManager manager = new SQLManager(fileName);
             manager.setDBConnection();
 
-            int fileSize = Integer.valueOf(tcpm.receiveMessageFromClient(2000));
+            int fileSize = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
             // Receive a TCP message indicating the number of UDP packets being sent.
-            int numPackets = Integer.valueOf(tcpm.receiveMessageFromClient(2000));
+            int numPackets = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
             packets = new byte[numPackets][];
 
@@ -187,7 +196,7 @@ public class ServerThread extends Thread
             for(int i = 0; i < numPackets; i++)
             {
                 // Receive block from client.
-                DatagramPacket receivedMessage = udpm.receivePacketFromClient(buffer);
+                DatagramPacket receivedMessage = udpm.receivePacketFromClient(buffer, 1000);
 
                 byte[] rmBytes = receivedMessage.getData();
                 int identifier = (int)rmBytes[1];
@@ -200,11 +209,11 @@ public class ServerThread extends Thread
                 // resize the packet to remove excess bytes.
                 if(fileSize % bufferSize > 0 && identifier == numPackets - 1)
                 {
-                    rmBytes = fd.stripPadding(rmBytes, fileSize % bufferSize);
+                    rmBytes = fd.stripPadding(rmBytes, fileSize % (bufferSize - 2));
                 }
 
                 // Remove identifier and assign it in to the packets jagged array based on the identifier
-                packets[identifier + (128 * scale) + scale] = fd.stripIdentifier(rmBytes);
+                packets[identifier + (128 * scale) + scale] = rmBytes;
             }
 
             for(int i = 0; i < packets.length; i++)
@@ -222,26 +231,32 @@ public class ServerThread extends Thread
             {
                 resultCode = manager.insertData(fileData, fileSize);
 
-                tcpm.sendMessageToClient(String.valueOf(resultCode), 2000);
+                tcpm.sendMessageToClient(String.valueOf(resultCode), 1000);
 
                 String message = (resultCode == 1) ? "File uploaded successfully!" : "Error occurred. File not uploaded.";
 
-                tcpm.sendMessageToClient(message, 2000);
+                tcpm.sendMessageToClient(message, 1000);
+            }
+
+            else if(isEdit)
+            {
+                manager.updateFileByName(fileName, fileData, fileData.length);
+                tcpm.sendMessageToClient("File updated!", 1000);
             }
 
             else
             {
-                tcpm.sendMessageToClient(String.valueOf(resultCode), 2000);
+                tcpm.sendMessageToClient(String.valueOf(resultCode), 1000);
 
-                tcpm.sendMessageToClient("File already exists.", 2000);
+                tcpm.sendMessageToClient("File already exists.", 1000);
                 
-                int clientResponse = Integer.valueOf(tcpm.receiveMessageFromClient(2000));
+                int clientResponse = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
                 if(clientResponse == 1)
                 {
-                    manager.updateFileByName(fileName, fileData);
+                    manager.updateFileByName(fileName, fileData, fileData.length);
 
-                    tcpm.sendMessageToClient("File uploaded successfully!", 2000);
+                    tcpm.sendMessageToClient("File uploaded successfully!", 1000);
                 }
             }
 

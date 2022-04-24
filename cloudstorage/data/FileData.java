@@ -136,7 +136,7 @@ public class FileData
 
     public byte[] stripIdentifier(byte[] data)
     {
-        byte[] temp = new byte[data.length - 1];
+        byte[] temp = new byte[data.length - 2];
 
         for(int i = 2; i < data.length; i++)
         {

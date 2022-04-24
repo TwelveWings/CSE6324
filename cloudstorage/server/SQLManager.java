@@ -255,16 +255,17 @@ public class SQLManager
         return rs;
     }
 
-    public void updateFileByName(String fileName, byte[] data)
+    public void updateFileByName(String fileName, byte[] data, int fileSize)
     {
-        String sql = "UPDATE Files SET Data = ? WHERE FileName = ?";
+        String sql = "UPDATE Files SET Data = ?, FileSize = ? WHERE FileName = ?";
 
         try
         {
             PreparedStatement ps = conn.prepareStatement(sql);
             
             ps.setBytes(1, data);
-            ps.setString(2, fileName);
+            ps.setInt(2, fileSize);
+            ps.setString(3, fileName);
 
             ps.executeUpdate();            
         }

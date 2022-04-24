@@ -16,15 +16,17 @@ public class UDPManager
         udpSocket.close();
     }
     
-    public DatagramPacket receivePacketFromClient(byte[] rBuffer)
+    public DatagramPacket receivePacketFromClient(byte[] buffer, int timeout)
     {
         // Instantiate DatagramPacket object based on received data - rBuffer (received Buffer).
-        DatagramPacket receivedPacket = new DatagramPacket(rBuffer, rBuffer.length);
+        DatagramPacket receivedPacket = new DatagramPacket(buffer, buffer.length);
 
         try
         {
             // Receive file data from client program.
             udpSocket.receive(receivedPacket);
+
+            Thread.sleep(timeout);
         }
 
         catch(Exception e)
@@ -35,7 +37,7 @@ public class UDPManager
         return receivedPacket;
     }
 
-    public DatagramPacket receivePacketFromServer(byte[] buffer)
+    public DatagramPacket receivePacketFromServer(byte[] buffer, int timeout)
     {
         // Instantiate DatagramPacket object based on buffer.
         DatagramPacket receivedPacket = new DatagramPacket(buffer, buffer.length);
@@ -44,6 +46,8 @@ public class UDPManager
         {
             // Receive file name from client program.
             udpSocket.receive(receivedPacket);
+
+            Thread.sleep(timeout);
         }
 
         catch(Exception e)
