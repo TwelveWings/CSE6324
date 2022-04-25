@@ -1,7 +1,6 @@
 package cloudstorage.server;
 
 import java.net.*;
-import java.util.*;
 
 public class Server
 {
@@ -9,7 +8,6 @@ public class Server
     public static byte[] buffer;
     public static int port;
     public static final int bufferSize = 65507;
-    public static Scanner sc;
     public static ServerSocket serverSocket;
     public static Socket tcpSocket;
 

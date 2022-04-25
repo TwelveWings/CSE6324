@@ -19,6 +19,8 @@ public class Client
     public static void main(String[] args)
     {
         sc = new Scanner(System.in);
+        List<ClientThread> uploads = new ArrayList<ClientThread>();
+        List<ClientThread> downloads = new ArrayList<ClientThread>();
 
         try
         {
@@ -41,6 +43,9 @@ public class Client
             udpm = new UDPManager(udpSocket);
 
             int i = 0;
+            int index = -1;
+            SystemAction command = null;
+            
             while(true)
             {
                 System.out.println("What action do you want to perform? (Type: upload <FILE>, download <FILE>, edit <FILE>, delete <FILE> or quit)");
@@ -61,28 +66,103 @@ public class Client
                         System.out.println("Program terminated.");
                         return;
                     }
-    
-                    switch(actions[0])
+
+                    switch(actions[0].toLowerCase())
                     {
                         case "upload":
-                            ct = new ClientThread(tcpSocket, udpSocket, address,  buffer, bufferSize, ++i, actions[1], SystemAction.Upload);
-                            ct.start();
+                            command = SystemAction.Upload;
                             break;
                         case "download":
-                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i,  actions[1], SystemAction.Download);
-                            ct.start();
+                            command = SystemAction.Download;
                             break;
                         case "edit":
-                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i,  actions[1], SystemAction.Edit);
-                            ct.start();
+                            command = SystemAction.Edit;
                             break;
                         case "delete":
-                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i,  actions[1], SystemAction.Delete);
-                            ct.start();
+                            command = SystemAction.Delete;
+                            break;
+                        case "pause":
+                            command = null;
+                            index = Integer.valueOf(actions[2]);
+
+                            if(actions[1].toLowerCase().equals("upload") && index < uploads.size())
+                            {
+                                uploads.get(index).setIsPaused(true);
+                            }
+
+                            else if(actions[1].toLowerCase().equals("download") && index < downloads.size())
+                            {
+                                downloads.get(index).setIsPaused(true);
+                            }
+
+                            else
+                            {
+                                System.out.println("That command does not exist.");
+                            }
+
+                            break;
+                        case "resume":
+                            command = null;
+                            index = Integer.valueOf(actions[2]);
+
+                            if(actions[1].toLowerCase().equals("upload") && index < uploads.size())
+                            {
+                                uploads.get(index).setIsPaused(false);
+                                uploads.get(index).resumeThread();
+                            }
+
+                            else if(actions[1].toLowerCase().equals("download") && index < downloads.size())
+                            {
+                                downloads.get(index).setIsPaused(false);
+                                downloads.get(index).resumeThread();
+                            }
+
+                            else
+                            {
+                                System.out.println("That command does not exist.");
+                            }
+
+                            break;
+                        case "cancel":
+                            command = null;
+                            index = Integer.valueOf(actions[2]);
+
+                            if(actions[1].toLowerCase().equals("upload") && index < uploads.size())
+                            {
+                                uploads.get(index).interrupt();
+                            }
+
+                            else if(actions[1].toLowerCase().equals("download") && index < downloads.size())
+                            {
+                                uploads.get(index).interrupt();
+                            }
+
+                            else
+                            {
+                                System.out.println("That command does not exist.");
+                            }
+
                             break;
                         default:
                             System.out.println("Invalid action. Please try again.");
                             break;
+                    }
+
+                    if(command != null)
+                    {
+                        ct = new ClientThread(tcpSocket, udpSocket, address,  buffer, bufferSize, ++i, actions[1], command);
+
+                        if(command == SystemAction.Upload)
+                        {
+                            uploads.add(ct);
+                        }
+
+                        else if(command == SystemAction.Download)
+                        {
+                            downloads.add(ct);
+                        }
+
+                        ct.start();
                     }
                 }
 
