@@ -48,7 +48,8 @@ public class Client
             
             while(true)
             {
-                System.out.println("What action do you want to perform? (Type: upload <FILE>, download <FILE>, edit <FILE>, delete <FILE> or quit)");
+                System.out.println("What action do you want to perform?\nType:\nupload <FILE>,\ndownload <FILE>,\nedit <FILE>,\ndelete <FILE>,\n" +
+                    "pause <UPLOAD/DOWNLOAD> <INDEX>,\nresume <UPLOAD/DOWNLOAD> <INDEX>,\ncancel <UPLOAD/DOWNLOAD> <INDEX>,\nor quit\n");
 
                 try 
                 {

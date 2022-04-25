@@ -63,11 +63,11 @@ public class ClientThread extends Thread
         }
     }
 
-    public void checkIfPaused(int position)
+    public boolean checkIfPaused()
     {
         if(isPaused)
         {
-            JOptionPane.showMessageDialog(null, String.format("Thread Paused: %d", position));
+            JOptionPane.showMessageDialog(null, "Thread Paused");
             synchronized(this)
             {
                 while(isPaused)
@@ -84,6 +84,8 @@ public class ClientThread extends Thread
                 }
             }
         }
+
+        return isPaused;
     }
 
     public void resumeThread()
@@ -126,17 +128,11 @@ public class ClientThread extends Thread
 
         try
         {
-            checkIfPaused(1);
-
             // Send file name to download.
             tcpm.sendMessageToServer(fileName, 1000);
 
-            checkIfPaused(2);
-
             // Send datagram to establish connection
             udpm.sendPacketToServer("1".getBytes(), address, 2023, 1000);
-
-            checkIfPaused(3);
 
             Arrays.fill(buffer, (byte)0);
 
@@ -148,8 +144,6 @@ public class ClientThread extends Thread
             {
                 String message = tcpm.receiveMessageFromServer(1000);
 
-                checkIfPaused(4);
-
                 JOptionPane.showMessageDialog(null, message);
             }
 
@@ -157,8 +151,6 @@ public class ClientThread extends Thread
             {
                 // Receive a TCP message indicating the number of UDP packets being sent.
                 int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
-
-                checkIfPaused(5);
 
                 packets = new byte[numPackets][];
 
@@ -169,7 +161,18 @@ public class ClientThread extends Thread
                 // Loop through the packets that have been sent.
                 for(int i = 0; i < numPackets; i++)
                 {
-                    checkIfPaused(6);
+                    String pausedMessage = (isPaused) ? "paused" : "";
+                    
+                    // Send a message to the server to indicate that the thread has been paused.
+                    tcpm.sendMessageToServer(pausedMessage, 1000);
+
+                    // If the thread has been paused, a wait operation will be executed in the checkIfPaused method. Once it resumes,
+                    // it will return false, meaning it is no longer paused. A new message will be sent to the server to continue process.
+                    if(!checkIfPaused())
+                    {
+                        tcpm.sendMessageToServer("resume", 1000);                        
+                    }
+
                     // Receive block from client.
                     DatagramPacket receivedMessage = udpm.receivePacketFromServer(buffer, 1000);
 
@@ -197,8 +200,6 @@ public class ClientThread extends Thread
                 }
 
                 fileData = bos.toByteArray();
-
-                checkIfPaused(7);
 
                 if(!isEdit)
                 {
@@ -279,8 +280,6 @@ public class ClientThread extends Thread
     {
         try
         {
-            checkIfPaused(1);
-
             // Get file to transfer.
             File targetFile = new File(fileName);
 
@@ -300,41 +299,27 @@ public class ClientThread extends Thread
 
             List<byte[]> packets = fd.getPackets();
 
-            checkIfPaused(2);
-
             // Send server the file name of file being sent.
             tcpm.sendMessageToServer(fileName, 1000);
             
-            checkIfPaused(3);
-
             // Send server the file size of the file being sent.
             tcpm.sendMessageToServer(String.valueOf(sendData.length), 1000);
-
-            checkIfPaused(4);
 
             // Send server a message with the number of packets being sent.
             tcpm.sendMessageToServer(String.valueOf(packets.size()), 1000);
 
             for(int i = 0; i < packets.size(); i++)
             {
-                checkIfPaused(5);
+                checkIfPaused();
                 // Send block data to server via UDP
                 udpm.sendPacketToServer(packets.get(i), address, 2023, 1000);
             }
 
-            checkIfPaused(6);
-
             int resultCode = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
-
-            checkIfPaused(7);
 
             String message = tcpm.receiveMessageFromServer(1000);
 
-            checkIfPaused(8);
-
             JOptionPane.showMessageDialog(null, message);
-
-            checkIfPaused(9);
 
             if(resultCode == 0)
             {

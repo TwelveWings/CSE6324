@@ -1,6 +1,7 @@
 package cloudstorage.network;
 
 import java.net.*;
+import javax.swing.JOptionPane;
 
 public class UDPManager 
 {
@@ -85,6 +86,29 @@ public class UDPManager
             udpSocket.send(packet);
 
             Thread.sleep(timeout);
+        }
+
+        catch(InterruptedException ie)
+        {
+            sendEmptyPacket(data.length, serverAddress, serverPort);
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendEmptyPacket(int length, InetAddress serverAddress, int serverPort)
+    {
+        try
+        {
+            byte[] empty = new byte[length];
+            DatagramPacket packet = new DatagramPacket(empty, length, serverAddress, serverPort);
+
+            udpSocket.send(packet);
+
+            JOptionPane.showMessageDialog(null, "Thread interrupted");
         }
 
         catch(Exception e)
