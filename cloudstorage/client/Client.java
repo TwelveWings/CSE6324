@@ -44,7 +44,7 @@ public class Client
             int i = 0;
             while(true)
             {
-                System.out.println("What action do you want to perform? (1 - Upload, 2 - Download, 3 - Edit, 4 - Delete, 0 - Quit)");
+                System.out.println("What action do you want to perform? (1 - Upload, 2 - Download, 3 - Edit, 4 - Delete, 5 - Get File Names, 0 - Quit)");
 
                 try 
                 {
@@ -77,6 +77,10 @@ public class Client
                         case 4:
                             //deleteFile();
                             ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i, Action.Delete);
+                            ct.start();
+                            break;
+                        case 5:
+                            ct = new ClientThread(tcpSocket, udpSocket, address, buffer, bufferSize, ++i, Action.GetFileNames);
                             ct.start();
                             break;
                         default:
