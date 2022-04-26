@@ -27,17 +27,7 @@ public class TableReader
 
         else
         {
-            byte[] a =  fd.get("bg.jpg").data;
-            /*
-            for(int i = 0; i < a.length; i++)
-            {
-                if((int)a[i] == 0)
-                {
-                    System.out.println(a[i]);
-                }
-            }*/
-
-            fd.forEach((k, v) -> System.out.printf("Name: %s\nSize:%d\nData:\n", v.fileName, v.fileSize));
+            fd.forEach((k, v) -> System.out.printf("Name: %s\nSize:%d\nData:%s\n", v.fileName, v.fileSize, new String(v.data, 0, v.data.length)));
         }
 
 

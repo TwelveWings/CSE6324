@@ -15,11 +15,11 @@ public class ClientThread extends Thread
     public byte[] buffer;
     public DatagramSocket udpSocket;
     public InetAddress address;
-    public Scanner sc;
     public Socket tcpSocket;
     public String fileName;
     public TCPManager tcpm;
     public UDPManager udpm;
+    public volatile boolean isPaused;
     public int bufferSize;
     public int ID;
 
@@ -33,7 +33,12 @@ public class ClientThread extends Thread
         ID = tID;
         fileName = fn;
         threadAction = a;
-        sc = new Scanner(System.in);
+        isPaused = false;
+    }
+
+    public void setIsPaused(boolean pause)
+    {
+        isPaused = pause;
     }
 
     public void run()
@@ -47,7 +52,7 @@ public class ClientThread extends Thread
                 uploadFile(fileName);
                 break;
             case Download:
-                downloadFile(fileName);
+                downloadFile(fileName, false);
                 break;
             case Edit:
                 editFile(fileName);
@@ -58,17 +63,54 @@ public class ClientThread extends Thread
         }
     }
 
+    public boolean checkIfPaused()
+    {
+        if(isPaused)
+        {
+            JOptionPane.showMessageDialog(null, "Thread Paused");
+            synchronized(this)
+            {
+                while(isPaused)
+                {
+                    try
+                    {
+                        wait();
+                    }
+
+                    catch(InterruptedException ie)
+                    {
+                        JOptionPane.showMessageDialog(null, "Thread Interrupted");
+                    }
+                }
+            }
+        }
+
+        return isPaused;
+    }
+
+    public void resumeThread()
+    {
+        if(!isPaused)
+        {
+            synchronized(this)
+            {
+                notify();
+                JOptionPane.showMessageDialog(null, "Thread Resumed");
+            }
+        }
+    }
+
     synchronized public void deleteFile(String fileName)
     {
         try
         {
             // Send file to delete.
-            tcpm.sendMessageToServer(fileName, 2000);
+            tcpm.sendMessageToServer(fileName, 1000);
 
             Arrays.fill(buffer, (byte)0);
 
             // Instantiate DatagramPacket object based on buffer.
-            String message = tcpm.receiveMessageFromServer(2000);
+            String message = tcpm.receiveMessageFromServer(1000);
 
             JOptionPane.showMessageDialog(null, message);
         }
@@ -79,27 +121,28 @@ public class ClientThread extends Thread
         }
     }
 
-    synchronized public void downloadFile(String fileName)
+    synchronized public byte[] downloadFile(String fileName, boolean isEdit)
     {
         byte[][] packets = null;
+        byte[] fileData = null;
 
         try
         {
             // Send file name to download.
-            tcpm.sendMessageToServer(fileName, 2000);
+            tcpm.sendMessageToServer(fileName, 1000);
 
             // Send datagram to establish connection
-            udpm.sendPacketToServer("1".getBytes(), address, 2023, 2000);
+            udpm.sendPacketToServer("1".getBytes(), address, 2023, 1000);
 
             Arrays.fill(buffer, (byte)0);
 
             // The server sends the filesize that as been located.
-            int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(2000));
+            int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
 
             // If fileSize == 0, there was no file. Print error from server. Otherwise convert data from server to a file.
             if(fileSize == 0)
             {
-                String message = tcpm.receiveMessageFromServer(2000);
+                String message = tcpm.receiveMessageFromServer(1000);
 
                 JOptionPane.showMessageDialog(null, message);
             }
@@ -107,7 +150,7 @@ public class ClientThread extends Thread
             else
             {
                 // Receive a TCP message indicating the number of UDP packets being sent.
-                int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(2000));
+                int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
 
                 packets = new byte[numPackets][];
 
@@ -118,25 +161,37 @@ public class ClientThread extends Thread
                 // Loop through the packets that have been sent.
                 for(int i = 0; i < numPackets; i++)
                 {
+                    String pausedMessage = (isPaused) ? "paused" : "";
+                    
+                    // Send a message to the server to indicate that the thread has been paused.
+                    tcpm.sendMessageToServer(pausedMessage, 1000);
+
+                    // If the thread has been paused, a wait operation will be executed in the checkIfPaused method. Once it resumes,
+                    // it will return false, meaning it is no longer paused. A new message will be sent to the server to continue process.
+                    if(!checkIfPaused())
+                    {
+                        tcpm.sendMessageToServer("resume", 1000);                        
+                    }
+
                     // Receive block from client.
-                    DatagramPacket receivedMessage = udpm.receivePacketFromServer(buffer);
+                    DatagramPacket receivedMessage = udpm.receivePacketFromServer(buffer, 1000);
 
                     byte[] rmBytes = receivedMessage.getData();
                     int identifier = (int)rmBytes[1];
                     int scale = (int)rmBytes[0];
 
-                    // Remove the extra byte added to identify the order of the packet.
+                    // Remove the extra bytes added to identify the order of the packet.
                     rmBytes = fd.stripIdentifier(rmBytes);
 
                     // If the fileSize is not evenly divisible by the bufferSize and the identifier is the last packet sent
                     // resize the packet to remove excess bytes.
                     if(fileSize % bufferSize > 0 && identifier == numPackets - 1)
                     {
-                        rmBytes = fd.stripPadding(rmBytes, fileSize % bufferSize);
+                        rmBytes = fd.stripPadding(rmBytes, fileSize % (bufferSize - 2));
                     }
 
                     // Remove identifier and assign it in to the packets jagged array based on the identifier
-                    packets[identifier + (128 * scale) + scale] = fd.stripIdentifier(rmBytes);
+                    packets[identifier + (128 * scale) + scale] = rmBytes;
                 }
 
                 for(int i = 0; i < packets.length; i++)
@@ -144,17 +199,20 @@ public class ClientThread extends Thread
                     bos.write(packets[i]);
                 }
 
-                byte[] fileData = bos.toByteArray();
+                fileData = bos.toByteArray();
 
-                try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/cloudstorage/downloads/" + fileName))
+                if(!isEdit)
                 {
-                    fos.write(fileData);
-                    JOptionPane.showMessageDialog(null, "Download successful!");
-                }
+                    try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/cloudstorage/downloads/" + fileName))
+                    {
+                        fos.write(fileData);
+                        JOptionPane.showMessageDialog(null, "Download successful!");
+                    }
 
-                catch(IOException ioe)
-                {
-                    ioe.printStackTrace();
+                    catch(IOException ioe)
+                    {
+                        ioe.printStackTrace();
+                    }
                 }
             }
         }
@@ -163,11 +221,59 @@ public class ClientThread extends Thread
         {
             e.printStackTrace();
         }
+
+        return fileData;
     }
 
     synchronized public void editFile(String fileName)
     {
-        return;
+        String[] fileParts = fileName.split("\\.");
+
+        if(!fileParts[fileParts.length - 1].equals("txt"))
+        {
+            JOptionPane.showMessageDialog(null, "You cannot edit binary files.");
+            return;
+        }
+
+        byte[] fileData = downloadFile(fileName, true);
+
+        if(fileData == null)
+        {
+            return;
+        }
+
+        String newValue = JOptionPane.showInputDialog(
+            String.format(
+                "File reads: %s. How should this be edited?", 
+                new String(fileData, 0, fileData.length)));
+
+        byte[] newData = newValue.getBytes();
+                
+        FileData fd = new FileData(newData, fileName, newData.length);
+
+        // Segment data byte array into packets of size <= bufferSize.
+        fd.createSegments(newData, bufferSize, Segment.Packet);
+
+        List<byte[]> packets = fd.getPackets();
+
+        // Send server the file name of file being sent.
+        tcpm.sendMessageToServer(fileName, 1000);
+
+        // Send server the file size of the file being sent.
+        tcpm.sendMessageToServer(String.valueOf(newData.length), 1000);
+
+        // Send server a message with the number of packets being sent.
+        tcpm.sendMessageToServer(String.valueOf(packets.size()), 1000);
+        
+        for(int i = 0; i < packets.size(); i++)
+        {
+            // Send block data to server via UDP
+            udpm.sendPacketToServer(packets.get(i), address, 2023, 1000);
+        }
+
+        String message = tcpm.receiveMessageFromServer(1000);
+
+        JOptionPane.showMessageDialog(null, message);
     }
 
     synchronized public void uploadFile(String fileName)
@@ -189,28 +295,29 @@ public class ClientThread extends Thread
             FileData fd = new FileData(sendData, fileName, sendData.length);
 
             // Segment data byte array into packets of size <= bufferSize.
-            fd.createSegments(sendData, bufferSize, Segment.Packet);
+            fd.createSegments(sendData, bufferSize - 2, Segment.Packet);
 
             List<byte[]> packets = fd.getPackets();
 
             // Send server the file name of file being sent.
-            tcpm.sendMessageToServer(fileName, 2000);
-
+            tcpm.sendMessageToServer(fileName, 1000);
+            
             // Send server the file size of the file being sent.
-            tcpm.sendMessageToServer(String.valueOf(sendData.length), 2000);
+            tcpm.sendMessageToServer(String.valueOf(sendData.length), 1000);
 
             // Send server a message with the number of packets being sent.
-            tcpm.sendMessageToServer(String.valueOf(packets.size()), 2000);
-            
+            tcpm.sendMessageToServer(String.valueOf(packets.size()), 1000);
+
             for(int i = 0; i < packets.size(); i++)
             {
+                checkIfPaused();
                 // Send block data to server via UDP
-                udpm.sendPacketToServer(packets.get(i), address, 2023, 2000);
+                udpm.sendPacketToServer(packets.get(i), address, 2023, 1000);
             }
 
-            int resultCode = Integer.valueOf(tcpm.receiveMessageFromServer(2000));
+            int resultCode = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
 
-            String message = tcpm.receiveMessageFromServer(2000);
+            String message = tcpm.receiveMessageFromServer(1000);
 
             JOptionPane.showMessageDialog(null, message);
 
@@ -223,9 +330,9 @@ public class ClientThread extends Thread
                 
                 if(overrideFileInDB.equals("0"))
                 {
-                    tcpm.sendMessageToServer(overrideFileInDB, 2000);
+                    tcpm.sendMessageToServer(overrideFileInDB, 1000);
 
-                    message = tcpm.receiveMessageFromServer(2000);
+                    message = tcpm.receiveMessageFromServer(1000);
 
                     JOptionPane.showMessageDialog(null, message);
                 }
