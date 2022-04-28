@@ -41,4 +41,5 @@ java -cp ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.client.Cli
 To check the tables run:
 
 java -classpath ";cloudstorage\client\sqlite-jdbc-3.36.0.3.jar" cloudstorage.client.TableReader
+
 java -classpath ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.server.TableReader
