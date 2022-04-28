@@ -13,24 +13,32 @@ javac -d . CloudStorage.java
 
 Then compile each subdirectory of cloudstorage in the following order
 
-javac cloudstorage\enums\*.java
+javac cloudstorage\enums\\*.java
 
-javac cloudstorage\data\*.java
+javac cloudstorage\data\\*.java
 
-javac cloudstorage\network\*.java
+javac cloudstorage\network\\*.java
 
-javac cloudstorage\server\*.java
+javac cloudstorage\server\\*.java
 
-javac cloudstorage\client\*.java
+javac cloudstorage\client\\*.java
 
 To run the server program, run: 
+
 java -cp ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.server.Server
 
-To reset the tables run:
-java -cp ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.server.Server new
- 
 Then run:
-java cloudstorage.client.Client
+
+java -cp ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.client.Client
+
+To reset the tables run:
+
+java -cp ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.server.Server new
+
+java -cp ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.client.Client new
+
 
 To check the tables run:
+
+java -classpath ";cloudstorage\client\sqlite-jdbc-3.36.0.3.jar" cloudstorage.client.TableReader
 java -classpath ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.server.TableReader

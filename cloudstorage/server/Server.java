@@ -1,5 +1,8 @@
 package cloudstorage.server;
 
+import cloudstorage.data.*;
+import cloudstorage.enums.*;
+import cloudstorage.network.*;
 import java.net.*;
 
 public class Server
@@ -20,7 +23,7 @@ public class Server
 
         SQLManager manager = new SQLManager();
 
-        manager.setDBConnection();
+        manager.setDBConnection(ConnectionType.Server);
 
         // If user specifies new drop table.
         if(args.length > 0 && args[0].equals("new"))

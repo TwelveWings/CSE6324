@@ -1,6 +1,7 @@
 package cloudstorage.server;
 
-import cloudstorage.data.FileData;
+import cloudstorage.enums.*;
+import cloudstorage.data.*;
 import java.util.concurrent.*;
 
 public class TableReader
@@ -9,7 +10,7 @@ public class TableReader
     {
         SQLManager sm = new SQLManager("Name.txt");
 
-        sm.setDBConnection();
+        sm.setDBConnection(ConnectionType.Server);
 
         sm.createTable();
 

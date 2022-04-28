@@ -5,7 +5,7 @@ import java.net.*;
 
 public class NetworkThread extends Thread
 {
-    public byte[] buffer;
+    public byte[] data;
     public DatagramSocket udpSocket;
     public DatagramPacket packet;
     public Socket tcpSocket;
@@ -14,6 +14,7 @@ public class NetworkThread extends Thread
     public NetworkAction action;
     public TCPManager tcpm;
     public UDPManager udpm;
+    public boolean isServer;
 
     public NetworkThread(Socket s, Protocol p, NetworkAction na)
     {
@@ -22,57 +23,111 @@ public class NetworkThread extends Thread
         action = na;
     }
 
-    public NetworkThread(Socket s, Protocol p, NetworkAction na, String m)
+    public NetworkThread(Socket s, Protocol p, NetworkAction na, boolean is)
     {
         tcpSocket = s;
         protocol = p;
         action = na;
-        message = m;
+        isServer = is;
     }
 
-    public NetworkThread(DatagramSocket s, Protocol p, NetworkAction na, byte[] b)
+    public NetworkThread(DatagramSocket s, Protocol p, NetworkAction na, boolean is)
     {
         udpSocket = s;
         protocol = p;
         action = na;
-        buffer = b;
+        isServer = is;
+    }
+
+    public void setData(byte[] d)
+    {
+        data = d;
+        notify();
+    }
+
+    public void setMessage(String m)
+    {
+        message = m;
+        notify();
     }
 
     public void run()
     {
         /*
-        if(protocol == Protocol.TCP)
+        while(true)
         {
-            tcpm = new TCPManager(tcpSocket);
-
-            switch(action)
+            if(newMessage)
+            synchronized(this)
             {
-                case Create:
-                    tcpm.createPa
-                    break;
-                case Send:
-                    break;
-                case Receive:
-                    break;
+
             }
-        }
 
-        else
-        {
-            udpm = new UDPManager(udpSocket);
-
-            switch(action)
+            if(protocol == Protocol.TCP)
             {
-                case Create:
-                    packet = udpm.createDatagram(buffer);
-                    break;
-                case Send:
-                    udpm.sendPacketToServer(packet, packet.getAddress(), packet.getPort(), 5000);
-                    packet = null;
-                    break;
-                case Receive:
-                    break;
+                tcpm = new TCPManager(tcpSocket);
+    
+                switch(action)
+                {
+                    case Send:
+                        sendTCP(isServer);
+                        break;
+                    case Receive:
+                        receiveTCP(isServer);
+                        break;
+                }
             }
+    
+            else
+            {
+                udpm = new UDPManager(udpSocket);
+    
+                switch(action)
+                {
+                    case Send:
+                        sendUDP(isServer);
+                        packet = null;
+                        break;
+                    case Receive:
+                        receiveUDP(isServer)
+                        break;
+                }
+            }                
         }*/
-    }
+   }
+
+   /*synchronized public void receiveTCP(boolean isServer)
+   {
+       if(isServer)
+       {
+           sendPacketToClient(packet, InetAddress clientAddress, int clientPort, int timeout)
+       }
+
+       else
+       {
+           udpm.sendPacketToServer(packet, packet.getAddress(), packet.getPort(), 5000);
+       }
+   }
+
+   synchronized public void sendTCP(boolean isServer)
+   {
+
+   }
+
+   synchronized public void receiveUDP(boolean isServer)
+   {
+
+   }
+
+   synchronized public void sendUDP(boolean isServer)
+   {
+       if(isServer)
+       {
+           sendPacketToClient(packet, InetAddress clientAddress, int clientPort, int timeout)
+       }
+
+       else
+       {
+           udpm.sendPacketToServer(packet, packet.getAddress(), packet.getPort(), 5000);
+       }
+   }*/
 }

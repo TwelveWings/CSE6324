@@ -1,7 +1,7 @@
 package cloudstorage.server;
 
 import cloudstorage.enums.*;
-import cloudstorage.data.FileData;
+import cloudstorage.data.*;
 import cloudstorage.network.*;
 import java.io.*;
 import java.net.*;
@@ -10,9 +10,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ServerThread extends Thread
 {
+    public BoundedBuffer bb;
     public byte[] buffer;
     public DatagramSocket udpSocket;
     public Socket tcpSocket;
+    public SQLManager sm;
     public TCPManager tcpm;
     public UDPManager udpm;
     public int ID;
@@ -30,12 +32,15 @@ public class ServerThread extends Thread
 
     public void run()
     {
+        bb = new BoundedBuffer(1);
         tcpm = new TCPManager(tcpSocket);
         udpm = new UDPManager(udpSocket);
+        sm = new SQLManager();
+
+        sm.setDBConnection(ConnectionType.Server);
+        
 
         String action = tcpm.receiveMessageFromClient(1000);
-
-        System.out.println("System " + String.valueOf(ID));
 
         if(action.equals("quit"))
         {
@@ -44,18 +49,15 @@ public class ServerThread extends Thread
 
         while(true)
         {
-            System.out.println(action);
+            System.out.printf("Thread %d peforming %s\n", ID, action);
 
             switch(action)
             {
                 case "upload":
-                    uploadFile(false);
+                    uploadFile();
                     break;
                 case "download":
                     downloadFile();
-                    break;
-                case "edit":
-                    editFile();
                     break;
                 case "delete":
                     deleteFile();
@@ -66,6 +68,7 @@ public class ServerThread extends Thread
 
             if(action.equals("quit"))
             {
+                sm.closeConnection();
                 return;
             }
 
@@ -75,15 +78,11 @@ public class ServerThread extends Thread
 
     synchronized public void deleteFile()
     {
-        SQLManager manager = new SQLManager();
-
-        manager.setDBConnection();
-
         try
         {
             String fileName = tcpm.receiveMessageFromClient(1000);
 
-            int fileDeleted = manager.deleteFile(fileName);
+            int fileDeleted = sm.deleteFile(fileName);
 
             if(fileDeleted == 0)
             {
@@ -106,15 +105,11 @@ public class ServerThread extends Thread
             e.printStackTrace();
         }
 
-        manager.closeConnection();
+        sm.closeConnection();
     }
 
     synchronized public void downloadFile()
     {
-        SQLManager manager = new SQLManager();
-
-        manager.setDBConnection();
-
         try
         {
             String fileName = tcpm.receiveMessageFromClient(1000);
@@ -122,7 +117,7 @@ public class ServerThread extends Thread
             // Establish UDP connection with client.
             DatagramPacket receivedMessage = udpm.receivePacketFromClient(buffer, 1000);
 
-            ConcurrentHashMap<String, FileData> files = manager.selectAllFiles();
+            ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
 
             if(files.get(fileName) != null)
             {
@@ -168,16 +163,10 @@ public class ServerThread extends Thread
             e.printStackTrace();
         }
 
-        manager.closeConnection();
+        sm.closeConnection();
     }
 
-    synchronized public void editFile()
-    {
-        downloadFile();
-        uploadFile(true);
-    }
-
-    synchronized public void uploadFile(boolean isEdit)
+    synchronized public void uploadFile()
     {
         byte[][] packets = null;
         byte[] empty = new byte[bufferSize];
@@ -187,8 +176,7 @@ public class ServerThread extends Thread
             // Receive a TCP message indicating the name of the file being sent.
             String fileName = tcpm.receiveMessageFromClient(1000);
 
-            SQLManager manager = new SQLManager(fileName);
-            manager.setDBConnection();
+            sm.setFileName(fileName);
 
             int fileSize = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
@@ -218,6 +206,11 @@ public class ServerThread extends Thread
                     i--;
                     continue;
                 }
+
+                System.out.printf("TID: Thread %d\n", ID);
+                System.out.printf("ID: %d\n", identifier);
+                System.out.printf("SCALE: %d\n", scale);
+                System.out.printf("NUM_PACKETS: %d\n", numPackets);
 
                 // If an empty datapacket is sent, leave the method as the thread has been interrupted.
                 if(Arrays.equals(rmBytes, empty))
@@ -251,25 +244,19 @@ public class ServerThread extends Thread
 
             byte[] fileData = bos.toByteArray();
 
-            ConcurrentHashMap<String, FileData> files = manager.selectAllFiles();
+            ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
 
             int resultCode = 0;
             
             if(files.get(fileName) == null)
             {
-                resultCode = manager.insertData(fileData, fileSize);
+                resultCode = sm.insertData(fileData, fileSize);
 
                 tcpm.sendMessageToClient(String.valueOf(resultCode), 1000);
 
                 String message = (resultCode == 1) ? "File uploaded successfully!" : "Error occurred. File not uploaded.";
 
                 tcpm.sendMessageToClient(message, 1000);
-            }
-
-            else if(isEdit)
-            {
-                manager.updateFileByName(fileName, fileData, fileData.length);
-                tcpm.sendMessageToClient("File updated!", 1000);
             }
 
             else
@@ -282,14 +269,11 @@ public class ServerThread extends Thread
 
                 if(clientResponse == 1)
                 {
-                    manager.updateFileByName(fileName, fileData, fileData.length);
+                    sm.updateFileByName(fileName, fileData, fileData.length);
 
                     tcpm.sendMessageToClient("File uploaded successfully!", 1000);
                 }
             }
-
-            // Close connection to DB
-            manager.closeConnection();
         }
 
         catch(Exception e)

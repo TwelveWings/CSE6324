@@ -1,12 +1,13 @@
 package cloudstorage.client;
 
-import cloudstorage.data.FileData;
+import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.concurrent.*;
 import javax.swing.JOptionPane;
 
 public class ClientThread extends Thread
@@ -17,6 +18,7 @@ public class ClientThread extends Thread
     public InetAddress address;
     public Socket tcpSocket;
     public String fileName;
+    public SQLManager sm;
     public TCPManager tcpm;
     public UDPManager udpm;
     public volatile boolean isPaused;
@@ -45,22 +47,21 @@ public class ClientThread extends Thread
     {
         tcpm = new TCPManager(tcpSocket);
         udpm = new UDPManager(udpSocket);
+        sm = new SQLManager();
+
+        sm.setDBConnection(ConnectionType.Client);
 
         switch(threadAction)
         {
             case Upload:
                 uploadFile(fileName);
                 break;
-            case Download:
-                downloadFile(fileName, false);
-                break;
-            case Edit:
-                editFile(fileName);
-                break;
             case Delete:
                 deleteFile(fileName);
                 break;
         }
+
+        sm.closeConnection();
     }
 
     public boolean checkIfPaused()
@@ -102,6 +103,17 @@ public class ClientThread extends Thread
 
     synchronized public void deleteFile(String fileName)
     {
+        boolean deleteFile = (0 == JOptionPane.showOptionDialog(
+                null, "Are you sure you want to delete this file?", "Delete File", JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE, null, null, null));
+
+        if(!deleteFile)
+        {
+            return;
+        }
+
+        sm.deleteFile(fileName);
+
         try
         {
             // Send file to delete.
@@ -121,11 +133,12 @@ public class ClientThread extends Thread
         }
     }
 
-    synchronized public byte[] downloadFile(String fileName, boolean isEdit)
+    synchronized public void downloadFromServer(String fileName)
     {
+        // threadRunning = true;
         byte[][] packets = null;
         byte[] fileData = null;
-
+        
         try
         {
             // Send file name to download.
@@ -200,20 +213,6 @@ public class ClientThread extends Thread
                 }
 
                 fileData = bos.toByteArray();
-
-                if(!isEdit)
-                {
-                    try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/cloudstorage/downloads/" + fileName))
-                    {
-                        fos.write(fileData);
-                        JOptionPane.showMessageDialog(null, "Download successful!");
-                    }
-
-                    catch(IOException ioe)
-                    {
-                        ioe.printStackTrace();
-                    }
-                }
             }
         }
 
@@ -221,63 +220,11 @@ public class ClientThread extends Thread
         {
             e.printStackTrace();
         }
-
-        return fileData;
-    }
-
-    synchronized public void editFile(String fileName)
-    {
-        String[] fileParts = fileName.split("\\.");
-
-        if(!fileParts[fileParts.length - 1].equals("txt"))
-        {
-            JOptionPane.showMessageDialog(null, "You cannot edit binary files.");
-            return;
-        }
-
-        byte[] fileData = downloadFile(fileName, true);
-
-        if(fileData == null)
-        {
-            return;
-        }
-
-        String newValue = JOptionPane.showInputDialog(
-            String.format(
-                "File reads: %s. How should this be edited?", 
-                new String(fileData, 0, fileData.length)));
-
-        byte[] newData = newValue.getBytes();
-                
-        FileData fd = new FileData(newData, fileName, newData.length);
-
-        // Segment data byte array into packets of size <= bufferSize.
-        fd.createSegments(newData, bufferSize, Segment.Packet);
-
-        List<byte[]> packets = fd.getPackets();
-
-        // Send server the file name of file being sent.
-        tcpm.sendMessageToServer(fileName, 1000);
-
-        // Send server the file size of the file being sent.
-        tcpm.sendMessageToServer(String.valueOf(newData.length), 1000);
-
-        // Send server a message with the number of packets being sent.
-        tcpm.sendMessageToServer(String.valueOf(packets.size()), 1000);
-        
-        for(int i = 0; i < packets.size(); i++)
-        {
-            // Send block data to server via UDP
-            udpm.sendPacketToServer(packets.get(i), address, 2023, 1000);
-        }
-
-        String message = tcpm.receiveMessageFromServer(1000);
-
-        JOptionPane.showMessageDialog(null, message);
     }
 
     synchronized public void uploadFile(String fileName)
     {
+        // threadRunning = true;
         try
         {
             // Get file to transfer.
@@ -291,6 +238,10 @@ public class ClientThread extends Thread
 
             // Convert file to byte array.
             byte[] sendData = Files.readAllBytes(targetFile.toPath());
+
+            sm.setFileName(fileName);
+
+            sm.insertData(sendData, sendData.length);
 
             FileData fd = new FileData(sendData, fileName, sendData.length);
 

@@ -27,6 +27,36 @@ public class FileData
         fileSize = fs;
     }
 
+    public byte[] getData()
+    {
+        return data;
+    }
+
+    public void setData(byte[] d)
+    {
+        data = d;
+    }
+
+    public String getFileName()
+    {
+        return fileName;
+    }
+
+    public void setFileName(String fn)
+    {
+        fileName = fn;
+    }
+
+    public int getFileSize()
+    {
+        return fileSize;
+    }
+
+    public void setFileSize(int fs)
+    {
+        fileSize = fs;
+    }
+
     public List<byte[]> getBlocks()
     {
         return blocks;
@@ -47,16 +77,67 @@ public class FileData
         packets = p;
     }
 
-    public void setPacketMap(List<Integer> pm)
+    public int[] findChange(List<byte[]> currData, List<byte[]> newData)
     {
-        packetMap = pm;
-    }
+        int[] maxMin = { -1, -1 };
 
-    public List<Integer> getPacketMap()
-    {
-        return packetMap;
-    }
+        if(currData.size() < newData.size())
+        {
+            for(int i = 0; i < (newData.size() - (newData.size() - currData.size())) ; i++)
+            {
+                if(!Arrays.equals(currData.get(i), newData.get(i)) && maxMin[0] == -1)
+                {
+                    maxMin[0] = i;
+                }
 
+                else if(!Arrays.equals(currData.get(i), newData.get(i)))
+                {
+                    maxMin[1] = i;
+                }
+            }
+        }
+
+        else if(currData.size() > newData.size())
+        {
+            for(int i = 0; i < (currData.size() - (currData.size() - newData.size())) ; i++)
+            {
+                if(!Arrays.equals(currData.get(i), newData.get(i)) && maxMin[0] == -1)
+                {
+                    maxMin[0] = i;
+                }
+
+                else if(!Arrays.equals(currData.get(i), newData.get(i)))
+                {
+                    maxMin[1] = i;
+                }
+            }       
+        }
+
+        else
+        {
+            for(int i = 0; i < currData.size() ; i++)
+            {
+                if(!Arrays.equals(currData.get(i), newData.get(i)) && maxMin[0] == -1)
+                {
+                    maxMin[0] = i;
+                }
+
+                else if(!Arrays.equals(currData.get(i), newData.get(i)))
+                {
+                    maxMin[1] = i;
+                }
+            }           
+        }
+
+        // If the min value was changed but the max was not only one block changed.
+        if(maxMin[0] != -1 && maxMin[1] == -1)
+        {
+            maxMin[1] = maxMin[0];
+        }
+
+        return maxMin;
+    }
+    
     public void createSegments(byte[] data, int size, Segment type)
     {
         List<byte[]> segments = new ArrayList<byte[]>();
