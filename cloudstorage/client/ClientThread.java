@@ -52,7 +52,15 @@ public class ClientThread extends Thread
             case Delete:
                 deleteFile();
                 break;
+            case GetFileNames:
+                getFileNames();
+                break;
         }
+    }
+
+    public void getFileNames()
+    {
+
     }
 
     public void deleteFile()
@@ -149,7 +157,7 @@ public class ClientThread extends Thread
         return;
     }
 
-    public void uploadFile()
+    public void uploadFile(boolean fileIsEdited)
     {
         String fileName = "";
         System.out.println("Enter file name or 0 to cancel:");
@@ -180,6 +188,24 @@ public class ClientThread extends Thread
             fd.createSegments(sendData, bufferSize, Segment.Packet);
 
             List<byte[]> packets = fd.getPackets();
+
+            if (fileIsEdited)
+            {
+                //Get Original File Data
+                FileData fdOriginal = new FileData(sendData, fileName, sendData.length);
+
+                fdOriginal.createSegments(sendData, bufferSize, Segment.Packet);
+
+                List<byte[]> packetsOriginal = fdOriginal.getPackets();
+
+                List<byte[]> differences = new ArrayList<>(packets);
+
+                differences.removeAll(packetsOriginal);
+
+                packets.clear();
+
+                packets.addAll(differences);
+            }
 
             // Send server the file name of file being sent.
             tcpm.sendMessageToServer(fileName, 5000);
