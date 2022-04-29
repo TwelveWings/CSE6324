@@ -29,17 +29,13 @@ java -cp ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.server.Ser
 
 Then run:
 
-java -cp ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.client.Client
+java cloudstorage.client.Client
 
 To reset the tables run:
 
 java -cp ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.server.Server new
 
-java -cp ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.client.Client new
-
 
 To check the tables run:
-
-java -classpath ";cloudstorage\client\sqlite-jdbc-3.36.0.3.jar" cloudstorage.client.TableReader
 
 java -classpath ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.server.TableReader

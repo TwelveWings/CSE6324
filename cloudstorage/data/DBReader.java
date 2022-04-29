@@ -17,10 +17,10 @@ public class DBReader extends Thread
     public int fileSize;
     public int targetPort;
     public InetAddress targetAddress;
-    public ConnectionType threadType;
+    public boolean complete = false;
     public volatile SystemAction command;
     public volatile boolean deltaSync = false;
-    public volatile List<String> files = new ArrayList<String>();
+    public volatile Set<String> files = new HashSet<String>();
 
     public DBReader()
     {
@@ -30,26 +30,24 @@ public class DBReader extends Thread
         command = null;
     }
 
-    public DBReader(byte[] d, String fn, int fs, ConnectionType ct, TCPManager tcp, UDPManager udp, int p, InetAddress a)
+    public DBReader(byte[] d, String fn, int fs, TCPManager tcp, UDPManager udp, int p, InetAddress a)
     {
         data = d;
         fileName = fn;
         fileSize = fs;
         command = null;
-        threadType = ct;
         tcpm = tcp;
         udpm = udp;
         targetPort = p;
         targetAddress = a;
     }
 
-    public DBReader(byte[] d, String fn, int fs, ConnectionType ct, SystemAction c, TCPManager tcp, 
-        UDPManager udp, int p, InetAddress a)
+    public DBReader(byte[] d, String fn, int fs, SystemAction c, TCPManager tcp, UDPManager udp, int p, 
+        InetAddress a)
     {
         data = d;
         fileName = fn;
         fileSize = fs;
-        threadType = ct;
         command = c;
         tcpm = tcp;
         udpm = udp;
@@ -71,96 +69,85 @@ public class DBReader extends Thread
     {
         command = c;
     }
+
+    public boolean getComplete()
+    {
+        return complete;
+    }
     
     public void run()
     {
-        SQLManager sm = new SQLManager();
-
-        FileData fd = null;
-
-        sm.setDBConnection(threadType);
+        FileData fd = new FileData(data, fileName, fileSize);
 
         int[] differences = null;
         List<byte[]> currData = new ArrayList<byte[]>();
 
-        fd = sm.selectFileByName(fileName);
-
         // If file name already has an associate DBReader thread, return.
-        if(fd != null && files.contains(fileName))
+        if(files.contains(fileName))
         {
             return;
         }
-    
+
         files.add(fileName);
+    
+        System.out.println(fileName);
 
-        while(true)
+        if(command == SystemAction.Upload)
         {
-            fd = sm.selectFileByName(fileName);
+            // Split file into blocks
+            fd.createSegments(data, 1024 * 1024 * 4, Segment.Block);
 
-            // If fd is not null, file exists. Otherwise it has been deleted.
-            if(fd != null)
+            differences = fd.findChange(currData, fd.getBlocks());
+
+            /*
+            if(deltaSync)
             {
-                fd.createSegments(fd.getData(), fd.getData().length, Segment.Block);
+                wait();
+            }*/
 
-                differences = fd.findChange(currData, fd.getBlocks());
-
-                /*
-                if(deltaSync)
-                {
-                    wait();
-                }*/
-
-                // If there is no data in the list of byte arrays, but the file size
-                // is greater than 0 (indicating there is data), the file must be newly uploaded.
-                // Thus the data needs to be synchronized with the server.
-                if(currData.size() == 0 && fileSize > 0 || 
-                    (currData.size() > 0 && differences[0] > -1 && differences[1] > -1))
-                {
-                    deltaSync = true;
-                    JOptionPane.showMessageDialog(null, String.format("Delta Sync begin! Sending blocks [%d, %d]", differences[0], differences[1]));
-                    fd.createSegments(fd.getData(), 65505, Segment.Packet);
-
-                    tcpm.sendMessageToServer("upload", 1000);
-                    tcpm.sendMessageToServer(fileName, 1000);
-                    tcpm.sendMessageToServer(String.valueOf(fileSize), 1000);
-                    tcpm.sendMessageToServer(String.valueOf(fd.getPackets().size()), 1000);
-
-                    for(int i = 0; i < fd.getPackets().size(); i++)
-                    {
-                        udpm.sendPacketToServer(fd.getPackets().get(i), targetAddress, targetPort, 1000);
-                    }
-
-                    currData = fd.getBlocks();
-                    deltaSync = false;
-
-                    //notifyAll();
-                }
-            }
-
-            else if(command == SystemAction.Delete)
+            synchronized(this)
             {
                 deltaSync = true;
-                JOptionPane.showMessageDialog(null, "Delta Sync begin!");
-                tcpm.sendMessageToServer("delete", 1000);
-                try
+                fd.createSegments(fd.getData(), 65505, Segment.Packet);
+
+                tcpm.sendMessageToServer("upload", 1000);
+                tcpm.sendMessageToServer(fileName, 1000);
+                tcpm.sendMessageToServer(String.valueOf(fileSize), 1000);
+                tcpm.sendMessageToServer(String.valueOf(fd.getPackets().size()), 1000);
+
+                for(int i = 0; i < fd.getPackets().size(); i++)
                 {
-                    // Send file to delete.
-                    tcpm.sendMessageToServer(fileName, 1000);
-        
-                    // Instantiate DatagramPacket object based on buffer.
-                    String message = tcpm.receiveMessageFromServer(1000);
-        
-                    JOptionPane.showMessageDialog(null, message);
+                    udpm.sendPacketToServer(fd.getPackets().get(i), targetAddress, targetPort, 1000);
                 }
-        
-                catch (Exception e)
-                {
-                    e.printStackTrace();
-                }
+
+                currData = fd.getBlocks();
                 deltaSync = false;
-                setCommand(null);
             }
+
+            //notifyAll();
         }
+
+        else if(command == SystemAction.Delete)
+        {
+            deltaSync = true;
+            JOptionPane.showMessageDialog(null, "Delta Sync begin!");
+            tcpm.sendMessageToServer("delete", 1000);
+            try
+            {
+                // Send file to delete.
+                tcpm.sendMessageToServer(fileName, 1000);
+            }
+    
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+            deltaSync = false;
+        }
+
+        files.remove(fileName);
+
+        complete = true;
     }
 
     public void downloadFile(SQLManager sm)

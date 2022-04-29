@@ -37,9 +37,8 @@ public class ServerThread extends Thread
         udpm = new UDPManager(udpSocket);
         sm = new SQLManager();
 
-        sm.setDBConnection(ConnectionType.Server);
+        sm.setDBConnection();
         
-
         String action = tcpm.receiveMessageFromClient(1000);
 
         if(action.equals("quit"))
@@ -83,21 +82,6 @@ public class ServerThread extends Thread
             String fileName = tcpm.receiveMessageFromClient(1000);
 
             int fileDeleted = sm.deleteFile(fileName);
-
-            if(fileDeleted == 0)
-            {
-                tcpm.sendMessageToClient("File does not exist in server.", 1000);
-            }
-
-            else if(fileDeleted == 1)
-            {
-                tcpm.sendMessageToClient("File deleted successfully!", 1000);
-            }
-
-            else
-            {
-                tcpm.sendMessageToClient("Error occurred. File not deleted.", 1000);
-            }
         }
 
         catch(Exception e)
@@ -251,29 +235,16 @@ public class ServerThread extends Thread
             if(files.get(fileName) == null)
             {
                 resultCode = sm.insertData(fileData, fileSize);
-
-                tcpm.sendMessageToClient(String.valueOf(resultCode), 1000);
-
-                String message = (resultCode == 1) ? "File uploaded successfully!" : "Error occurred. File not uploaded.";
-
-                tcpm.sendMessageToClient(message, 1000);
             }
 
             else
             {
-                tcpm.sendMessageToClient(String.valueOf(resultCode), 1000);
-
-                tcpm.sendMessageToClient("File already exists.", 1000);
-                
-                int clientResponse = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
-
-                if(clientResponse == 1)
-                {
-                    sm.updateFileByName(fileName, fileData, fileData.length);
-
-                    tcpm.sendMessageToClient("File uploaded successfully!", 1000);
-                }
+                System.out.println(fileName);
+                System.out.println(fileData.length);
+                sm.updateFileByName(fileName, fileData, fileData.length);
             }
+
+            System.out.println("Upload complete!");
         }
 
         catch(Exception e)

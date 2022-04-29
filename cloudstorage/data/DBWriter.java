@@ -14,7 +14,6 @@ public class DBWriter extends Thread
     public byte[] data;
     public String fileName;
     public int fileSize;
-    public ConnectionType threadType;
     public TCPManager tcpm;
     public UDPManager udpm;
     public int port;
@@ -28,29 +27,26 @@ public class DBWriter extends Thread
         data = null;
         fileName = "";
         fileSize = 0;
-        threadType = null;
         command = null;
     }
 
-    public DBWriter(byte[] d, String fn, int fs, ConnectionType ct, TCPManager tcp, UDPManager udp, int p, InetAddress a)
+    public DBWriter(byte[] d, String fn, int fs, TCPManager tcp, UDPManager udp, int p, InetAddress a)
     {
         data = d;
         fileName = fn;
         fileSize = fs;
         command = null;
-        threadType = ct;
         tcpm = tcp;
         udpm = udp;
         port = port;
         address = a;
     }
 
-    public DBWriter(byte[] d, String fn, int fs, ConnectionType ct, SystemAction c, TCPManager tcp, UDPManager udp, int p, InetAddress a)
+    public DBWriter(byte[] d, String fn, int fs, SystemAction c, TCPManager tcp, UDPManager udp, int p, InetAddress a)
     {
         data = d;
         fileName = fn;
         fileSize = fs;
-        threadType = ct;
         command = c;
         tcpm = tcp;
         udpm = udp;
@@ -90,14 +86,10 @@ public class DBWriter extends Thread
     
     public void run()
     {
-        SQLManager sm = new SQLManager();
-        sm.setDBConnection(threadType);
         FileData fd = null;
 
         int[] differences = null;
         List<byte[]> currData = new ArrayList<byte[]>();
-
-        fd = sm.selectFileByName(fileName);
 
         // If file name already has an associate DBWriter thread, return.
         if(fd != null && files.contains(fileName))
@@ -112,17 +104,15 @@ public class DBWriter extends Thread
         {
             while(getCommand() != null)
             {
-                fd = sm.selectFileByName(fileName);
-
                 switch(getCommand())
                 {
                     case Upload:
-                        uploadFile(sm);
+                       // uploadFile(sm);
                         setCommand(null);
                         count = 0;
                         break;
                     case Delete:
-                        deleteFile(sm);
+                        //deleteFile(sm);
                         setCommand(null);
                         count = 0;
                         break;
@@ -131,6 +121,7 @@ public class DBWriter extends Thread
         }
     }
 
+    /*
     public synchronized void deleteFile(SQLManager sm)
     {
         boolean deleteFile = (0 == JOptionPane.showOptionDialog(
@@ -175,5 +166,5 @@ public class DBWriter extends Thread
         {
             e.printStackTrace();
         }
-    }
+    }*/
 }

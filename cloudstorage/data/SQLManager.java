@@ -1,7 +1,6 @@
 package cloudstorage.data;
 
 import cloudstorage.data.FileData;
-import cloudstorage.enums.ConnectionType;
 import java.sql.*;
 import java.util.List;
 import java.util.ArrayList;
@@ -33,22 +32,13 @@ public class SQLManager
         return fileName;
     }
 
-    public void setDBConnection(ConnectionType c)
+    public void setDBConnection()
     {
         try 
         {
             Class.forName("org.sqlite.JDBC");
 
-            if(c == ConnectionType.Server)
-            {
-                conn = DriverManager.getConnection("jdbc:sqlite:server.db");
-            }
-
-            else
-            {
-                conn = DriverManager.getConnection("jdbc:sqlite:client.db");                
-            }
-
+            conn = DriverManager.getConnection("jdbc:sqlite:server.db");
         } 
         catch (Exception e) 
         {

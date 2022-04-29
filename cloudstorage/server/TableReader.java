@@ -10,7 +10,7 @@ public class TableReader
     {
         SQLManager sm = new SQLManager("Name.txt");
 
-        sm.setDBConnection(ConnectionType.Server);
+        sm.setDBConnection();
 
         sm.createTable();
 

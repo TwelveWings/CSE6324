@@ -23,7 +23,7 @@ public class Server
 
         SQLManager manager = new SQLManager();
 
-        manager.setDBConnection(ConnectionType.Server);
+        manager.setDBConnection();
 
         // If user specifies new drop table.
         if(args.length > 0 && args[0].equals("new"))

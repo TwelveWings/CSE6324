@@ -5,14 +5,14 @@ import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.io.*;
 import java.net.*;
-import java.nio.file.Files;
+import static java.nio.file.StandardWatchEventKinds.*;
+import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
 import javax.swing.*;
 
 public class Client
 {
-    public static byte[] buffer;
     public static InetAddress address;
     public static int port;
     public static final int blockSize = 1024 * 1024 * 4;
@@ -21,251 +21,121 @@ public class Client
     public static TCPManager tcpm;
     public static UDPManager udpm;
 
+    @SuppressWarnings("unchecked")
+    static<T> WatchEvent<T> cast(WatchEvent<?> event)
+    {
+        return (WatchEvent<T>)event;
+    }
+
+
     public static void main(String[] args)
     {
+        Set<String> fileEvents = new HashSet<String>();
+
         sc = new Scanner(System.in);
 
-        List<ClientThread> uploads = new ArrayList<ClientThread>();
-        List<ClientThread> downloads = new ArrayList<ClientThread>();
-
-        ConcurrentHashMap<String, DBReader> readers = new ConcurrentHashMap<String, DBReader>();
-        ConcurrentHashMap<String, DBWriter> writers = new ConcurrentHashMap<String, DBWriter>();
-
-        SQLManager sm = new SQLManager();
-
-        sm.setDBConnection(ConnectionType.Client);
-
-        // If user specifies new drop table.
-        if(args.length > 0 && args[0].equals("new"))
-        {
-            sm.dropTable();
-        }
-
-        sm.createTable();
+        // Concurrent hashmap to store all Reader threads
+        ConcurrentHashMap<String, FileReader> readers = new ConcurrentHashMap<String, FileReader>();
 
         try
         {
+            // Watcher service to be used to watch changes in the specified directory.
+            WatchService watcher = FileSystems.getDefault().newWatchService();
+
             // Get address of local host.
             address = InetAddress.getLocalHost();
             
-            buffer = new byte[bufferSize];
-
             // Establish TCP socket connection
             Socket tcpSocket = new Socket(address, 2023);
 
             // Establish UDP socket connection.
             DatagramSocket udpSocket = new DatagramSocket();
 
-            ClientThread ct;
-
-            String[] actions = null;
-
+            // TCP and UDP helper objects to send and receive messages and packets.
             tcpm = new TCPManager(tcpSocket);
             udpm = new UDPManager(udpSocket);
 
-            int i = 0;
-            int index = -1;
-            SystemAction command = null;
-
-            ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
-            
-            // Create a read thread for each file.
-            files.forEach((k, v) -> readers.put(v.fileName, new DBReader(v.data, v.fileName, v.fileSize, ConnectionType.Client, tcpm, udpm, 2023, address)));
-
-            files.forEach((k, v) -> readers.get(v.fileName).start());
-
-            // Create a write thread for each file.
-            files.forEach((k, v) -> writers.put(v.fileName, new DBWriter(v.data, v.fileName, v.fileSize, ConnectionType.Client, tcpm, udpm, 2023, address)));
-
-            files.forEach((k, v) -> writers.get(v.fileName).start());
-
+            // Bytes of file being read
             byte[] data = null;
+
+            // The local directory that is being watched and will be used to synchronize with the server.
+            String localDir = System.getProperty("user.dir") + "/cloudstorage/client/files";
+
+            // Local directory converted to a Path.
+            Path clientDirectory = Paths.get(localDir);
+
+            // Watch key will keep track of ENTRY_CREATE, ENTRY_DELETE, and ENTRY MODIFY events.
+            WatchKey key = null;
 
             while(true)
             {
-                files = sm.selectAllFiles();
-                                
-                System.out.println("What action do you want to perform?\nType:\nupload <FILE>,\ndownload <FILE>,\nedit <FILE>,\ndelete <FILE>,\n" +
-                    "pause <UPLOAD/DOWNLOAD> <INDEX>,\nresume <UPLOAD/DOWNLOAD> <INDEX>,\ncancel <UPLOAD/DOWNLOAD> <INDEX>,\nor quit\n");
-
-                try 
+                try
                 {
-                    String action = sc.nextLine();
-
-                    actions = action.split(" ");
-
-                    //tcpm.sendMessageToServer(actions[0], 5000);
-
-                    if(action.toLowerCase().equals("quit"))
-                    {
-                        tcpm.closeSocket();
-                        udpm.closeSocket();
-                        
-                        System.out.println("Program terminated.");
-                        return;
-                    }
-
-                    switch(actions[0].toLowerCase())
-                    {
-                        case "delete":
-                            data = getFileData(actions[1]);
-
-                            if(data == null)
-                            {
-                                break;
-                            }
-
-                            else if(!writers.containsKey(actions[1]))
-                            {
-                                writers.put(actions[1], new DBWriter(data, actions[1], data.length, ConnectionType.Client, SystemAction.Delete, tcpm, udpm, 2023, address));
-                                writers.get(actions[1]).start();
-
-                                readers.put(actions[1], new DBReader(data, actions[1], data.length, ConnectionType.Client, tcpm, udpm, 2023, address));
-                                readers.get(actions[1]).start();
-                            }
-
-                            else
-                            {
-                                writers.get(actions[1]).setFileSize(data.length);
-                                writers.get(actions[1]).setData(data);
-                                writers.get(actions[1]).setCommand(SystemAction.Delete);
-
-                                // If delete command is sent, delete from reader thread
-                                readers.get(actions[1]).setCommand(SystemAction.Delete);
-                            }
-
-                            break;
-                        case "download":
-                            data = getFileData(actions[1]);
-                            
-                            if(data == null)
-                            {
-                                break;
-                            }
-
-                            else
-                            {
-                                readers.get(actions[1]).setFileSize(data.length);
-                                readers.get(actions[1]).setData(data);
-                                readers.get(actions[1]).setCommand(SystemAction.Download);
-                            }
-
-                            break;
-                        case "upload":
-                            data = getFileData(actions[1]);
-
-                            if(data == null)
-                            {
-                                break;
-                            }
-
-                            else if(!writers.containsKey(actions[1]))
-                            {
-                                writers.put(actions[1], 
-                                    new DBWriter(data, actions[1], data.length, ConnectionType.Client, SystemAction.Upload, tcpm, udpm, 2023, address));
-                                writers.get(actions[1]).start();
-
-                                readers.put(actions[1], new DBReader(data, actions[1], data.length, ConnectionType.Client, tcpm, udpm, 2023, address));
-                                readers.get(actions[1]).start();
-                            }
-
-                            else
-                            {
-                                writers.get(actions[1]).setFileSize(data.length);
-                                writers.get(actions[1]).setData(data);
-                                writers.get(actions[1]).setCommand(SystemAction.Upload);
-                            }
-
-                            break;
-                        case "pause":
-                            command = null;
-                            index = Integer.valueOf(actions[2]);
-
-                            if(actions[1].toLowerCase().equals("upload") && index < uploads.size())
-                            {
-                                uploads.get(index).setIsPaused(true);
-                            }
-
-                            else if(actions[1].toLowerCase().equals("download") && index < downloads.size())
-                            {
-                                downloads.get(index).setIsPaused(true);
-                            }
-
-                            else
-                            {
-                                System.out.println("That command does not exist.");
-                            }
-
-                            break;
-                        case "resume":
-                            command = null;
-                            index = Integer.valueOf(actions[2]);
-
-                            if(actions[1].toLowerCase().equals("upload") && index < uploads.size())
-                            {
-                                uploads.get(index).setIsPaused(false);
-                                uploads.get(index).resumeThread();
-                            }
-
-                            else if(actions[1].toLowerCase().equals("download") && index < downloads.size())
-                            {
-                                downloads.get(index).setIsPaused(false);
-                                downloads.get(index).resumeThread();
-                            }
-
-                            else
-                            {
-                                System.out.println("That command does not exist.");
-                            }
-
-                            break;
-                        case "cancel":
-                            command = null;
-                            index = Integer.valueOf(actions[2]);
-
-                            if(actions[1].toLowerCase().equals("upload") && index < uploads.size())
-                            {
-                                uploads.get(index).interrupt();
-                            }
-
-                            else if(actions[1].toLowerCase().equals("download") && index < downloads.size())
-                            {
-                                uploads.get(index).interrupt();
-                            }
-
-                            else
-                            {
-                                System.out.println("That command does not exist.");
-                            }
-
-                            break;
-                        default:
-                            System.out.println("Invalid action. Please try again.");
-                            break;
-                    }
-
-                    /*
-                    if(command != null)
-                    {
-                        ct = new ClientThread(tcpSocket, udpSocket, address,  buffer, bufferSize, ++i, actions[1], command);
-
-                        if(command == SystemAction.Upload)
-                        {
-                            uploads.add(ct);
-                        }
-
-                        else if(command == SystemAction.Download)
-                        {
-                            downloads.add(ct);
-                        }
-
-                        ct.start();
-                    }*/
+                    key = clientDirectory.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
                 }
 
-                catch(InputMismatchException ime)
+                catch(IOException ioe)
                 {
-                    continue;
+                    ioe.printStackTrace();
+                }
+
+                for(WatchEvent<?> event : key.pollEvents())
+                {
+                    WatchEvent.Kind<?> kind = event.kind();
+
+                    if(kind == OVERFLOW)
+                    {
+                        continue;
+                    }
+
+                    WatchEvent<Path> ev = cast(event);
+                    Path fileName = ev.context();
+
+                    try
+                    {
+                        Path child = clientDirectory.resolve(fileName);
+
+                        data = getFileData(localDir + "/" + fileName.toString());
+
+                        // If the event is a create or modify event begin "upload" synchronization
+                        if((kind == ENTRY_CREATE || kind == ENTRY_MODIFY) && !fileEvents.contains(fileName.toString()))
+                        {
+                            // When a file is added to a directory, it creates a ENTRY_CREATE event and an ENTRY_MODIFY event in rapid succession because
+                            // the file is created and then its timestamp is modified. As such, if a thread is still processing a request prevent the system
+                            // from creating a new thread. Otherwise, remove the thread from the hashmap and allow it to create a new thread.
+                            if(readers.containsKey(fileName.toString()) && readers.get(fileName.toString()).getComplete())
+                            {
+                                readers.remove(fileName.toString());
+                            }
+
+                            if(readers.containsKey(fileName.toString()))
+                            {
+                                continue;
+                            }
+
+                            readers.put(fileName.toString(), new FileReader(data, fileName.toString(), data.length, SystemAction.Upload, tcpm, udpm, 2023, address));
+                            readers.get(fileName.toString()).start();
+                        }
+
+                        else if(kind == ENTRY_DELETE)
+                        {
+                            readers.put(fileName.toString(), new FileReader(data, fileName.toString(), data.length, SystemAction.Delete, tcpm, udpm, 2023, address));
+                            readers.get(fileName.toString()).start();                            
+                        }
+                    }
+
+                    catch(Exception e)
+                    {
+                        e.printStackTrace();
+                    }
+                }
+
+                // Reset the key. This is essential according to Oracle API.
+                boolean valid = key.reset();
+
+                if(!valid)
+                {
+                    break;
                 }
             }
         }
@@ -274,19 +144,16 @@ public class Client
         {
             e.printStackTrace();
         }
-
-        sm.closeConnection();
     }
 
     public static byte[] getFileData(String fileName)
     {
             // Get file to transfer.
             File targetFile = new File(fileName);
-            byte[] data = null;
+            byte[] data = new byte[1];
 
             if(!targetFile.exists())
             {
-                JOptionPane.showMessageDialog(null, "No file exists with that name.");
                 return data;
             }
 

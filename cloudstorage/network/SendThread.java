@@ -15,16 +15,16 @@ public class SendThread extends Thread
     public UDPManager udpm;
     public TCPManager tcpm;
 
-    public SendThread(Socket tcp, String m, ConnectionType ct, Protocol p)
+    public SendThread(TCPManager tcp, String m, ConnectionType ct, Protocol p)
     {
-        message = m;
+        tcpm = tcp;
         threadType = ct;
         sendProtocol = p;
     }
 
-    public SendThread(DatagramSocket udp, byte[] dp, ConnectionType ct, Protocol p)
+    public SendThread(UDPManager udp, byte[] dp, ConnectionType ct, Protocol p)
     {
-        packet = dp;
+        udpm = udp;
         threadType = ct;
         sendProtocol = p;
     }
