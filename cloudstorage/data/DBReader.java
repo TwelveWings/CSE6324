@@ -18,7 +18,7 @@ public class DBReader extends Thread
     public int targetPort;
     public InetAddress targetAddress;
     public boolean complete = false;
-    public volatile SystemAction command;
+    public SystemAction command;
     public volatile Set<String> files = new HashSet<String>();
 
     public DBReader()
@@ -26,32 +26,18 @@ public class DBReader extends Thread
         data = null;
         fileName = "";
         fileSize = 0;
-        command = null;
     }
 
-    public DBReader(byte[] d, String fn, int fs, TCPManager tcp, UDPManager udp, int p, InetAddress a)
+    public DBReader(byte[] d, String fn, int fs, TCPManager tcp, UDPManager udp, int p, InetAddress a, SystemAction c)
     {
         data = d;
         fileName = fn;
         fileSize = fs;
-        command = null;
         tcpm = tcp;
         udpm = udp;
         targetPort = p;
         targetAddress = a;
-    }
-
-    public DBReader(byte[] d, String fn, int fs, SystemAction c, TCPManager tcp, UDPManager udp, int p, 
-        InetAddress a)
-    {
-        data = d;
-        fileName = fn;
-        fileSize = fs;
         command = c;
-        tcpm = tcp;
-        udpm = udp;
-        targetPort = p;
-        targetAddress = a;
     }
 
     public void setData(byte[] d)
@@ -78,10 +64,7 @@ public class DBReader extends Thread
     {
         FileData fd = new FileData(data, fileName, fileSize);
 
-        int[] differences = null;
-        List<byte[]> currData = new ArrayList<byte[]>();
-
-        // If file name already has an associate DBReader thread, return.
+        // If file name already has an associate FileReader thread, return.
         if(files.contains(fileName))
         {
             return;
@@ -89,22 +72,27 @@ public class DBReader extends Thread
 
         files.add(fileName);
     
-        System.out.println(fileName);
-
-        if(command == SystemAction.Upload)
+        if(command == SystemAction.Download)
         {
+            // Split file into blocks
+            fd.createSegments(data, 1024 * 1024 * 4, Segment.Block);
+
             synchronized(this)
             {
-                fd.createSegments(fd.getData(), 65505, Segment.Packet);
-
-                tcpm.sendMessageToServer("upload", 1000);
+                tcpm.sendMessageToServer("download", 1000);
                 tcpm.sendMessageToServer(fileName, 1000);
                 tcpm.sendMessageToServer(String.valueOf(fileSize), 1000);
-                tcpm.sendMessageToServer(String.valueOf(fd.getPackets().size()), 1000);
 
-                for(int i = 0; i < fd.getPackets().size(); i++)
+                for(int i = 0; i < fd.getBlocks().size(); i++)
                 {
-                    udpm.sendPacketToServer(fd.getPackets().get(i), targetAddress, targetPort, 1000);
+                    // Read the block and create packets
+                    fd.createSegments(fd.getBlocks().get(i), 65505, Segment.Packet);
+
+                    tcpm.sendMessageToClient(String.valueOf(fd.getPackets().size()), 1000);
+
+                    // Send the packet
+                    SendThread st = new SendThread(udpm, fd.getPackets(), ConnectionType.Server, Protocol.UDP, targetPort, targetAddress);
+                    st.start();
                 }
             }
         }
@@ -112,9 +100,10 @@ public class DBReader extends Thread
         else if(command == SystemAction.Delete)
         {
             tcpm.sendMessageToServer("delete", 1000);
+
             try
             {
-                // Send file to delete.
+                // Send file name to delete on server.
                 tcpm.sendMessageToServer(fileName, 1000);
             }
     

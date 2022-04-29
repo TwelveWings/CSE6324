@@ -7,6 +7,7 @@ import java.net.*;
 
 public class ReceiveThread extends Thread
 {
+    public byte[][] combinedPackets;
     public byte[] buffer;
     public ConnectionType threadType;
     public Protocol receiveProtocol;
@@ -24,8 +25,9 @@ public class ReceiveThread extends Thread
         receiveProtocol = p;
     }
 
-    public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b, String fn, int fs, int np)
+    public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b, byte[][] cp, String fn, int fs, int np)
     {
+        combinedPackets = cp;
         udpm = udp;
         threadType = ct;
         receiveProtocol = p;
@@ -63,13 +65,26 @@ public class ReceiveThread extends Thread
     }
 
     public synchronized void receiveUDP(UDPManager udpm, ConnectionType threadType)
-    {
-        byte[][] packets = new byte[numPackets][];
+    {        
         FileData fd = new FileData();
 
         if(threadType == ConnectionType.Client)
         {
             packet = udpm.receivePacketFromServer(buffer, 1000);
+
+            byte[] rp = packet.getData();
+
+            int identifier = (int)rp[1];
+            int scale = (int)rp[0];
+
+            rp = fd.stripIdentifier(rp);
+
+            if(fileSize % buffer.length > 0 && identifier == numPackets - 1)
+            {
+                rp = fd.stripPadding(rp, fileSize % (buffer.length - 2));
+            }
+
+            // Add FileWriter
         }
 
         else
@@ -90,7 +105,7 @@ public class ReceiveThread extends Thread
                 rp = fd.stripPadding(rp, fileSize % (buffer.length - 2));
             }
 
-            DBWriter writer = new DBWriter(packets, identifier, scale, rp, buffer, fileName, fileSize, numPackets);
+            DBWriter writer = new DBWriter(combinedPackets, rp, buffer, fileName, fileSize, identifier, scale, numPackets);
             writer.start();
         }
     }

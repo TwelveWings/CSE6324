@@ -67,7 +67,7 @@ public class SendThread extends Thread
         {            
             for(int i = 0; i < sendPackets.size(); i++)
             {    
-                System.out.printf("SP: %d\n", sendPackets.get(i)[1]);
+               // System.out.printf("SP: %d\n", sendPackets.get(i)[1]);
                 udpm.sendPacketToServer(sendPackets.get(i), address, port, 1000);
             }
         }

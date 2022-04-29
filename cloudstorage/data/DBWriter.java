@@ -21,9 +21,8 @@ public class DBWriter extends Thread
     public int scale;
     public int numPackets;
     public SQLManager sm;
-    public volatile int packetsProcessed = 0;
 
-    public DBWriter(byte[][] cp, int i, int s, byte[] p, byte[] b, String fn, int fs, int np)
+    public DBWriter(byte[][] cp, byte[] p, byte[] b, String fn, int fs, int i, int s, int np)
     {
         combinedPackets = cp;
         buffer = b;
@@ -36,16 +35,15 @@ public class DBWriter extends Thread
         numPackets = np;
     }
 
-    public void setPacketsProcessed(int p)
-    {
-        packetsProcessed = p;
-    }
-    
     public void run()
     {
         sm = new SQLManager();
 
+        boolean complete = true;
+
         FileData fd = new FileData();
+
+        byte[] empty = new byte[bufferSize];
 
         System.out.printf("ID: %d\n", identifier);
         System.out.printf("SCALE: %d\n", scale);
@@ -53,13 +51,18 @@ public class DBWriter extends Thread
 
         combinedPackets[identifier + (128 * scale) + scale] = packet;
 
-        packetsProcessed++;
-        setPacketsProcessed(packetsProcessed);
-
-        //System.out.println(packetsProcessed);
-
-        if(packetsProcessed == numPackets)
+        for(int i = 0; i < combinedPackets.length; i++)
         {
+            if(combinedPackets[i] == null)
+            {
+                complete = false;
+                break;
+            }
+        }
+
+        if(complete)
+        {
+            System.out.println("Complete");
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
             try
@@ -78,8 +81,6 @@ public class DBWriter extends Thread
             byte[] completeData = bos.toByteArray();
 
             uploadFile(completeData);
-
-            packetsProcessed = 0;
         }
     }
 

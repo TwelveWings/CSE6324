@@ -134,24 +134,6 @@ public class FileReader extends Thread
         complete = true;
     }
 
-    public void downloadFile()
-    {
-        byte[] fileData = null;
-        
-        fileData = data;
-
-        try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/cloudstorage/downloads/" + fileName))
-        {
-            fos.write(fileData);
-            JOptionPane.showMessageDialog(null, "Download successful!");
-        }
-
-        catch(IOException ioe)
-        {
-            ioe.printStackTrace();
-        }
-    }
-
     public byte[] getFileData(String fileName)
     {
             // Get file to transfer.
