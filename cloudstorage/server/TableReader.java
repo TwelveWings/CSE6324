@@ -8,7 +8,7 @@ public class TableReader
 {
     public static void main(String args[])
     {
-        SQLManager sm = new SQLManager("Name.txt");
+        SQLManager sm = new SQLManager();
 
         sm.setDBConnection();
 
@@ -16,7 +16,7 @@ public class TableReader
 
         if(args.length > 0 && args[0].equals("test"))
         {
-            sm.insertData(new byte[1], 10);
+            sm.insertData("Name.txt", 10, new byte[1]);
         }
 
         ConcurrentHashMap<String, FileData> fd = sm.selectAllFiles();

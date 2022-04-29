@@ -1,4 +1,4 @@
-package cloudstorage.client;
+package cloudstorage.client2;
 
 import cloudstorage.data.*;
 import cloudstorage.enums.*;

@@ -1,5 +1,6 @@
 package cloudstorage.network;
 
+import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.net.*;
@@ -9,41 +10,46 @@ public class ReceiveThread extends Thread
     public byte[] buffer;
     public ConnectionType threadType;
     public Protocol receiveProtocol;
-    public String message;
+    public String fileName;
     public DatagramPacket packet;
     public UDPManager udpm;
     public TCPManager tcpm;
+    public int numPackets;
+    public int fileSize;
 
-    public ReceiveThread(Socket tcp, String m, ConnectionType ct, Protocol p)
+    public ReceiveThread(TCPManager tcp, ConnectionType ct, Protocol p)
     {
-        message = m;
+        tcpm = tcp;
         threadType = ct;
         receiveProtocol = p;
     }
 
-    public ReceiveThread(DatagramSocket udp, DatagramPacket dp, ConnectionType ct, Protocol p,
-        byte[] b)
+    public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b, String fn, int fs, int np)
     {
-        packet = dp;
+        udpm = udp;
         threadType = ct;
         receiveProtocol = p;
         buffer = b;
+        fileName = fn;
+        fileSize = fs;
+        numPackets = np;
     }
 
     public void run()
     {
         if(receiveProtocol == Protocol.TCP)
         {
-            receiveTCP(tcpm, threadType, message);
+            receiveTCP(tcpm, threadType);
         }
 
         else
         {
-            receiveUDP(udpm, threadType, packet);
+            receiveUDP(udpm, threadType);
+
         }
     }
 
-    public synchronized void receiveTCP(TCPManager tcpm, ConnectionType threadType, String sendMessage)
+    public synchronized void receiveTCP(TCPManager tcpm, ConnectionType threadType)
     {
         if(threadType == ConnectionType.Client)
         {
@@ -56,16 +62,36 @@ public class ReceiveThread extends Thread
         }
     }
 
-    public synchronized void receiveUDP(UDPManager udpm, ConnectionType threadType, DatagramPacket sendPacket)
+    public synchronized void receiveUDP(UDPManager udpm, ConnectionType threadType)
     {
+        byte[][] packets = new byte[numPackets][];
+        FileData fd = new FileData();
+
         if(threadType == ConnectionType.Client)
         {
-            udpm.receivePacketFromServer(buffer, 1000);
+            packet = udpm.receivePacketFromServer(buffer, 1000);
         }
 
         else
         {
-            udpm.receivePacketFromClient(buffer, 1000);
+            // Weird bug occurred where identifier was being incremented by 1 when constructing
+            // the writer object. This section of the code has been moved here and has fixed the issue.
+            packet = udpm.receivePacketFromClient(buffer, 1000);
+
+            byte[] rp = packet.getData();
+
+            int identifier = (int)rp[1];
+            int scale = (int)rp[0];
+
+            rp = fd.stripIdentifier(rp);
+
+            if(fileSize % buffer.length > 0 && identifier == numPackets - 1)
+            {
+                rp = fd.stripPadding(rp, fileSize % (buffer.length - 2));
+            }
+
+            DBWriter writer = new DBWriter(packets, identifier, scale, rp, buffer, fileName, fileSize, numPackets);
+            writer.start();
         }
     }
 }

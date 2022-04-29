@@ -173,6 +173,7 @@ public class FileData
                     ByteArrayOutputStream bos = new ByteArrayOutputStream();
                     byte[] block = new byte[2];
 
+                    //System.out.printf("SS: %d\n", segments.size() % 129);
 
                     block[0] = (byte)(segments.size() / 129);
                     block[1] = (byte)(segments.size() % 129);
@@ -206,13 +207,15 @@ public class FileData
 
         if(type == Segment.Block)
         {
-            setBlocks(segments);
+            setBlocks(new ArrayList<>(segments));
         }
 
         else
         {
-            setPackets(segments);
+            setPackets(new ArrayList<>(segments));
         }
+
+        segments.clear();
     }
 
     public byte[] stripIdentifier(byte[] data)

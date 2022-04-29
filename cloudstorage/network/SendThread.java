@@ -3,30 +3,36 @@ package cloudstorage.network;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.net.*;
+import java.util.*;
 
 public class SendThread extends Thread
 {
     public ConnectionType threadType;
     public Protocol sendProtocol;
     public String message;
-    public byte[] packet;
+    List<byte[]> packets;
     public InetAddress address;
     public int port;
     public UDPManager udpm;
     public TCPManager tcpm;
 
-    public SendThread(TCPManager tcp, String m, ConnectionType ct, Protocol p)
+    public SendThread(TCPManager tcp, String m, ConnectionType ct, Protocol proto, int p, InetAddress a)
     {
         tcpm = tcp;
         threadType = ct;
-        sendProtocol = p;
+        sendProtocol = proto;
+        port = p;
+        address = a;
     }
 
-    public SendThread(UDPManager udp, byte[] dp, ConnectionType ct, Protocol p)
+    public SendThread(UDPManager udp, List<byte[]> dp, ConnectionType ct, Protocol proto, int p, InetAddress a)
     {
         udpm = udp;
+        packets = dp;
         threadType = ct;
-        sendProtocol = p;
+        sendProtocol = proto;
+        port = p;
+        address = a;
     }
 
     public void run()
@@ -38,7 +44,7 @@ public class SendThread extends Thread
 
         else
         {
-            sendUDP(udpm, threadType, packet);
+            sendUDP(udpm, threadType, packets);
         }
     }
 
@@ -55,16 +61,23 @@ public class SendThread extends Thread
         }
     }
 
-    public synchronized void sendUDP(UDPManager udpm, ConnectionType threadType, byte[] sendPacket)
+    public synchronized void sendUDP(UDPManager udpm, ConnectionType threadType, List<byte[]> sendPackets)
     {
         if(threadType == ConnectionType.Client)
-        {
-            udpm.sendPacketToServer(sendPacket, address, port, 1000);
+        {            
+            for(int i = 0; i < sendPackets.size(); i++)
+            {    
+                System.out.printf("SP: %d\n", sendPackets.get(i)[1]);
+                udpm.sendPacketToServer(sendPackets.get(i), address, port, 1000);
+            }
         }
 
         else
         {
-            udpm.sendPacketToClient(sendPacket, address, port, 1000);
+            for(int i = 0; i < sendPackets.size(); i++)
+            {
+                udpm.sendPacketToClient(sendPackets.get(i), address, port, 1000);
+            }
         }
     }
 }

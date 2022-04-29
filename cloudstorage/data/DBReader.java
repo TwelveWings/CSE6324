@@ -19,7 +19,6 @@ public class DBReader extends Thread
     public InetAddress targetAddress;
     public boolean complete = false;
     public volatile SystemAction command;
-    public volatile boolean deltaSync = false;
     public volatile Set<String> files = new HashSet<String>();
 
     public DBReader()
@@ -94,20 +93,8 @@ public class DBReader extends Thread
 
         if(command == SystemAction.Upload)
         {
-            // Split file into blocks
-            fd.createSegments(data, 1024 * 1024 * 4, Segment.Block);
-
-            differences = fd.findChange(currData, fd.getBlocks());
-
-            /*
-            if(deltaSync)
-            {
-                wait();
-            }*/
-
             synchronized(this)
             {
-                deltaSync = true;
                 fd.createSegments(fd.getData(), 65505, Segment.Packet);
 
                 tcpm.sendMessageToServer("upload", 1000);
@@ -119,18 +106,11 @@ public class DBReader extends Thread
                 {
                     udpm.sendPacketToServer(fd.getPackets().get(i), targetAddress, targetPort, 1000);
                 }
-
-                currData = fd.getBlocks();
-                deltaSync = false;
             }
-
-            //notifyAll();
         }
 
         else if(command == SystemAction.Delete)
         {
-            deltaSync = true;
-            JOptionPane.showMessageDialog(null, "Delta Sync begin!");
             tcpm.sendMessageToServer("delete", 1000);
             try
             {
@@ -142,29 +122,10 @@ public class DBReader extends Thread
             {
                 e.printStackTrace();
             }
-            deltaSync = false;
         }
 
         files.remove(fileName);
 
         complete = true;
-    }
-
-    public void downloadFile(SQLManager sm)
-    {
-        byte[] fileData = null;
-        
-        fileData = data;
-
-        try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/cloudstorage/downloads/" + fileName))
-        {
-            fos.write(fileData);
-            JOptionPane.showMessageDialog(null, "Download successful!");
-        }
-
-        catch(IOException ioe)
-        {
-            ioe.printStackTrace();
-        }
     }
 }

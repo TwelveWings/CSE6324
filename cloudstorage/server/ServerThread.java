@@ -20,14 +20,16 @@ public class ServerThread extends Thread
     public int ID;
     public final int blockSize = 1024 * 1024 * 4;
     public int bufferSize;
+    public List<ClientData> clients;
 
-    public ServerThread(Socket tcp, DatagramSocket udp, byte[] b, int bs, int tID)
+    public ServerThread(Socket tcp, DatagramSocket udp, byte[] b, int bs, int tID, List<ClientData> cd)
     {
         tcpSocket = tcp;
         udpSocket = udp;
         ID = tID;
         buffer = b;
         bufferSize = bs;
+        clients = cd;
     }
 
     public void run()
@@ -48,6 +50,7 @@ public class ServerThread extends Thread
 
         while(true)
         {
+            System.out.printf("Active Clients: %d\n", clients.size());
             System.out.printf("Thread %d peforming %s\n", ID, action);
 
             switch(action)
@@ -88,8 +91,6 @@ public class ServerThread extends Thread
         {
             e.printStackTrace();
         }
-
-        sm.closeConnection();
     }
 
     synchronized public void downloadFile()
@@ -146,33 +147,33 @@ public class ServerThread extends Thread
         {
             e.printStackTrace();
         }
-
-        sm.closeConnection();
     }
 
     synchronized public void uploadFile()
     {
-        byte[][] packets = null;
-        byte[] empty = new byte[bufferSize];
-
         try
         {
             // Receive a TCP message indicating the name of the file being sent.
             String fileName = tcpm.receiveMessageFromClient(1000);
-
-            sm.setFileName(fileName);
 
             int fileSize = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
             // Receive a TCP message indicating the number of UDP packets being sent.
             int numPackets = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
-            packets = new byte[numPackets][];
+            //packets = new byte[numPackets][];
 
-            FileData fd = new FileData();
+            //FileData fd = new FileData();
             
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
+            for(int i = 0; i < numPackets; i++)
+            {
+                ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP, buffer,
+                    fileName, fileSize, numPackets);
+                rt.start();
+            }
+
+            /*
             // Loop through the packets that have been sent.
             for(int i = 0; i < numPackets; i++)
             {
@@ -244,7 +245,7 @@ public class ServerThread extends Thread
                 sm.updateFileByName(fileName, fileData, fileData.length);
             }
 
-            System.out.println("Upload complete!");
+            System.out.println("Upload complete!");*/
         }
 
         catch(Exception e)

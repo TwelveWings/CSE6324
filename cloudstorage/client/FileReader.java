@@ -5,6 +5,7 @@ import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.io.*;
 import java.net.*;
+import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
 import javax.swing.*;
@@ -20,7 +21,6 @@ public class FileReader extends Thread
     public InetAddress targetAddress;
     public boolean complete = false;
     public volatile SystemAction command;
-    public volatile boolean deltaSync = false;
     public volatile Set<String> files = new HashSet<String>();
 
     public FileReader()
@@ -31,11 +31,11 @@ public class FileReader extends Thread
         command = null;
     }
 
-    public FileReader(byte[] d, String fn, int fs, TCPManager tcp, UDPManager udp, int p, InetAddress a)
+    public FileReader(String fn, TCPManager tcp, UDPManager udp, int p, InetAddress a)
     {
-        data = d;
+        data = getFileData(System.getProperty("user.dir") + "/cloudstorage/client/files/" + fn);
         fileName = fn;
-        fileSize = fs;
+        fileSize = data.length;
         command = null;
         tcpm = tcp;
         udpm = udp;
@@ -43,12 +43,12 @@ public class FileReader extends Thread
         targetAddress = a;
     }
 
-    public FileReader(byte[] d, String fn, int fs, SystemAction c, TCPManager tcp, UDPManager udp, int p, 
+    public FileReader(String fn, SystemAction c, TCPManager tcp, UDPManager udp, int p, 
         InetAddress a)
     {
-        data = d;
+        data = getFileData(System.getProperty("user.dir") + "/cloudstorage/client/files/" + fn);
         fileName = fn;
-        fileSize = fs;
+        fileSize = data.length;
         command = c;
         tcpm = tcp;
         udpm = udp;
@@ -80,10 +80,7 @@ public class FileReader extends Thread
     {
         FileData fd = new FileData(data, fileName, fileSize);
 
-        int[] differences = null;
-        List<byte[]> currData = new ArrayList<byte[]>();
-
-        // If file name already has an associate DBReader thread, return.
+        // If file name already has an associate FileReader thread, return.
         if(files.contains(fileName))
         {
             return;
@@ -91,22 +88,27 @@ public class FileReader extends Thread
 
         files.add(fileName);
     
-        System.out.println(fileName);
-
         if(command == SystemAction.Upload)
         {
+            // Split file into blocks
+            fd.createSegments(data, 1024 * 1024 * 4, Segment.Block);
+
             synchronized(this)
             {
-                fd.createSegments(fd.getData(), 65505, Segment.Packet);
-
                 tcpm.sendMessageToServer("upload", 1000);
                 tcpm.sendMessageToServer(fileName, 1000);
                 tcpm.sendMessageToServer(String.valueOf(fileSize), 1000);
-                tcpm.sendMessageToServer(String.valueOf(fd.getPackets().size()), 1000);
 
-                for(int i = 0; i < fd.getPackets().size(); i++)
+                for(int i = 0; i < fd.getBlocks().size(); i++)
                 {
-                    udpm.sendPacketToServer(fd.getPackets().get(i), targetAddress, targetPort, 1000);
+                    // Read the block and create packets
+                    fd.createSegments(fd.getBlocks().get(i), 65505, Segment.Packet);
+
+                    tcpm.sendMessageToServer(String.valueOf(fd.getPackets().size()), 1000);
+
+                    // Send the packet
+                    SendThread st = new SendThread(udpm, fd.getPackets(), ConnectionType.Client, Protocol.UDP, targetPort, targetAddress);
+                    st.start();
                 }
             }
         }
@@ -114,9 +116,10 @@ public class FileReader extends Thread
         else if(command == SystemAction.Delete)
         {
             tcpm.sendMessageToServer("delete", 1000);
+
             try
             {
-                // Send file to delete.
+                // Send file name to delete on server.
                 tcpm.sendMessageToServer(fileName, 1000);
             }
     
@@ -129,5 +132,48 @@ public class FileReader extends Thread
         files.remove(fileName);
 
         complete = true;
+    }
+
+    public void downloadFile()
+    {
+        byte[] fileData = null;
+        
+        fileData = data;
+
+        try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/cloudstorage/downloads/" + fileName))
+        {
+            fos.write(fileData);
+            JOptionPane.showMessageDialog(null, "Download successful!");
+        }
+
+        catch(IOException ioe)
+        {
+            ioe.printStackTrace();
+        }
+    }
+
+    public byte[] getFileData(String fileName)
+    {
+            // Get file to transfer.
+            File targetFile = new File(fileName);
+            byte[] data = new byte[1];
+
+            if(!targetFile.exists())
+            {
+                return data;
+            }
+
+            try
+            {
+                // Convert file to byte array.
+                data = Files.readAllBytes(targetFile.toPath());
+            }
+
+            catch(Exception e)
+            {
+                e.printStackTrace();
+            }
+
+            return data;
     }
 }

@@ -95,7 +95,7 @@ public class Client
                     {
                         Path child = clientDirectory.resolve(fileName);
 
-                        data = getFileData(localDir + "/" + fileName.toString());
+                        Thread.sleep(1000);
 
                         // If the event is a create or modify event begin "upload" synchronization
                         if((kind == ENTRY_CREATE || kind == ENTRY_MODIFY) && !fileEvents.contains(fileName.toString()))
@@ -113,13 +113,13 @@ public class Client
                                 continue;
                             }
 
-                            readers.put(fileName.toString(), new FileReader(data, fileName.toString(), data.length, SystemAction.Upload, tcpm, udpm, 2023, address));
+                            readers.put(fileName.toString(), new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address));
                             readers.get(fileName.toString()).start();
                         }
 
                         else if(kind == ENTRY_DELETE)
                         {
-                            readers.put(fileName.toString(), new FileReader(data, fileName.toString(), data.length, SystemAction.Delete, tcpm, udpm, 2023, address));
+                            readers.put(fileName.toString(), new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address));
                             readers.get(fileName.toString()).start();                            
                         }
                     }
@@ -144,30 +144,5 @@ public class Client
         {
             e.printStackTrace();
         }
-    }
-
-    public static byte[] getFileData(String fileName)
-    {
-            // Get file to transfer.
-            File targetFile = new File(fileName);
-            byte[] data = new byte[1];
-
-            if(!targetFile.exists())
-            {
-                return data;
-            }
-
-            try
-            {
-                // Convert file to byte array.
-                data = Files.readAllBytes(targetFile.toPath());
-            }
-
-            catch(Exception e)
-            {
-                e.printStackTrace();
-            }
-
-            return data;
     }
 }

@@ -11,113 +11,75 @@ import javax.swing.*;
 
 public class DBWriter extends Thread
 {
-    public byte[] data;
+    public byte[][] combinedPackets;
+    public byte[] packet;
+    public byte[] buffer;
     public String fileName;
+    public int bufferSize;
     public int fileSize;
-    public TCPManager tcpm;
-    public UDPManager udpm;
-    public int port;
-    public InetAddress address;
-    public volatile SystemAction command;
-    public volatile boolean deltaSync = false;
-    public volatile List<String> files = new ArrayList<String>();
+    public int identifier;
+    public int scale;
+    public int numPackets;
+    public SQLManager sm;
+    public volatile int packetsProcessed = 0;
 
-    public DBWriter()
+    public DBWriter(byte[][] cp, int i, int s, byte[] p, byte[] b, String fn, int fs, int np)
     {
-        data = null;
-        fileName = "";
-        fileSize = 0;
-        command = null;
-    }
-
-    public DBWriter(byte[] d, String fn, int fs, TCPManager tcp, UDPManager udp, int p, InetAddress a)
-    {
-        data = d;
+        combinedPackets = cp;
+        buffer = b;
+        bufferSize = b.length;
+        packet = p;
         fileName = fn;
         fileSize = fs;
-        command = null;
-        tcpm = tcp;
-        udpm = udp;
-        port = port;
-        address = a;
+        identifier = i;
+        scale = s;
+        numPackets = np;
     }
 
-    public DBWriter(byte[] d, String fn, int fs, SystemAction c, TCPManager tcp, UDPManager udp, int p, InetAddress a)
+    public void setPacketsProcessed(int p)
     {
-        data = d;
-        fileName = fn;
-        fileSize = fs;
-        command = c;
-        tcpm = tcp;
-        udpm = udp;
-        port = port;
-        address = a;
-    }
-
-    public void setData(byte[] d)
-    {
-        data = d;
-    }
-
-    public byte[] getData()
-    {
-        return data;
-    }
-
-    public void setFileSize(int fs)
-    {
-        fileSize = fs;
-    }
-
-    public int getFileSize()
-    {
-        return fileSize;
-    }
-
-    public void setCommand(SystemAction c)
-    {
-        command = c;
-    }
-
-    public SystemAction getCommand()
-    {
-        return command;
+        packetsProcessed = p;
     }
     
     public void run()
     {
-        FileData fd = null;
+        sm = new SQLManager();
 
-        int[] differences = null;
-        List<byte[]> currData = new ArrayList<byte[]>();
+        FileData fd = new FileData();
 
-        // If file name already has an associate DBWriter thread, return.
-        if(fd != null && files.contains(fileName))
+        System.out.printf("ID: %d\n", identifier);
+        System.out.printf("SCALE: %d\n", scale);
+        System.out.printf("NUM_PACKETS: %d\n", numPackets);
+
+        combinedPackets[identifier + (128 * scale) + scale] = packet;
+
+        packetsProcessed++;
+        setPacketsProcessed(packetsProcessed);
+
+        //System.out.println(packetsProcessed);
+
+        if(packetsProcessed == numPackets)
         {
-            return;
-        }
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        files.add(fileName);
-
-        int count = 0;
-        while(true)
-        {
-            while(getCommand() != null)
+            try
             {
-                switch(getCommand())
+                for(int i = 0; i < numPackets; i++)
                 {
-                    case Upload:
-                       // uploadFile(sm);
-                        setCommand(null);
-                        count = 0;
-                        break;
-                    case Delete:
-                        //deleteFile(sm);
-                        setCommand(null);
-                        count = 0;
-                        break;
+                    bos.write(combinedPackets[i]);
                 }
             }
+
+            catch(Exception e)
+            {
+                e.printStackTrace();
+            }
+
+            byte[] completeData = bos.toByteArray();
+
+            uploadFile(completeData);
+
+            packetsProcessed = 0;
         }
     }
 
@@ -134,31 +96,22 @@ public class DBWriter extends Thread
         }
 
         sm.deleteFile(fileName);
-    }
+    }*/
 
-    public synchronized void uploadFile(SQLManager sm)
+    public synchronized void uploadFile(byte[] completeData)
     {
         try
         {
-            sm.setFileName(fileName);
-
             FileData fileData = sm.selectFileByName(fileName);
 
             if(fileData != null)
             {
-                boolean updateFile = (0 == JOptionPane.showOptionDialog(
-                    null, "Are you sure you want to override this file?", "Override File", JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE, null, null, null));
-
-                if(updateFile)
-                {
-                    sm.updateFileByName(fileName, data, fileSize);
-                }
+                sm.updateFileByName(fileName, completeData, fileSize);
             }
 
             else
             {
-                sm.insertData(data, data.length);
+                sm.insertData(fileName, fileSize, completeData);
             }
         }
 
@@ -166,5 +119,7 @@ public class DBWriter extends Thread
         {
             e.printStackTrace();
         }
-    }*/
+
+        System.out.println("Upload complete!");
+    }
 }

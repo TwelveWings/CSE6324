@@ -10,26 +10,10 @@ public class SQLManager
 {
     public Connection conn;
     public Statement stmt;
-    public String fileName;
 
     public SQLManager()
     {
-        fileName = "";
-    }
-
-    public SQLManager(String fn)
-    {
-        fileName = fn;
-    }
-
-    public void setFileName(String fn)
-    {
-        fileName = fn;
-    }
-
-    public String getFileName()
-    {
-        return fileName;
+        setDBConnection();
     }
 
     public void setDBConnection()
@@ -137,7 +121,7 @@ public class SQLManager
 
     }
 
-    public int insertData(byte[] data, int fileSize)
+    public int insertData(String fileName, int fileSize, byte[] data)
     {
 
         FileData fd = selectFileByName(fileName);
