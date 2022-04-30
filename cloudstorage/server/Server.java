@@ -1,6 +1,10 @@
 package cloudstorage.server;
 
+import cloudstorage.data.*;
+import cloudstorage.enums.*;
+import cloudstorage.network.*;
 import java.net.*;
+import java.util.*;
 
 public class Server
 {
@@ -14,6 +18,8 @@ public class Server
     public static void main(String[] args)
     {
         port = 2023;
+
+        List<ClientData> clients = new ArrayList<ClientData>();
 
         // 4 MB buffer to receive data
         buffer = new byte[bufferSize];
@@ -46,7 +52,9 @@ public class Server
             {
                 tcpSocket = serverSocket.accept();
 
-                ServerThread st = new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, ++i);
+                clients.add(new ClientData(tcpSocket.getPort(), tcpSocket.getInetAddress()));
+
+                ServerThread st = new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, ++i, clients);
 
                 st.start();
             }
