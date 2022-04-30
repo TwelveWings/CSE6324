@@ -60,6 +60,8 @@ public class ServerThread extends Thread
                 case "delete":
                     deleteFile();
                     break;
+                case "5":
+                    getAllFiles();
             }
 
             action = tcpm.receiveMessageFromClient(1000);
@@ -71,6 +73,25 @@ public class ServerThread extends Thread
 
             Arrays.fill(buffer, (byte)0);
         }
+    }
+
+    synchronized public void getAllFiles()
+    {
+        SQLManager manager = new SQLManager();
+
+        manager.setDBConnection();
+
+        try
+        {
+            System.out.print("Hello from Server");
+        }
+        
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        manager.closeConnection();
     }
 
     synchronized public void deleteFile()
