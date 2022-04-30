@@ -1,5 +1,6 @@
 package cloudstorage.network;
 
+import cloudstorage.client.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
@@ -84,7 +85,8 @@ public class ReceiveThread extends Thread
                 rp = fd.stripPadding(rp, fileSize % (buffer.length - 2));
             }
 
-            // Add FileWriter
+            FileWriter writer = new FileWriter(combinedPackets, rp, buffer, fileName, fileSize, identifier, scale, numPackets);
+            writer.start();
         }
 
         else

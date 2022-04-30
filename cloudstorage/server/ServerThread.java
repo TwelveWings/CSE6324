@@ -66,7 +66,12 @@ public class ServerThread extends Thread
                     break;
             }
 
-            downloadFile(fileName);
+            ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
+
+            while(files.get(fileName) == null)
+            {
+                downloadFile(fileName, files);
+            }
 
             action = tcpm.receiveMessageFromClient(1000);
 
@@ -93,14 +98,13 @@ public class ServerThread extends Thread
         }
     }
 
-    synchronized public void downloadFile(String fileName)
+    synchronized public void downloadFile(String fileName, ConcurrentHashMap<String, FileData> files)
     {
         try
         {
-            ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
-
             if(files.get(fileName) != null)
             {
+                System.out.println("Test");
                 for(int i = 0; i < clients.size(); i++)
                 {
                     if(clients.get(i).getPort() == tcpSocket.getPort() && clients.get(i).getAddress() == tcpSocket.getInetAddress())
@@ -108,7 +112,7 @@ public class ServerThread extends Thread
                         continue;
                     }
 
-                    DBReader dbr = new DBReader(files.get(fileName).data, fileName, files.get(fileName).fileSize, clients.get(i).getPort(), clients.get(i).getInetAddress(), SystemAction.Download)
+                    DBReader dbr = new DBReader(files.get(fileName).data, fileName, files.get(fileName).fileSize, tcpm, udpm, clients.get(i).getPort(), clients.get(i).getAddress(), SystemAction.Download);
                     dbr.start();
                 }
             }
@@ -135,6 +139,7 @@ public class ServerThread extends Thread
             {
                 ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP, buffer, packets,
                     fileName, fileSize, numPackets);
+
                 rt.start();
             }
         }

@@ -1,6 +1,5 @@
-package cloudstorage.client;
+package cloudstorage.data;
 
-import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.io.*;

@@ -1,4 +1,4 @@
-package cloudstorage.client;
+package cloudstorage.client2;
 
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
@@ -45,7 +45,7 @@ public class EventWatcher extends Thread
             byte[] data = null;
 
             // The local directory that is being watched and will be used to synchronize with the server.
-            String localDir = System.getProperty("user.dir") + "/cloudstorage/client/files";
+            String localDir = System.getProperty("user.dir") + "/cloudstorage/client2/files";
 
             // Local directory converted to a Path.
             Path clientDirectory = Paths.get(localDir);
