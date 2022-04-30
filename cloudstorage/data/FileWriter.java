@@ -1,26 +1,23 @@
 package cloudstorage.data;
 
 import cloudstorage.enums.*;
+import cloudstorage.network.*;
 import java.io.*;
 import java.nio.file.Files;
-import java.util.*;
-import java.util.concurrent.*;
-import javax.swing.*;
 
-public class DBWriter extends Thread
+public class FileWriter extends Thread
 {
     public byte[][] combinedPackets;
-    public byte[] packet;
     public byte[] buffer;
+    public byte[] packet;
     public String fileName;
     public int bufferSize;
     public int fileSize;
     public int identifier;
     public int scale;
     public int numPackets;
-    public SQLManager sm;
 
-    public DBWriter(byte[][] cp, byte[] p, byte[] b, String fn, int fs, int i, int s, int np)
+    public FileWriter(byte[][] cp, byte[] p, byte[] b, String fn, int fs, int i, int s, int np)
     {
         combinedPackets = cp;
         buffer = b;
@@ -35,8 +32,6 @@ public class DBWriter extends Thread
 
     public void run()
     {
-        sm = new SQLManager();
-
         boolean complete = true;
 
         FileData fd = new FileData();
@@ -58,7 +53,6 @@ public class DBWriter extends Thread
 
         if(complete)
         {
-            System.out.println("Complete");
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
             try
@@ -76,47 +70,19 @@ public class DBWriter extends Thread
 
             byte[] completeData = bos.toByteArray();
 
-            uploadFile(completeData);
+            downloadFile(completeData);
         }
     }
 
-    /*
-    public synchronized void deleteFile(SQLManager sm)
+    public void downloadFile(byte[] data)
     {
-        boolean deleteFile = (0 == JOptionPane.showOptionDialog(
-                null, "Are you sure you want to delete this file?", "Delete File", JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE, null, null, null));
-
-        if(!deleteFile)
+        try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/cloudstorage/client2/files" + fileName))
         {
-            return;
+            fos.write(data);
         }
-
-        sm.deleteFile(fileName);
-    }*/
-
-    public synchronized void uploadFile(byte[] completeData)
-    {
-        try
+        catch(IOException ioe)
         {
-            FileData fileData = sm.selectFileByName(fileName);
-
-            if(fileData != null)
-            {
-                sm.updateFileByName(fileName, completeData, fileSize);
-            }
-
-            else
-            {
-                sm.insertData(fileName, fileSize, completeData);
-            }
+            ioe.printStackTrace();
         }
-
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-
-        System.out.println("Upload complete!");
-    }
+    }    
 }

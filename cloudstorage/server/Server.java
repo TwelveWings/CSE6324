@@ -17,6 +17,7 @@ public class Server
 
     public static void main(String[] args)
     {
+        System.out.println("Server running...");
         port = 2023;
 
         List<ClientData> clients = new ArrayList<ClientData>();
