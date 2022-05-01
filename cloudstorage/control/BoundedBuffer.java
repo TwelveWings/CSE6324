@@ -34,6 +34,7 @@ public class BoundedBuffer
         {
             try
             {
+                //System.out.println("Thread waiting at deposit");
                 wait();
             }
 
@@ -43,14 +44,15 @@ public class BoundedBuffer
             }
         }
 
+        //System.out.println("Thread depositing!");
         buffer[in]= data;
 
         in = (in + 1) % capacity;
 
-        fullSlots++;
-
         if(fullSlots == 0)
         {
+            fullSlots++;
+            //System.out.println("Thread notified by deposit");
             notify();
         }
     }
@@ -63,6 +65,7 @@ public class BoundedBuffer
         {
             try
             {
+                //System.out.println("Thread waiting at withdraw");
                 wait();
             }
 
@@ -76,13 +79,15 @@ public class BoundedBuffer
 
         out = (out + 1) % capacity;
 
-        fullSlots--;
-
         if(fullSlots == capacity)
         {
+            fullSlots--;
+            //System.out.println("Thread notified by withdraw");
             notify();
         }
 
+
+        //System.out.println("Thread withdrawing!");
         return data;
     }
 }

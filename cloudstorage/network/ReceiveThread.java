@@ -11,7 +11,7 @@ public class ReceiveThread extends Thread
     public byte[][] combinedPackets;
     public byte[] buffer;
     public BoundedBuffer boundedBuffer;
-     public ConnectionType threadType;
+    public ConnectionType threadType;
     public Protocol receiveProtocol;
     public String fileName;
     public DatagramPacket packet;
@@ -99,11 +99,11 @@ public class ReceiveThread extends Thread
 
             byte[] rp = packet.getData();
 
+            //System.out.printf("RP: %d\n", rp[1]);
+
             int identifier = (int)rp[1];
             int scale = (int)rp[0];
-
             rp = fd.stripIdentifier(rp);
-
             if(fileSize % buffer.length > 0 && identifier == numPackets - 1)
             {
                 rp = fd.stripPadding(rp, fileSize % (buffer.length - 2));

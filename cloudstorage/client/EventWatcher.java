@@ -1,5 +1,6 @@
 package cloudstorage.client;
 
+import cloudstorage.control.BoundedBuffer;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
@@ -16,13 +17,15 @@ public class EventWatcher extends Thread
     public UDPManager udpm;
     public InetAddress address;
     public String directory;
+    public BoundedBuffer boundedBuffer;
 
-    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d)
+    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb)
     {
         tcpm = tcp;
         udpm = udp;
         address = addr;
         directory = d;
+        boundedBuffer = bb;
     }
 
     @SuppressWarnings("unchecked")
@@ -98,13 +101,13 @@ public class EventWatcher extends Thread
                                 continue;
                             }
 
-                            readers.put(fileName.toString(), new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory));
+                            readers.put(fileName.toString(), new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory, boundedBuffer));
                             readers.get(fileName.toString()).start();
                         }
 
                         else if(kind == ENTRY_DELETE)
                         {
-                            readers.put(fileName.toString(), new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address, directory));
+                            readers.put(fileName.toString(), new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address, directory, boundedBuffer));
                             readers.get(fileName.toString()).start();                            
                         }
                     }

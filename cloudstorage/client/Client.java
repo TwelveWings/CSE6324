@@ -49,7 +49,7 @@ public class Client
             udpm = new UDPManager(udpSocket);
 
             // Start event watcher to keep track of directory changes and synchronize with server.
-            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory);
+            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb);
             ew.start();
 
             while(true)

@@ -68,7 +68,7 @@ public class ServerThread extends Thread
                     deleteFile(fileName);
                     break;
             }
-
+ 
             while(!bb.getFileUploaded())
             {
                 try
@@ -83,7 +83,12 @@ public class ServerThread extends Thread
                 }
             }
 
-            downloadFile(fileName);
+            if(clients.size() > 1)
+            {
+                downloadFile(fileName);
+            }
+
+            action  = tcpm.receiveMessageFromClient(1000);
 
             Arrays.fill(buffer, (byte)0);
         }
@@ -121,6 +126,7 @@ public class ServerThread extends Thread
                     {
                         continue;
                     }
+
                     DBReader dbr = new DBReader(files.get(fileName).data, fileName, files.get(fileName).fileSize, tcpm, udpm, clients.get(i).getPort(), clients.get(i).getAddress(), SystemAction.Download);
                     dbr.start();
                 }
@@ -139,17 +145,22 @@ public class ServerThread extends Thread
         {
             int fileSize = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
+            int numBlocks = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
+
             // Receive a TCP message indicating the number of UDP packets being sent.
             int numPackets = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
             byte[][] packets = new byte[numPackets][];
 
-            for(int i = 0; i < numPackets; i++)
+            for(int i = 0; i < numBlocks; i++)
             {
-                ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP, buffer, packets,
-                    fileName, fileSize, numPackets, bb);
+                for(int j = 0; j < numPackets; j++)
+                {
+                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP, buffer, packets,
+                        fileName, fileSize, numPackets, bb);
 
-                rt.start();
+                    rt.start();
+                }
             }
         }
 

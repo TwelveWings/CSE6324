@@ -1,5 +1,6 @@
 package cloudstorage.data;
 
+import cloudstorage.control.BoundedBuffer;
 import cloudstorage.network.*;
 import cloudstorage.enums.*;
 import java.io.*;
@@ -10,6 +11,7 @@ import javax.swing.*;
 
 public class DBReader extends Thread
 {
+    public BoundedBuffer boundedBuffer;
     public volatile byte[] data;
     public String fileName;
     public TCPManager tcpm;
@@ -91,7 +93,7 @@ public class DBReader extends Thread
                     tcpm.sendMessageToClient(String.valueOf(fd.getPackets().size()), 1000);
 
                     // Send the packet
-                    SendThread st = new SendThread(udpm, fd.getPackets(), ConnectionType.Server, Protocol.UDP, targetPort, targetAddress);
+                    SendThread st = new SendThread(udpm, fd.getPackets(), ConnectionType.Server, Protocol.UDP, targetPort, targetAddress, new BoundedBuffer(1, false));
                     st.start();
                 }
             }

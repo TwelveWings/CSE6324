@@ -1,5 +1,6 @@
 package cloudstorage.data;
 
+import cloudstorage.control.BoundedBuffer;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.io.*;
@@ -12,6 +13,7 @@ import javax.swing.*;
 public class FileReader extends Thread
 {
     public volatile byte[] data;
+    public BoundedBuffer boundedBuffer;
     public String fileName;
     public TCPManager tcpm;
     public UDPManager udpm;
@@ -30,7 +32,7 @@ public class FileReader extends Thread
         command = null;
     }
 
-    public FileReader(String fn, TCPManager tcp, UDPManager udp, int p, InetAddress a, String d)
+    public FileReader(String fn, TCPManager tcp, UDPManager udp, int p, InetAddress a, String d, BoundedBuffer bb)
     {
         data = getFileData(d + fn);
         fileName = fn;
@@ -40,11 +42,12 @@ public class FileReader extends Thread
         udpm = udp;
         targetPort = p;
         targetAddress = a;
+        boundedBuffer = bb;
 
     }
 
     public FileReader(String fn, SystemAction c, TCPManager tcp, UDPManager udp, int p, 
-        InetAddress a, String d)
+        InetAddress a, String d, BoundedBuffer bb)
     {
         data = getFileData(d + "/" + fn);
         fileName = fn;
@@ -54,6 +57,7 @@ public class FileReader extends Thread
         udpm = udp;
         targetPort = p;
         targetAddress = a;
+        boundedBuffer = bb;
     }
 
     public void setData(byte[] d)
@@ -98,6 +102,7 @@ public class FileReader extends Thread
                 tcpm.sendMessageToServer("upload", 1000);
                 tcpm.sendMessageToServer(fileName, 1000);
                 tcpm.sendMessageToServer(String.valueOf(fileSize), 1000);
+                tcpm.sendMessageToServer(String.valueOf(fd.getBlocks().size()), 1000);
 
                 for(int i = 0; i < fd.getBlocks().size(); i++)
                 {
@@ -106,9 +111,23 @@ public class FileReader extends Thread
 
                     tcpm.sendMessageToServer(String.valueOf(fd.getPackets().size()), 1000);
 
-                    // Send the packet
-                    SendThread st = new SendThread(udpm, fd.getPackets(), ConnectionType.Client, Protocol.UDP, targetPort, targetAddress);
-                    st.start();
+                    for(int j = 0; j < fd.getPackets().size(); j++)
+                    {
+                        boundedBuffer.deposit(fd.getPackets().get(j));
+
+                        SendThread st = new SendThread(udpm, fd.getPackets(), ConnectionType.Client, Protocol.UDP, targetPort, targetAddress, boundedBuffer);
+                        st.start();
+
+                        try
+                        {
+                            st.join();
+                        }
+
+                        catch (Exception e)
+                        {
+
+                        }
+                    }
                 }
             }
         }
