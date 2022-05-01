@@ -1,6 +1,6 @@
 package cloudstorage.network;
 
-import cloudstorage.control.BoundedBuffer;
+import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
@@ -15,6 +15,7 @@ public class ReceiveThread extends Thread
     public Protocol receiveProtocol;
     public String fileName;
     public String directory;
+    public Synchronizer sync;
     public DatagramPacket packet;
     public UDPManager udpm;
     public TCPManager tcpm;
@@ -44,7 +45,7 @@ public class ReceiveThread extends Thread
 
 
     public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
-        byte[][] cp, String fn, int fs, int np, BoundedBuffer bb, String dir)
+        byte[][] cp, String fn, int fs, int np, BoundedBuffer bb, String dir, Synchronizer s)
     {
         combinedPackets = cp;
         udpm = udp;
@@ -52,6 +53,7 @@ public class ReceiveThread extends Thread
         receiveProtocol = p;
         buffer = b;
         fileName = fn;
+        sync = s;
         fileSize = fs;
         numPackets = np;
         boundedBuffer = bb;
@@ -107,9 +109,14 @@ public class ReceiveThread extends Thread
                 rp = fd.stripPadding(rp, fileSize % (buffer.length - 2));
             }
 
+            if(rp == null)
+            {
+                System.out.println("Cry");
+            }
+
             boundedBuffer.deposit(rp);
 
-            FileWriter writer = new FileWriter(combinedPackets, buffer, fileName, fileSize, identifier, scale, numPackets, boundedBuffer, directory);
+            FileWriter writer = new FileWriter(combinedPackets, buffer, fileName, fileSize, identifier, scale, numPackets, boundedBuffer, directory, sync);
             writer.start();
         }
 

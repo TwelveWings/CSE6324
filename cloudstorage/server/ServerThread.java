@@ -98,6 +98,8 @@ public class ServerThread extends Thread
 
             action  = tcpm.receiveMessageFromClient(1000);
 
+            System.out.println(action);
+
             Arrays.fill(buffer, (byte)0);
         }
     }
