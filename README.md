@@ -21,7 +21,11 @@ javac cloudstorage\network\\*.java
 
 javac cloudstorage\server\\*.java
 
+javac cloudstorage\server\view\\*.java
+
 javac cloudstorage\client\\*.java
+
+javac cloudstorage\client\view\\*.java
 
 To run the server program, run: 
 
