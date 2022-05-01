@@ -3,10 +3,12 @@ package cloudstorage.server;
 import cloudstorage.enums.*;
 import cloudstorage.data.*;
 import cloudstorage.network.*;
+import cloudstorage.server.view.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.text.SimpleDateFormat;
 
 public class ServerThread extends Thread
 {
@@ -21,8 +23,12 @@ public class ServerThread extends Thread
     public final int blockSize = 1024 * 1024 * 4;
     public int bufferSize;
     public List<ClientData> clients;
+    public ServerUI ui;
+    public SimpleDateFormat formatter= new SimpleDateFormat("HH:mm:ss");
+    public Date date = new Date(System.currentTimeMillis());
+    public String timestamp = formatter.format(date);
 
-    public ServerThread(Socket tcp, DatagramSocket udp, byte[] b, int bs, int tID, List<ClientData> cd)
+    public ServerThread(Socket tcp, DatagramSocket udp, byte[] b, int bs, int tID, List<ClientData> cd, ServerUI u)
     {
         tcpSocket = tcp;
         udpSocket = udp;
@@ -30,6 +36,7 @@ public class ServerThread extends Thread
         buffer = b;
         bufferSize = bs;
         clients = cd;
+        ui = u;
     }
 
     public void run()
@@ -51,10 +58,14 @@ public class ServerThread extends Thread
 
         while(true)
         {
+            fileName = tcpm.receiveMessageFromClient(1000);
+
+            ui.textfield1.append(" [" + timestamp + "] Active Clients: " + clients.size() + "\n");
+            ui.textfield1.append(" [" + timestamp + "] Thread " + ID + " performing " + action + " on " + fileName + "\n");
             System.out.printf("Active Clients: %d\n", clients.size());
             System.out.printf("Thread %d peforming %s\n", ID, action);
 
-            fileName = tcpm.receiveMessageFromClient(1000);
+            
 
             switch(action)
             {
@@ -138,7 +149,7 @@ public class ServerThread extends Thread
             for(int i = 0; i < numPackets; i++)
             {
                 ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP, buffer, packets,
-                    fileName, fileSize, numPackets);
+                    fileName, fileSize, numPackets, ui);
 
                 rt.start();
             }

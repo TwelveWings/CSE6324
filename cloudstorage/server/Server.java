@@ -3,11 +3,13 @@ package cloudstorage.server;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.server.view.*;
 import java.net.*;
 import java.util.*;
 
-public class Server
-{
+
+public class Server {  
+
     public static DatagramSocket udpSocket;
     public static byte[] buffer;
     public static int port;
@@ -15,9 +17,13 @@ public class Server
     public static ServerSocket serverSocket;
     public static Socket tcpSocket;
 
-    public static void main(String[] args)
-    {
-        System.out.println("Server running...");
+    public static void main(String[] args) {  
+
+        ServerUI ui = new ServerUI();
+
+        ui.textfield1.append(" [" + ui.timestamp + "] Server is running\n");
+
+        System.out.println("Opening Server GUI...");
         port = 2023;
 
         List<ClientData> clients = new ArrayList<ClientData>();
@@ -55,7 +61,7 @@ public class Server
 
                 clients.add(new ClientData(tcpSocket.getPort(), tcpSocket.getInetAddress()));
 
-                ServerThread st = new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, ++i, clients);
+                ServerThread st = new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, ++i, clients, ui);
 
                 st.start();
             }
@@ -65,5 +71,6 @@ public class Server
         {
             e.printStackTrace();
         }
-    }
-}
+
+    }  
+}  

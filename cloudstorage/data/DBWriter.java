@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.*;
 import javax.swing.*;
+import cloudstorage.server.view.*;
+import java.text.SimpleDateFormat;
 
 public class DBWriter extends Thread
 {
@@ -19,8 +21,12 @@ public class DBWriter extends Thread
     public int scale;
     public int numPackets;
     public SQLManager sm;
+    public ServerUI ui;
+    public SimpleDateFormat formatter= new SimpleDateFormat("HH:mm:ss");
+    public Date date = new Date(System.currentTimeMillis());
+    public String timestamp = formatter.format(date);
 
-    public DBWriter(byte[][] cp, byte[] p, byte[] b, String fn, int fs, int i, int s, int np)
+    public DBWriter(byte[][] cp, byte[] p, byte[] b, String fn, int fs, int i, int s, int np, ServerUI u)
     {
         combinedPackets = cp;
         buffer = b;
@@ -31,6 +37,7 @@ public class DBWriter extends Thread
         identifier = i;
         scale = s;
         numPackets = np;
+        ui = u;
     }
 
     public void run()
@@ -40,6 +47,10 @@ public class DBWriter extends Thread
         boolean complete = true;
 
         FileData fd = new FileData();
+
+        ui.textfield1.append(" [" + timestamp + "] ID: " + identifier + "\n");
+        ui.textfield1.append(" [" + timestamp + "] SCALE: " + scale + "\n");
+        ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS: " + numPackets + "\n");
 
         System.out.printf("ID: %d\n", identifier);
         System.out.printf("SCALE: %d\n", scale);
@@ -58,6 +69,7 @@ public class DBWriter extends Thread
 
         if(complete)
         {
+            ui.textfield1.append(" [" + timestamp + "] Transmission Complete \n");
             System.out.println("Complete");
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
@@ -116,7 +128,7 @@ public class DBWriter extends Thread
         {
             e.printStackTrace();
         }
-
+        ui.textfield1.append(" [" + timestamp + "] " + fileName + " of size " + fileSize + "bytes has been uploaded succesfully \n");
         System.out.println("Upload complete!");
     }
 }

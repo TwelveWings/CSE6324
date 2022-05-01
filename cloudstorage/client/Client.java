@@ -3,9 +3,9 @@ package cloudstorage.client;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.client.view.*;
 import java.net.*;
 import java.util.*;
-import javax.swing.*;
 
 public class Client
 {
@@ -18,13 +18,17 @@ public class Client
     public static TCPManager tcpm;
     public static UDPManager udpm;
 
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) {
+
+        ClientUI ui = new ClientUI();
+
+        ui.textfield1.append(" [" + ui.timestamp + "] Client connected with Server\n");
+
         sc = new Scanner(System.in);
 
         buffer = new byte[bufferSize];
 
-        System.out.println("Client running...");
+        System.out.println("Opening Client GUI...");
 
         try
         {
@@ -58,7 +62,7 @@ public class Client
                 for(int i = 0; i < numPackets; i++)
                 {
                     ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP, buffer, packets,
-                        fileName, fileSize, numPackets);
+                        fileName, fileSize, numPackets, null);
 
                     rt.start();
                 }
