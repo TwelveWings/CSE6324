@@ -40,8 +40,6 @@ public class DBWriter extends Thread
 
         boolean complete = true;
 
-        FileData fd = new FileData();
-
         System.out.printf("ID: %d\n", identifier);
         System.out.printf("SCALE: %d\n", scale);
         System.out.printf("NUM_PACKETS: %d\n", numPackets);

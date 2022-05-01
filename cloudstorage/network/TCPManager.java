@@ -63,6 +63,8 @@ public class TCPManager
 
         catch(Exception e)
         {
+            System.out.println("Server failed to send message.");
+
             e.printStackTrace();
         }
     }
@@ -104,6 +106,8 @@ public class TCPManager
 
         catch(Exception e)
         {
+            System.out.println("Client failed to send message.");
+    
             e.printStackTrace();
         }
     }

@@ -59,7 +59,7 @@ public class Server
 
                 i++;
 
-                clients.add(new ClientData(i, tcpSocket.getPort(), tcpSocket.getInetAddress()));
+                clients.add(new ClientData(i, tcpSocket.getPort(), tcpSocket.getInetAddress(), tcpSocket, udpSocket));
 
                 ServerThread st = new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, i, clients);
 

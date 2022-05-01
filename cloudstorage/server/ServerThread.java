@@ -85,7 +85,15 @@ public class ServerThread extends Thread
 
             if(clients.size() > 1)
             {
-                downloadFile(fileName);
+                for(int i = 0; i < clients.size(); i++)
+                {
+                    if(clients.get(i).getClientID() == ID)
+                    {
+                        continue;
+                    }
+
+                    clients.get(i).downloadToClient(fileName, sm, clients.get(i), bb);
+                }
             }
 
             action  = tcpm.receiveMessageFromClient(1000);
@@ -99,38 +107,6 @@ public class ServerThread extends Thread
         try
         {
             sm.deleteFile(fileName);
-        }
-
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-    }
-
-    synchronized public void downloadFile(String fileName)
-    {
-        ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
-
-        System.out.printf("SERVER: %s\n", fileName);
-        String x = (files.get(fileName) != null) ? files.get(fileName).fileName : "None";
-        
-        System.out.println(x);
-
-        try
-        {
-            if(files.get(fileName) != null)
-            {
-                for(int i = 0; i < clients.size(); i++)
-                {
-                    if(clients.get(i).getPort() == tcpSocket.getPort() && clients.get(i).getAddress() == tcpSocket.getInetAddress())
-                    {
-                        continue;
-                    }
-
-                    DBReader dbr = new DBReader(files.get(fileName).data, fileName, files.get(fileName).fileSize, tcpm, udpm, clients.get(i).getPort(), clients.get(i).getAddress(), SystemAction.Download);
-                    dbr.start();
-                }
-            }
         }
 
         catch(Exception e)

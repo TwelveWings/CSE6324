@@ -66,20 +66,21 @@ public class SendThread extends Thread
 
     public synchronized void sendUDP(UDPManager udpm, ConnectionType threadType, List<byte[]> sendPackets)
     {
+
+        byte[] packet = boundedBuffer.withdraw();
+
         if(threadType == ConnectionType.Client)
         {
-            byte[] packet = boundedBuffer.withdraw();
-
             System.out.printf("SP: %d\n", packet[1]);
             udpm.sendPacketToServer(packet, address, port, 1000);
         }
 
         else
         {
-            for(int i = 0; i < sendPackets.size(); i++)
-            {
-                udpm.sendPacketToClient(sendPackets.get(i), address, port, 1000);
-            }
+            System.out.printf("SP: %d\n", packet[1]);
+           // System.out.println(port);
+           // System.out.println(address);
+            udpm.sendPacketToClient(packet, address, port, 1000);
         }
     }
 }

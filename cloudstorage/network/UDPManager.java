@@ -107,8 +107,6 @@ public class UDPManager
             DatagramPacket packet = new DatagramPacket(empty, length, serverAddress, serverPort);
 
             udpSocket.send(packet);
-
-            JOptionPane.showMessageDialog(null, "Thread interrupted");
         }
 
         catch(Exception e)

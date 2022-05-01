@@ -44,6 +44,8 @@ public class Client
             // Establish UDP socket connection.
             DatagramSocket udpSocket = new DatagramSocket();
 
+            System.out.println(udpSocket.getPort());
+
             // TCP and UDP helper objects to send and receive messages and packets.
             tcpm = new TCPManager(tcpSocket);
             udpm = new UDPManager(udpSocket);
@@ -54,24 +56,34 @@ public class Client
 
             while(true)
             {
-                String receivedMessage = tcpm.receiveMessageFromServer(1000);
+                String action = tcpm.receiveMessageFromServer(1000);
 
-                System.out.println(receivedMessage);
+                System.out.println(action);
 
-                if(receivedMessage.equals("download"))
+                if(action.equals("download"))
                 {
                     String fileName = tcpm.receiveMessageFromServer(1000);
+
                     int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+                
+                    int numBlocks = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
                     int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
+                    // Send empty packet to establish UDP port connection with server.
+                    udpm.sendEmptyPacket(1, address, 2023);
 
                     byte[][] packets = new byte[numPackets][];
 
-                    for(int i = 0; i < numPackets; i++)
+                    for(int i = 0; i < numBlocks; i++)
                     {
-                        ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP, buffer, packets,
-                            fileName, fileSize, numPackets, bb);
+                        for(int j = 0; j < numPackets; j++)
+                        {
+                            ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP, buffer, packets,
+                                fileName, fileSize, numPackets, bb, directory);
 
-                        rt.start();
+                            rt.start();
+                        }
                     }
                 }
             }
