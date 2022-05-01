@@ -1,6 +1,6 @@
 package cloudstorage.data;
 
-import cloudstorage.control.BoundedBuffer;
+import cloudstorage.control.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.io.*;
@@ -15,6 +15,7 @@ public class FileReader extends Thread
     public volatile byte[] data;
     public BoundedBuffer boundedBuffer;
     public String fileName;
+    public Synchronizer sync;
     public TCPManager tcpm;
     public UDPManager udpm;
     public int fileSize;
@@ -32,7 +33,7 @@ public class FileReader extends Thread
         command = null;
     }
 
-    public FileReader(String fn, TCPManager tcp, UDPManager udp, int p, InetAddress a, String d, BoundedBuffer bb)
+    public FileReader(String fn, TCPManager tcp, UDPManager udp, int p, InetAddress a, String d, BoundedBuffer bb, Synchronizer s)
     {
         data = getFileData(d + fn);
         fileName = fn;
@@ -40,6 +41,7 @@ public class FileReader extends Thread
         command = null;
         tcpm = tcp;
         udpm = udp;
+        sync = s;
         targetPort = p;
         targetAddress = a;
         boundedBuffer = bb;
@@ -47,7 +49,7 @@ public class FileReader extends Thread
     }
 
     public FileReader(String fn, SystemAction c, TCPManager tcp, UDPManager udp, int p, 
-        InetAddress a, String d, BoundedBuffer bb)
+        InetAddress a, String d, BoundedBuffer bb, Synchronizer s)
     {
         data = getFileData(d + "/" + fn);
         fileName = fn;
@@ -55,6 +57,7 @@ public class FileReader extends Thread
         command = c;
         tcpm = tcp;
         udpm = udp;
+        sync = s;
         targetPort = p;
         targetAddress = a;
         boundedBuffer = bb;
@@ -106,6 +109,8 @@ public class FileReader extends Thread
 
                 for(int i = 0; i < fd.getBlocks().size(); i++)
                 {
+                    sync.checkIfPaused();
+                    
                     // Read the block and create packets
                     fd.createSegments(fd.getBlocks().get(i), 65505, Segment.Packet);
 
@@ -113,6 +118,9 @@ public class FileReader extends Thread
 
                     for(int j = 0; j < fd.getPackets().size(); j++)
                     {
+
+                        sync.checkIfPaused();
+
                         boundedBuffer.deposit(fd.getPackets().get(j));
 
                         SendThread st = new SendThread(udpm, fd.getPackets(), ConnectionType.Client, Protocol.UDP, targetPort, targetAddress, boundedBuffer);
@@ -151,7 +159,7 @@ public class FileReader extends Thread
         files.remove(fileName);
 
         complete = true;
-    }
+    }  
 
     public byte[] getFileData(String fileName)
     {

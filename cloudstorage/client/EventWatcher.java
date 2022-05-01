@@ -1,6 +1,6 @@
 package cloudstorage.client;
 
-import cloudstorage.control.BoundedBuffer;
+import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
@@ -17,15 +17,17 @@ public class EventWatcher extends Thread
     public UDPManager udpm;
     public InetAddress address;
     public String directory;
+    public Synchronizer sync;
     public BoundedBuffer boundedBuffer;
 
-    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb)
+    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, Synchronizer s)
     {
         tcpm = tcp;
         udpm = udp;
         address = addr;
         directory = d;
         boundedBuffer = bb;
+        sync = s;
     }
 
     @SuppressWarnings("unchecked")
@@ -83,14 +85,14 @@ public class EventWatcher extends Thread
                         // If the event is a create or modify event begin "upload" synchronization
                         if((kind == ENTRY_CREATE || kind == ENTRY_MODIFY))
                         {
-                            FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory, boundedBuffer);
+                            FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory, boundedBuffer, sync);
                             fr.start();
                             fr.join();
                         }
 
                         else if(kind == ENTRY_DELETE)
                         {
-                            FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address, directory, boundedBuffer);
+                            FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address, directory, boundedBuffer, sync);
                             fr.start();
                             fr.join();
                         }

@@ -83,7 +83,7 @@ public class FileWriter extends Thread
         {
             fos.write(data);
 
-            System.out.printf("Synchronization complete: %s added/updated!", fileName);
+            System.out.printf("Synchronization complete: %s added/updated!\n", fileName);
         }
        
         catch(IOException ioe)
