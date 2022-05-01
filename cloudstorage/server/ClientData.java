@@ -74,16 +74,18 @@ public class ClientData
         return clientFile;
     }
 
-    public void downloadToClient(String fileName, SQLManager sm, ClientData client, BoundedBuffer bb)
+    public void synchronizeWithClients(String fileName, String action, SQLManager sm, ClientData client, BoundedBuffer bb)
     {
         ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
+
+        SystemAction command = (action.equals("delete")) ? SystemAction.Delete : SystemAction.Download;
 
         try
         {
             if(files.get(fileName) != null)
             {
                 DBReader dbr = new DBReader(files.get(fileName).data, fileName, files.get(fileName).fileSize, tcpm, udpm, client.getPort(), 
-                    client.getAddress(), SystemAction.Download, bb);
+                    client.getAddress(), command, bb);
                 dbr.start();
             }
         }

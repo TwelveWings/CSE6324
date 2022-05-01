@@ -53,7 +53,6 @@ public class Server
             {
                 tcpSocket = serverSocket.accept();
 
-
                 System.out.println(tcpSocket.getPort());
                 System.out.println(tcpSocket.getInetAddress());
 
