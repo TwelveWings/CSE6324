@@ -24,6 +24,7 @@ public class ClientReceiver extends Thread
         udpm = udp;
         address = addr;
         buffer = b;
+        boundedBuffer = bb;
         directory = dir;
         sync = s;
         tcpm = tcp;

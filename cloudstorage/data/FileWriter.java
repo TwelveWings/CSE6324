@@ -1,6 +1,6 @@
 package cloudstorage.data;
 
-import cloudstorage.control.BoundedBuffer;
+import cloudstorage.control.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.io.*;
@@ -13,13 +13,14 @@ public class FileWriter extends Thread
     public byte[] buffer;
     public String directory;
     public String fileName;
+    public Synchronizer sync;
     public int bufferSize;
     public int fileSize;
     public int identifier;
     public int scale;
     public int numPackets;
 
-    public FileWriter(byte[][] cp, byte[] b, String fn, int fs, int i, int s, int np, BoundedBuffer bb, String dir)
+    public FileWriter(byte[][] cp, byte[] b, String fn, int fs, int i, int s, int np, BoundedBuffer bb, String dir, Synchronizer syn)
     {
         combinedPackets = cp;
         buffer = b;
@@ -28,6 +29,7 @@ public class FileWriter extends Thread
         fileSize = fs;
         identifier = i;
         scale = s;
+        sync = syn;
         numPackets = np;
         boundedBuffer = bb;
         directory = dir;
@@ -62,6 +64,7 @@ public class FileWriter extends Thread
             {
                 for(int i = 0; i < numPackets; i++)
                 {
+                    sync.checkIfPaused();
                     bos.write(combinedPackets[i]);
                 }
             }

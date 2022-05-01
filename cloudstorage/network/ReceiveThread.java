@@ -109,9 +109,14 @@ public class ReceiveThread extends Thread
                 rp = fd.stripPadding(rp, fileSize % (buffer.length - 2));
             }
 
+            if(rp == null)
+            {
+                System.out.println("Cry");
+            }
+
             boundedBuffer.deposit(rp);
 
-            FileWriter writer = new FileWriter(combinedPackets, buffer, fileName, fileSize, identifier, scale, numPackets, boundedBuffer, directory);
+            FileWriter writer = new FileWriter(combinedPackets, buffer, fileName, fileSize, identifier, scale, numPackets, boundedBuffer, directory, sync);
             writer.start();
         }
 

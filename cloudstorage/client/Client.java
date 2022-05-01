@@ -52,10 +52,9 @@ public class Client
             ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, bb, directory, sync);
             cr.start();
 
-
             System.out.println("Client running...");
 
-            System.out.println("Enter P or R to pause/resume any synchroniziation.");
+            System.out.println("Enter P or R to pause/resume any synchronization.");
 
             while(true)
             {
