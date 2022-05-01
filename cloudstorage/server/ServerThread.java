@@ -92,7 +92,7 @@ public class ServerThread extends Thread
                         continue;
                     }
 
-                    clients.get(i).downloadToClient(fileName, sm, clients.get(i), bb);
+                    clients.get(i).synchronizeWithClients(fileName, action, sm, clients.get(i), bb);
                 }
             }
 

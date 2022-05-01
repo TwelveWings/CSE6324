@@ -82,7 +82,10 @@ public class FileWriter extends Thread
         try(FileOutputStream fos = new FileOutputStream(directory + "/" + fileName))
         {
             fos.write(data);
+
+            System.out.printf("Synchronization complete: %s added/updated!", fileName);
         }
+       
         catch(IOException ioe)
         {
             ioe.printStackTrace();

@@ -19,6 +19,8 @@ javac cloudstorage\data\\*.java
 
 javac cloudstorage\network\\*.java
 
+javac cloudstorage\control\\*.java
+
 javac cloudstorage\server\\*.java
 
 javac cloudstorage\client\\*.java

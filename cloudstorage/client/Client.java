@@ -5,6 +5,7 @@ import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.net.*;
+import java.nio.file.*;
 import java.util.*;
 import javax.swing.*;
 
@@ -44,8 +45,6 @@ public class Client
             // Establish UDP socket connection.
             DatagramSocket udpSocket = new DatagramSocket();
 
-            System.out.println(udpSocket.getPort());
-
             // TCP and UDP helper objects to send and receive messages and packets.
             tcpm = new TCPManager(tcpSocket);
             udpm = new UDPManager(udpSocket);
@@ -58,12 +57,10 @@ public class Client
             {
                 String action = tcpm.receiveMessageFromServer(1000);
 
-                System.out.println(action);
+                String fileName = tcpm.receiveMessageFromServer(1000);
 
                 if(action.equals("download"))
                 {
-                    String fileName = tcpm.receiveMessageFromServer(1000);
-
                     int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
                 
                     int numBlocks = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
@@ -85,6 +82,12 @@ public class Client
                             rt.start();
                         }
                     }
+                }
+
+                else if(action.equals("delete"))
+                {
+                    Files.deleteIfExists(Paths.get(directory + "/" + fileName));
+                    System.out.printf("Synchronization complete: %s deleted!", fileName);
                 }
             }
         }
