@@ -31,6 +31,11 @@ Then run:
 
 java cloudstorage.client.Client
 
+1) You will need to specify which directory the client will synchronize with.
+2) The client will synchronize with the server on start up, clearing out any existing files.
+3) Once the client has started, adding, modifying, or deleting files will trigger synchronization with the server.
+4) The client will receive data from the server, and the server will update its database. Then the server will push the data to any other clients currently open.
+
 To reset the tables run:
 
 java -cp ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.server.Server new

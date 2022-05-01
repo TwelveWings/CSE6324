@@ -1,6 +1,6 @@
 package cloudstorage.network;
 
-import cloudstorage.client.*;
+import cloudstorage.control.BoundedBuffer;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
@@ -10,9 +10,11 @@ public class ReceiveThread extends Thread
 {
     public byte[][] combinedPackets;
     public byte[] buffer;
+    public BoundedBuffer boundedBuffer;
     public ConnectionType threadType;
     public Protocol receiveProtocol;
     public String fileName;
+    public String directory;
     public DatagramPacket packet;
     public UDPManager udpm;
     public TCPManager tcpm;
@@ -26,7 +28,8 @@ public class ReceiveThread extends Thread
         receiveProtocol = p;
     }
 
-    public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b, byte[][] cp, String fn, int fs, int np)
+    public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
+        byte[][] cp, String fn, int fs, int np, BoundedBuffer bb)
     {
         combinedPackets = cp;
         udpm = udp;
@@ -36,6 +39,23 @@ public class ReceiveThread extends Thread
         fileName = fn;
         fileSize = fs;
         numPackets = np;
+        boundedBuffer = bb;
+    }
+
+
+    public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
+        byte[][] cp, String fn, int fs, int np, BoundedBuffer bb, String dir)
+    {
+        combinedPackets = cp;
+        udpm = udp;
+        threadType = ct;
+        receiveProtocol = p;
+        buffer = b;
+        fileName = fn;
+        fileSize = fs;
+        numPackets = np;
+        boundedBuffer = bb;
+        directory = dir;
     }
 
     public void run()
@@ -75,6 +95,8 @@ public class ReceiveThread extends Thread
 
             byte[] rp = packet.getData();
 
+            System.out.printf("RP: %d\n", rp[1]);
+
             int identifier = (int)rp[1];
             int scale = (int)rp[0];
 
@@ -85,7 +107,9 @@ public class ReceiveThread extends Thread
                 rp = fd.stripPadding(rp, fileSize % (buffer.length - 2));
             }
 
-            FileWriter writer = new FileWriter(combinedPackets, rp, buffer, fileName, fileSize, identifier, scale, numPackets);
+            boundedBuffer.deposit(rp);
+
+            FileWriter writer = new FileWriter(combinedPackets, buffer, fileName, fileSize, identifier, scale, numPackets, boundedBuffer, directory);
             writer.start();
         }
 
@@ -95,7 +119,11 @@ public class ReceiveThread extends Thread
             // the writer object. This section of the code has been moved here and has fixed the issue.
             packet = udpm.receivePacketFromClient(buffer, 1000);
 
+            System.out.println(packet.getPort());
+
             byte[] rp = packet.getData();
+
+            //System.out.printf("RP: %d\n", rp[1]);
 
             int identifier = (int)rp[1];
             int scale = (int)rp[0];
@@ -107,7 +135,9 @@ public class ReceiveThread extends Thread
                 rp = fd.stripPadding(rp, fileSize % (buffer.length - 2));
             }
 
-            DBWriter writer = new DBWriter(combinedPackets, rp, buffer, fileName, fileSize, identifier, scale, numPackets);
+            boundedBuffer.deposit(rp);
+
+            DBWriter writer = new DBWriter(combinedPackets, buffer, fileName, fileSize, identifier, scale, numPackets, boundedBuffer);
             writer.start();
         }
     }

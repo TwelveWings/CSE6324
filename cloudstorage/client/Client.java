@@ -1,5 +1,6 @@
 package cloudstorage.client;
 
+import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
@@ -20,11 +21,17 @@ public class Client
 
     public static void main(String[] args)
     {
+        BoundedBuffer bb = new BoundedBuffer(1, false);
+
         sc = new Scanner(System.in);
 
         buffer = new byte[bufferSize];
 
         System.out.println("Client running...");
+
+        System.out.println("Please specify which directory you want to synchronize:");
+
+        String directory = sc.nextLine();
 
         try
         {
@@ -37,30 +44,47 @@ public class Client
             // Establish UDP socket connection.
             DatagramSocket udpSocket = new DatagramSocket();
 
+            System.out.println(udpSocket.getPort());
+
             // TCP and UDP helper objects to send and receive messages and packets.
             tcpm = new TCPManager(tcpSocket);
             udpm = new UDPManager(udpSocket);
 
             // Start event watcher to keep track of directory changes and synchronize with server.
-            EventWatcher ew = new EventWatcher(tcpm, udpm, address);
+            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb);
             ew.start();
 
-            String receivedMessage = tcpm.receiveMessageFromServer(1000);
-
-            if(receivedMessage.equals("download"))
+            while(true)
             {
-                String fileName = tcpm.receiveMessageFromServer(1000);
-                int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
-                int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+                String action = tcpm.receiveMessageFromServer(1000);
 
-                byte[][] packets = new byte[numPackets][];
+                System.out.println(action);
 
-                for(int i = 0; i < numPackets; i++)
+                if(action.equals("download"))
                 {
-                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP, buffer, packets,
-                        fileName, fileSize, numPackets);
+                    String fileName = tcpm.receiveMessageFromServer(1000);
 
-                    rt.start();
+                    int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+                
+                    int numBlocks = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
+                    int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
+                    // Send empty packet to establish UDP port connection with server.
+                    udpm.sendEmptyPacket(1, address, 2023);
+
+                    byte[][] packets = new byte[numPackets][];
+
+                    for(int i = 0; i < numBlocks; i++)
+                    {
+                        for(int j = 0; j < numPackets; j++)
+                        {
+                            ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP, buffer, packets,
+                                fileName, fileSize, numPackets, bb, directory);
+
+                            rt.start();
+                        }
+                    }
                 }
             }
         }

@@ -1,5 +1,6 @@
 package cloudstorage.data;
 
+import cloudstorage.control.BoundedBuffer;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.io.*;
@@ -7,9 +8,10 @@ import java.nio.file.Files;
 
 public class FileWriter extends Thread
 {
+    public BoundedBuffer boundedBuffer;
     public byte[][] combinedPackets;
     public byte[] buffer;
-    public byte[] packet;
+    public String directory;
     public String fileName;
     public int bufferSize;
     public int fileSize;
@@ -17,28 +19,29 @@ public class FileWriter extends Thread
     public int scale;
     public int numPackets;
 
-    public FileWriter(byte[][] cp, byte[] p, byte[] b, String fn, int fs, int i, int s, int np)
+    public FileWriter(byte[][] cp, byte[] b, String fn, int fs, int i, int s, int np, BoundedBuffer bb, String dir)
     {
         combinedPackets = cp;
         buffer = b;
         bufferSize = b.length;
-        packet = p;
         fileName = fn;
         fileSize = fs;
         identifier = i;
         scale = s;
         numPackets = np;
+        boundedBuffer = bb;
+        directory = dir;
     }
 
     public void run()
     {
         boolean complete = true;
 
-        FileData fd = new FileData();
-
         System.out.printf("ID: %d\n", identifier);
         System.out.printf("SCALE: %d\n", scale);
         System.out.printf("NUM_PACKETS: %d\n", numPackets);
+
+        byte[] packet = boundedBuffer.withdraw();
 
         combinedPackets[identifier + (128 * scale) + scale] = packet;
 
@@ -76,7 +79,7 @@ public class FileWriter extends Thread
 
     public void downloadFile(byte[] data)
     {
-        try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/cloudstorage/client2/files" + fileName))
+        try(FileOutputStream fos = new FileOutputStream(directory + "/" + fileName))
         {
             fos.write(data);
         }
