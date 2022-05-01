@@ -1,5 +1,6 @@
 package cloudstorage.data;
 
+import cloudstorage.control.BoundedBuffer;
 import cloudstorage.enums.*;
 import java.io.*;
 import java.nio.file.Files;
@@ -9,8 +10,8 @@ import javax.swing.*;
 
 public class DBWriter extends Thread
 {
+    public BoundedBuffer boundedBuffer;
     public byte[][] combinedPackets;
-    public byte[] packet;
     public byte[] buffer;
     public String fileName;
     public int bufferSize;
@@ -20,17 +21,17 @@ public class DBWriter extends Thread
     public int numPackets;
     public SQLManager sm;
 
-    public DBWriter(byte[][] cp, byte[] p, byte[] b, String fn, int fs, int i, int s, int np)
+    public DBWriter(byte[][] cp, byte[] b, String fn, int fs, int i, int s, int np, BoundedBuffer bb)
     {
         combinedPackets = cp;
         buffer = b;
         bufferSize = b.length;
-        packet = p;
         fileName = fn;
         fileSize = fs;
         identifier = i;
         scale = s;
         numPackets = np;
+        boundedBuffer = bb;
     }
 
     public void run()
@@ -45,6 +46,8 @@ public class DBWriter extends Thread
         System.out.printf("SCALE: %d\n", scale);
         System.out.printf("NUM_PACKETS: %d\n", numPackets);
 
+        byte[] packet = boundedBuffer.withdraw();
+
         combinedPackets[identifier + (128 * scale) + scale] = packet;
 
         for(int i = 0; i < combinedPackets.length; i++)
@@ -58,7 +61,6 @@ public class DBWriter extends Thread
 
         if(complete)
         {
-            System.out.println("Complete");
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
             try
@@ -116,7 +118,8 @@ public class DBWriter extends Thread
         {
             e.printStackTrace();
         }
-
+        boundedBuffer.setFileUploaded(true);
+        System.out.println(boundedBuffer.getFileUploaded());
         System.out.println("Upload complete!");
     }
 }

@@ -1,4 +1,4 @@
-package cloudstorage.server;
+package cloudstorage.control;
 
 import java.net.*;
 
@@ -6,17 +6,29 @@ public class BoundedBuffer
 {
     public int fullSlots = 0;
     public int capacity = 0;
-    public DatagramPacket[] buffer = null;
+    public byte[][] buffer = null;
     public int in = 0;
     public int out = 0;
+    public volatile boolean fileUploaded;
 
-    public BoundedBuffer(int c)
+    public BoundedBuffer(int c, boolean u)
     {
         capacity = c;
-        buffer = new DatagramPacket[c];
+        fileUploaded = u;
+        buffer = new byte[c][];
     }
 
-    public synchronized void deposit(DatagramPacket packet)
+    public void setFileUploaded(boolean u)
+    {
+        fileUploaded = u;
+    }
+
+    public boolean getFileUploaded()
+    {
+        return fileUploaded;
+    }
+
+    public synchronized void deposit(byte[] data)
     {
         while(fullSlots == capacity)
         {
@@ -31,7 +43,7 @@ public class BoundedBuffer
             }
         }
 
-        buffer[in] = packet;
+        buffer[in]= data;
 
         in = (in + 1) % capacity;
 
@@ -43,9 +55,9 @@ public class BoundedBuffer
         }
     }
 
-    public synchronized DatagramPacket withdraw()
+    public synchronized byte[] withdraw()
     {
-        DatagramPacket packet;
+        byte[] data;
 
         while(fullSlots == 0)
         {
@@ -60,7 +72,9 @@ public class BoundedBuffer
             }
         }
 
-        packet = buffer[out];
+        data = buffer[out];
+
+        out = (out + 1) % capacity;
 
         fullSlots--;
 
@@ -69,6 +83,6 @@ public class BoundedBuffer
             notify();
         }
 
-        return packet;
+        return data;
     }
 }

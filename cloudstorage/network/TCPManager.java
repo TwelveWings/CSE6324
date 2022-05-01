@@ -37,6 +37,11 @@ public class TCPManager
             Thread.sleep(timeout);
         }
 
+        catch(SocketException se)
+        {
+            System.out.println("Client closed unexpectedly.");
+        }
+
         catch(Exception e)
         {
             e.printStackTrace();
@@ -72,6 +77,11 @@ public class TCPManager
             message = fromServer.readLine();
 
             Thread.sleep(timeout);
+        }
+
+        catch(SocketException se)
+        {
+            System.out.println("The server was disconnected. Program terminated.");
         }
 
         catch(Exception e)

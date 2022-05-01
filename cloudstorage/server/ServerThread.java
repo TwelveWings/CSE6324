@@ -1,5 +1,6 @@
 package cloudstorage.server;
 
+import cloudstorage.control.BoundedBuffer;
 import cloudstorage.enums.*;
 import cloudstorage.data.*;
 import cloudstorage.network.*;
@@ -34,10 +35,12 @@ public class ServerThread extends Thread
 
     public void run()
     {
-        bb = new BoundedBuffer(1);
+        bb = new BoundedBuffer(1, false);
         tcpm = new TCPManager(tcpSocket);
         udpm = new UDPManager(udpSocket);
         sm = new SQLManager();
+
+        ClientData client = clients.get(ID - 1);
 
         sm.setDBConnection();
         
@@ -66,20 +69,21 @@ public class ServerThread extends Thread
                     break;
             }
 
-            ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
-
-            while(files.get(fileName) == null)
+            while(!bb.getFileUploaded())
             {
-                downloadFile(fileName, files);
+                try
+                {
+                    System.out.println("Waiting for upload to complete...");
+                    Thread.sleep(3000);
+                }
+
+                catch(InterruptedException e)
+                {
+
+                }
             }
 
-            action = tcpm.receiveMessageFromClient(1000);
-
-            if(action.equals("quit"))
-            {
-                sm.closeConnection();
-                return;
-            }
+            downloadFile(fileName);
 
             Arrays.fill(buffer, (byte)0);
         }
@@ -98,20 +102,25 @@ public class ServerThread extends Thread
         }
     }
 
-    synchronized public void downloadFile(String fileName, ConcurrentHashMap<String, FileData> files)
+    synchronized public void downloadFile(String fileName)
     {
+        ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
+
+        System.out.printf("SERVER: %s\n", fileName);
+        String x = (files.get(fileName) != null) ? files.get(fileName).fileName : "None";
+        
+        System.out.println(x);
+
         try
         {
             if(files.get(fileName) != null)
             {
-                System.out.println("Test");
                 for(int i = 0; i < clients.size(); i++)
                 {
                     if(clients.get(i).getPort() == tcpSocket.getPort() && clients.get(i).getAddress() == tcpSocket.getInetAddress())
                     {
                         continue;
                     }
-
                     DBReader dbr = new DBReader(files.get(fileName).data, fileName, files.get(fileName).fileSize, tcpm, udpm, clients.get(i).getPort(), clients.get(i).getAddress(), SystemAction.Download);
                     dbr.start();
                 }
@@ -138,7 +147,7 @@ public class ServerThread extends Thread
             for(int i = 0; i < numPackets; i++)
             {
                 ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP, buffer, packets,
-                    fileName, fileSize, numPackets);
+                    fileName, fileSize, numPackets, bb);
 
                 rt.start();
             }

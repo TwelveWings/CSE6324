@@ -30,9 +30,9 @@ public class FileReader extends Thread
         command = null;
     }
 
-    public FileReader(String fn, TCPManager tcp, UDPManager udp, int p, InetAddress a)
+    public FileReader(String fn, TCPManager tcp, UDPManager udp, int p, InetAddress a, String d)
     {
-        data = getFileData(System.getProperty("user.dir") + "/cloudstorage/client/files/" + fn);
+        data = getFileData(d + fn);
         fileName = fn;
         fileSize = data.length;
         command = null;
@@ -40,12 +40,13 @@ public class FileReader extends Thread
         udpm = udp;
         targetPort = p;
         targetAddress = a;
+
     }
 
     public FileReader(String fn, SystemAction c, TCPManager tcp, UDPManager udp, int p, 
-        InetAddress a)
+        InetAddress a, String d)
     {
-        data = getFileData(System.getProperty("user.dir") + "/cloudstorage/client/files/" + fn);
+        data = getFileData(d + "/" + fn);
         fileName = fn;
         fileSize = data.length;
         command = c;

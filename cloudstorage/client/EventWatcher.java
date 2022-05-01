@@ -15,12 +15,14 @@ public class EventWatcher extends Thread
     public TCPManager tcpm;
     public UDPManager udpm;
     public InetAddress address;
+    public String directory;
 
-    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr)
+    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d)
     {
         tcpm = tcp;
         udpm = udp;
         address = addr;
+        directory = d;
     }
 
     @SuppressWarnings("unchecked")
@@ -44,11 +46,8 @@ public class EventWatcher extends Thread
             // Bytes of file being read
             byte[] data = null;
 
-            // The local directory that is being watched and will be used to synchronize with the server.
-            String localDir = System.getProperty("user.dir") + "/cloudstorage/client/files";
-
             // Local directory converted to a Path.
-            Path clientDirectory = Paths.get(localDir);
+            Path clientDirectory = Paths.get(directory);
 
             // Watch key will keep track of ENTRY_CREATE, ENTRY_DELETE, and ENTRY MODIFY events.
             WatchKey key = null;
@@ -99,13 +98,13 @@ public class EventWatcher extends Thread
                                 continue;
                             }
 
-                            readers.put(fileName.toString(), new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address));
+                            readers.put(fileName.toString(), new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory));
                             readers.get(fileName.toString()).start();
                         }
 
                         else if(kind == ENTRY_DELETE)
                         {
-                            readers.put(fileName.toString(), new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address));
+                            readers.put(fileName.toString(), new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address, directory));
                             readers.get(fileName.toString()).start();                            
                         }
                     }
