@@ -47,19 +47,23 @@ public class ClientReceiver extends Thread
             
                 int numBlocks = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
 
-                int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+                System.out.printf("NUM BLOCKS IN CR: %d\n", numBlocks);
 
                 // Send empty packet to establish UDP port connection with server.
                 udpm.sendEmptyPacket(1, address, 2023);
 
-                byte[][] packets = new byte[numPackets][];
+                List<byte[]> data = new ArrayList<byte[]>();
 
                 for(int i = 0; i < numBlocks; i++)
                 {
+                    int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
+                    byte[][] packets = new byte[numPackets][];
+
                     for(int j = 0; j < numPackets; j++)
                     {
-                        ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP, buffer, packets,
-                            fileName, fileSize, numPackets, boundedBuffer, directory, sync);
+                        ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP, buffer, data, packets,
+                            fileName, fileSize, numBlocks, numPackets, boundedBuffer, directory, sync);
 
                         rt.start();
                     }

@@ -5,6 +5,7 @@ import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.net.*;
+import java.util.*;
 
 public class ReceiveThread extends Thread
 {
@@ -12,12 +13,14 @@ public class ReceiveThread extends Thread
     public byte[] buffer;
     public BoundedBuffer boundedBuffer;
     public ConnectionType threadType;
+    public List<byte[]> data;
     public Protocol receiveProtocol;
     public String fileName;
     public String directory;
     public Synchronizer sync;
     public UDPManager udpm;
     public TCPManager tcpm;
+    public int numBlocks;
     public int numPackets;
     public int fileSize;
 
@@ -29,8 +32,9 @@ public class ReceiveThread extends Thread
     }
 
     public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
-        byte[][] cp, String fn, int fs, int np, BoundedBuffer bb)
+        List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb)
     {
+        data = d;
         combinedPackets = cp;
         udpm = udp;
         threadType = ct;
@@ -38,14 +42,16 @@ public class ReceiveThread extends Thread
         buffer = b;
         fileName = fn;
         fileSize = fs;
+        numBlocks = nb;
         numPackets = np;
         boundedBuffer = bb;
     }
 
-
     public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
-        byte[][] cp, String fn, int fs, int np, BoundedBuffer bb, String dir, Synchronizer s)
+        List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, 
+        String dir, Synchronizer s)
     {
+        data = d;
         combinedPackets = cp;
         udpm = udp;
         threadType = ct;
@@ -54,6 +60,7 @@ public class ReceiveThread extends Thread
         fileName = fn;
         sync = s;
         fileSize = fs;
+        numBlocks = nb;
         numPackets = np;
         boundedBuffer = bb;
         directory = dir;
@@ -89,9 +96,10 @@ public class ReceiveThread extends Thread
     public synchronized void receiveUDP(UDPManager udpm, ConnectionType threadType)
     {        
         FileData fd = new FileData();
-        byte[] packet = udpm.receivePacket(buffer, 250);
+        byte[] packet = udpm.receivePacket(buffer, 125);
 
         //System.out.printf("RP: %d\n", packet[1]);
+        System.out.printf("NUM BLOCKS: %d\n", numBlocks);
     
         int identifier = packet[1];
         int scale = packet[0];
@@ -107,13 +115,13 @@ public class ReceiveThread extends Thread
 
         if(threadType == ConnectionType.Client)
         {
-            FileWriter writer = new FileWriter(combinedPackets, buffer, fileName, fileSize, identifier, scale, numPackets, boundedBuffer, directory, sync);
+            FileWriter writer = new FileWriter(data, combinedPackets, buffer, fileName, fileSize, identifier, scale, numBlocks, numPackets, boundedBuffer, directory, sync);
             writer.start();
         }
 
         else
         {
-            DBWriter writer = new DBWriter(combinedPackets, buffer, fileName, fileSize, identifier, scale, numPackets, boundedBuffer);
+            DBWriter writer = new DBWriter(data, combinedPackets, buffer, fileName, fileSize, identifier, scale, numBlocks, numPackets, boundedBuffer);
             writer.start();
         }
     }
