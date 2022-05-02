@@ -96,7 +96,7 @@ public class DBReader extends Thread
 
                     tcpm.sendMessageToClient(String.valueOf(fd.getPackets().size()), 1000);
 
-                    DatagramPacket connector = udpm.receivePacketFromClient(buffer, 1000);
+                    DatagramPacket connector = udpm.receiveDatagramPacket(buffer, 1000);
 
                     targetPort = connector.getPort();
                     targetAddress = connector.getAddress();

@@ -17,29 +17,27 @@ public class UDPManager
         udpSocket.close();
     }
     
-    public DatagramPacket receivePacketFromClient(byte[] buffer, int timeout)
+    public DatagramPacket receiveDatagramPacket(byte[] buffer, int timeout)
     {
         // Instantiate DatagramPacket object based on received data - rBuffer (received Buffer).
         DatagramPacket receivedPacket = new DatagramPacket(buffer, buffer.length);
-
         try
         {
             // Receive file data from client program.
             udpSocket.receive(receivedPacket);
-
             Thread.sleep(timeout);
         }
-
         catch(Exception e)
         {
             e.printStackTrace();
         }
-
         return receivedPacket;
     }
 
-    public DatagramPacket receivePacketFromServer(byte[] buffer, int timeout)
+    public byte[] receivePacket(byte[] buffer, int timeout)
     {
+        byte[] data = null;
+
         // Instantiate DatagramPacket object based on buffer.
         DatagramPacket receivedPacket = new DatagramPacket(buffer, buffer.length);
 
@@ -48,25 +46,7 @@ public class UDPManager
             // Receive file name from client program.
             udpSocket.receive(receivedPacket);
 
-            Thread.sleep(timeout);
-        }
-
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-
-        return receivedPacket;
-    }
-
-
-    public void sendPacketToClient(byte[] data, InetAddress clientAddress, int clientPort, int timeout)
-    {
-        try
-        {
-            DatagramPacket packet = new DatagramPacket(data, data.length, clientAddress, clientPort);
-
-            udpSocket.send(packet);
+            data = receivedPacket.getData().clone();
 
             Thread.sleep(timeout);
         }
@@ -75,22 +55,20 @@ public class UDPManager
         {
             e.printStackTrace();
         }
+
+        return data;
     }
 
-    public void sendPacketToServer(byte[] data, InetAddress serverAddress, int serverPort, int timeout)
+
+    public void sendPacket(byte[] data, InetAddress targetAddress, int targetPort, int timeout)
     {
         try
         {
-            DatagramPacket packet = new DatagramPacket(data, data.length, serverAddress, serverPort);
+            DatagramPacket packet = new DatagramPacket(data, data.length, targetAddress, targetPort);
 
             udpSocket.send(packet);
 
             Thread.sleep(timeout);
-        }
-
-        catch(InterruptedException ie)
-        {
-            sendEmptyPacket(data.length, serverAddress, serverPort);
         }
 
         catch(Exception e)

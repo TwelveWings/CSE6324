@@ -69,18 +69,9 @@ public class SendThread extends Thread
 
         byte[] packet = boundedBuffer.withdraw();
 
-        if(threadType == ConnectionType.Client)
-        {
-            //System.out.printf("SP: %d\n", packet[1]);
-            udpm.sendPacketToServer(packet, address, port, 1000);
-        }
-
-        else
-        {
-            System.out.printf("SP: %d\n", packet[1]);
-            System.out.println(port);
-            System.out.println(address);
-            udpm.sendPacketToClient(packet, address, port, 1000);
-        }
+        System.out.printf("SP: %d\n", packet[1]);
+        System.out.println(port);
+        System.out.println(address);
+        udpm.sendPacket(packet, address, port, 1000);
     }
 }

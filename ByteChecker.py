@@ -1,5 +1,5 @@
-file1 = open("bg.jpg", "rb")
-file2 = open("bg3.jpg", "rb")
+file1 = open("dir1/bg.jpg", "rb")
+file2 = open("dir2/bg.jpg", "rb")
 
 a = file1.read()
 b = file2.read()
@@ -14,6 +14,7 @@ else:
             print(i)
             print("Value at a[i]: %s" % str(a[i]))
             print("Value at b[i]: %s" % str(b[i]))
+            break
 
     if count == 0:
         print("Good job!")
