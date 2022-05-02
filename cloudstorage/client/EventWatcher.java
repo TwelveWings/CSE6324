@@ -90,23 +90,24 @@ public class EventWatcher extends Thread
                         // If the event is a create or modify event begin "upload" synchronization
                         if((kind == ENTRY_CREATE || kind == ENTRY_MODIFY))
                         {
+                            FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory, boundedBuffer, sync, originalFilesInDirectory.get(fileName.toString()));
 
-                            //Update Hashmap for any modified file or created file
+                            //Update Hashmap for any modified file or created file before running threads
                             
                             byte[] sendData = Files.readAllBytes(fileName);
 
                             FileData fileData = new FileData(sendData, fileName.toString(), sendData.length);
-
+                            
                             fileData.createSegments(sendData, 1024 * 1024 * 4, Segment.Block);
-
+                            
                             if(originalFilesInDirectory.containsKey(fileName.toString()))
                             {
                                 originalFilesInDirectory.remove(fileName.toString());
                             }
-
+                            
                             originalFilesInDirectory.put(fileName.toString(), fileData);
 
-                            FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory, boundedBuffer, sync);
+                            // run thread
                             fr.start();
                             fr.join();
                         }
