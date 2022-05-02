@@ -1,68 +1,52 @@
 import java.io.*;
-import java.nio.file.Files;
 import java.net.*;
+import java.nio.file.Files;
 import java.util.*;
-
-//Commit Test # 2
 
 public class Client
 {
-    public DatagramSocket socket;
-    public byte[] buffer;
-    public InetAddress address;
-    public int port;
-    public Scanner sc;
+    public static DatagramSocket udpSocket;
+    public static byte[] buffer;
+    public static InetAddress address;
+    public static int port;
+    public static final int bufferSize = 1024 * 1024 * 4;
+    public static Scanner sc;
+    public static Socket tcpSocket;
 
-    public Client(int p)
-    {
-        port = p;
-    }
-
-    public int getPort()
-    {
-        return port;
-    }
-
-    public void setPort(int p)
-    {
-        port = p;
-    }
-
-    public void startClient()
+    public static void main(String[] args)
     {
         sc = new Scanner(System.in);
         try
         {
             // Get address of local host.
             address = InetAddress.getLocalHost();
-            System.out.println(address);
+            port = 17;
 
-            // Establish socket connection.
-            socket = new DatagramSocket();
+            buffer = new byte[bufferSize];
 
-            boolean endProgram = false;
+            // Establish TCP socket connection
+            tcpSocket = new Socket(address, port);
 
-            while(!endProgram)
+            // Establish UDP socket connection.
+            udpSocket = new DatagramSocket();
+
+            while(true)
             {
                 System.out.println("What action do you want to perform? (1 - Upload, 2 - Download, 3 - Edit, 4 - Delete, 0 - Quit)");
 
                 try 
                 {
-                    int action = sc.nextInt();
-                    byte[] sendAction = String.valueOf(action).getBytes("UTF-8");
+                    String action = sc.next();
 
-                    DatagramPacket sAction = new DatagramPacket(sendAction, sendAction.length, address, port);
-    
-                    socket.send(sAction);
-        
-                    // Wait for 2500 ms to ensure previous datagram packet has been sent.
-                    Thread.sleep(2500);
-    
-                    switch(action)
+                    if(action.equals("0"))
                     {
-                        case 0:
-                            endProgram = true;
-                            break;
+                        break;
+                    }
+
+                    sendMessageToServer(action, 5000);
+    
+                    switch(Integer.valueOf(action))
+                    {
                         case 1:
                             uploadFile();
                             break;
@@ -79,6 +63,9 @@ public class Client
                             System.out.println("Invalid action. Please try again.");
                             break;
                     }
+
+                    // Clear buffer at the end of each operation.
+                    Arrays.fill(buffer, (byte)0);
                 }
 
                 catch(InputMismatchException ime)
@@ -86,6 +73,9 @@ public class Client
                     continue;
                 }
             }
+
+            tcpSocket.close();
+            udpSocket.close();
         }
 
         catch(Exception e)
@@ -94,7 +84,7 @@ public class Client
         }
     }
 
-    public void deleteFile()
+    public static void deleteFile()
     {
         String fileName = "";
         System.out.println("Enter file name or 0 to cancel:");
@@ -102,21 +92,21 @@ public class Client
 
         if(fileName.equals("0") || fileName.trim().equals(""))
         {
-            System.out.println("Download cancelled.");
+            System.out.println("Delete request cancelled.");
             return;
         }
 
         try
         {
-            // Get file to transfer.
-            byte[] sendFileName = fileName.getBytes("UTF-8");
+            // Send file to delete.
+            sendMessageToServer(fileName, 5000);
 
-            DatagramPacket sfn = new DatagramPacket(sendFileName, sendFileName.length, address, port);
+            Arrays.fill(buffer, (byte)0);
 
-            socket.send(sfn);
+            // Instantiate DatagramPacket object based on buffer.
+            String message = receiveMessageFromServer();
 
-            // Wait for 5000 ms to ensure previous datagram packet has been sent.
-            Thread.sleep(5000);
+            System.out.println(message);
         }
 
         catch (Exception e)
@@ -125,7 +115,7 @@ public class Client
         }
     }
 
-    public void downloadFile()
+    public static void downloadFile()
     {
         String fileName = "";
         System.out.println("Enter file name or 0 to cancel:");
@@ -139,24 +129,41 @@ public class Client
 
         try
         {
-            // Get file to transfer.
-            byte[] sendFileName = fileName.getBytes("UTF-8");
+            // Send file name to download.
+            sendMessageToServer(fileName, 5000);
 
-            DatagramPacket sfn = new DatagramPacket(sendFileName, sendFileName.length, address, port);
+            // Send datagram to establish connection
+            sendPacketToServer("1".getBytes(), 5000);
 
-            socket.send(sfn);
-
-            // Wait for 5000 ms to ensure previous datagram packet has been sent.
-            Thread.sleep(5000);
-
-            buffer = new byte[1024 * 1024 * 4];
+            Arrays.fill(buffer, (byte)0);
 
             // Instantiate DatagramPacket object based on buffer.
-            DatagramPacket receivedMessage = receivePacketFromServer(buffer);
+            int fileSize = Integer.valueOf(receiveMessageFromServer());
 
-            String message = new String(buffer, 0, receivedMessage.getLength());
+            if(fileSize == 0)
+            {
+                String message = receiveMessageFromServer();
 
-            System.out.println(message);
+                System.out.println(message);
+            }
+
+            else
+            {
+                byte[] dataBuffer = new byte[fileSize];
+
+                DatagramPacket receivedMessage = receivePacketFromServer(dataBuffer);
+                
+                try(FileOutputStream fos = new FileOutputStream(System.getProperty("user.dir") + "/" + fileName))
+                {
+                    fos.write(dataBuffer);
+                    System.out.println("Download successful!");
+                }
+
+                catch(IOException ioe)
+                {
+                    ioe.printStackTrace();
+                }
+            }
         }
 
         catch(Exception e)
@@ -165,12 +172,31 @@ public class Client
         }
     }
 
-    public void editFile()
+    public static void editFile()
     {
         return;
     }
 
-    public DatagramPacket receivePacketFromServer(byte[] buffer)
+    public static String receiveMessageFromServer()
+    {
+        String message = "";
+
+        try
+        {
+            BufferedReader fromServer = new BufferedReader(new InputStreamReader(tcpSocket.getInputStream()));
+            message = fromServer.readLine();
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return message;
+    }
+
+
+    public static DatagramPacket receivePacketFromServer(byte[] buffer)
     {
         // Instantiate DatagramPacket object based on buffer.
         DatagramPacket receivedPacket = new DatagramPacket(buffer, buffer.length);
@@ -178,7 +204,7 @@ public class Client
         try
         {
             // Receive file name from client program.
-            socket.receive(receivedPacket);
+            udpSocket.receive(receivedPacket);
         }
 
         catch(Exception e)
@@ -189,13 +215,27 @@ public class Client
         return receivedPacket;
     }
 
-    public void sendPacketToServer(byte[] data, int timeout)
+    public static void sendMessageToServer(String message, int timeout)
+    {
+        try
+        {
+            PrintWriter toServer = new PrintWriter(tcpSocket.getOutputStream(), true);
+            toServer.println(message);
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    public static void sendPacketToServer(byte[] data, int timeout)
     {
         try
         {
             DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
 
-            socket.send(packet);
+            udpSocket.send(packet);
 
             Thread.sleep(timeout);
         }
@@ -206,7 +246,7 @@ public class Client
         }
     }
 
-    public void uploadFile()
+    public static void uploadFile()
     {
         String fileName = "";
         System.out.println("Enter file name or 0 to cancel:");
@@ -223,16 +263,46 @@ public class Client
             // Get file to transfer.
             File targetFile = new File(fileName);
 
-            byte[] sendFileName = fileName.getBytes("UTF-8");
+            sendMessageToServer(fileName, 5000);
 
-            sendPacketToServer(sendFileName, 2500);
+            // Send datagram to establish connection
+            sendPacketToServer("1".getBytes(), 5000);
 
             // Convert file to byte array.
             byte[] sendData = Files.readAllBytes(targetFile.toPath());
-            byte[] sendSize = String.valueOf(sendData.length).getBytes();
+            String fileSize = String.valueOf(sendData.length);
 
-            sendPacketToServer(sendSize, 2500);
-            sendPacketToServer(sendData, 2500);
+            // Send information about file via TCP.
+            sendMessageToServer(fileSize, 5000);
+
+            // Send file data via UDP
+            sendPacketToServer(sendData, 5000);
+
+            int resultCode = Integer.valueOf(receiveMessageFromServer());
+
+            String message = receiveMessageFromServer();
+
+            System.out.println(message);
+
+            if(resultCode == 0)
+            {
+                System.out.println("Override File? 1 - Yes 2 - No");
+                String overrideFileInDB = sc.next();
+        
+                if(overrideFileInDB.equals("1"))
+                {
+                    sendMessageToServer(overrideFileInDB, 5000);
+
+                    message = receiveMessageFromServer();
+
+                    System.out.println(message);
+                }
+
+                else
+                {
+                    System.out.println("Upload cancelled.");
+                }
+            }
         }
 
         catch(Exception e)
