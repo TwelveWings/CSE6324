@@ -47,7 +47,7 @@ public class ClientReceiver extends Thread
             
                 int numBlocks = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
 
-                System.out.printf("NUM BLOCKS IN CR: %d\n", numBlocks);
+               // System.out.printf("NUM BLOCKS IN CR: %d\n", numBlocks);
 
                 // Send empty packet to establish UDP port connection with server.
                 udpm.sendEmptyPacket(1, address, 2023);

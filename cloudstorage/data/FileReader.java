@@ -87,6 +87,8 @@ public class FileReader extends Thread
     {
         FileData fd = new FileData(data, fileName, fileSize);
 
+        //System.out.printf("DATALENGTH AT READ: %d", data.length);
+
         // If file name already has an associate FileReader thread, return.
         if(files.contains(fileName))
         {
@@ -100,32 +102,46 @@ public class FileReader extends Thread
             // Split file into blocks
             fd.createSegments(data, 1024 * 1024 * 4, Segment.Block);
 
+            List<byte[]> blocksCreated = fd.getBlocks();
+
+            /*
+            int x = 0;
+            for(int i = 0; i < blocksCreated.size(); i++)
+            {
+                x += blocksCreated.get(i).length;
+                System.out.println(blocksCreated.get(i).length);
+            }*/
+
+           // System.out.printf("Size in FR BLOCKS: %d\n", x);
+
             synchronized(this)
             {
                 tcpm.sendMessageToServer("upload", 1000);
                 tcpm.sendMessageToServer(fileName, 1000);
                 tcpm.sendMessageToServer(String.valueOf(fileSize), 1000);
-                tcpm.sendMessageToServer(String.valueOf(fd.getBlocks().size()), 1000);
+                tcpm.sendMessageToServer(String.valueOf(blocksCreated.size()), 1000);
 
-                System.out.printf("BLOCK #: %d\n", fd.getBlocks().size());
-                for(int i = 0; i < fd.getBlocks().size(); i++)
+               // System.out.printf("BLOCK #: %d\n", blocksCreated.size());
+                for(int i = 0; i < blocksCreated.size(); i++)
                 {
                     sync.checkIfPaused();
                     
                     // Read the block and create packets
-                    fd.createSegments(fd.getBlocks().get(i), 65505, Segment.Packet);
+                    fd.createSegments(blocksCreated.get(i), 65505, Segment.Packet);
 
-                    tcpm.sendMessageToServer(String.valueOf(fd.getPackets().size()), 1000);
+                    List<byte[]> packetsCreated = fd.getPackets();
 
-                    System.out.printf("PACKET #: %d\n", fd.getPackets().size());
+                    tcpm.sendMessageToServer(String.valueOf(packetsCreated.size()), 1000);
 
-                    for(int j = 0; j < fd.getPackets().size(); j++)
+                   // System.out.printf("PACKET #: %d\n", packetsCreated.size());
+
+                    for(int j = 0; j < packetsCreated.size(); j++)
                     {
                         sync.checkIfPaused();
 
-                        boundedBuffer.deposit(fd.getPackets().get(j));
+                        boundedBuffer.deposit(packetsCreated.get(j));
 
-                        SendThread st = new SendThread(udpm, fd.getPackets(), ConnectionType.Client, Protocol.UDP, targetPort, targetAddress, boundedBuffer);
+                        SendThread st = new SendThread(udpm, packetsCreated, ConnectionType.Client, Protocol.UDP, targetPort, targetAddress, boundedBuffer);
                         st.start();
 
                         try

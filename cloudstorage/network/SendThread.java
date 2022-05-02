@@ -69,9 +69,9 @@ public class SendThread extends Thread
 
         byte[] packet = boundedBuffer.withdraw();
 
-        System.out.printf("SP: %d\n", packet[1]);
-        System.out.println(port);
-        System.out.println(address);
-        udpm.sendPacket(packet, address, port, 125);
+       // System.out.printf("SP: %d\n", packet[1]);
+       // System.out.println(port);
+       // System.out.println(address);
+        udpm.sendPacket(packet, address, port, 75);
     }
 }

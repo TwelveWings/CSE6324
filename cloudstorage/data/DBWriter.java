@@ -47,10 +47,12 @@ public class DBWriter extends Thread
         boolean packetComplete = true;
 
         System.out.printf("ID: %d\n", identifier);
-        System.out.printf("SCALE: %d\n", scale);
+        //System.out.printf("SCALE: %d\n", scale);
         System.out.printf("NUM_PACKETS: %d\n", numPackets);
 
         byte[] packet = boundedBuffer.withdraw();
+
+        //System.out.printf("PACKET_LEN: %d\n", packet.length);
 
         synchronized(this)
         {
@@ -70,12 +72,21 @@ public class DBWriter extends Thread
         {
             byte[] packetData = fd.combinePacketData(combinedPackets, numPackets);
 
+            //System.out.printf("PACKET SIZE: %d\n", packetData.length);
+
             data.add(packetData);
         }
 
         if(data.size() == numBlocks)
         {
             byte[] blockData = fd.combineBlockData(data, numBlocks);
+
+            // read from DB to get file currently saved.
+            // compare blockData with data in DB
+            // update DB data with block data
+            // upload updated DB data
+
+           // System.out.printf("Data Before Upload: %d\n", blockData.length);
 
             uploadFile(blockData);
         }
