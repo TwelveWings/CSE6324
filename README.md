@@ -1,5 +1,5 @@
 # CSE6324
-The cloudstorage directory contains 5 subdirectories.
+The cloudstorage directory contains 6 subdirectories.
 
 1) client stores the clients and related thread classes that will access the server
 2) data stores a class for the file data
@@ -38,11 +38,11 @@ java cloudstorage.client.Client
 3) Once the client has started, adding, modifying, or deleting files will trigger synchronization with the server.
 4) The client will receive data from the server, and the server will update its database. Then the server will push the data to any other clients currently open.
 
-To reset the tables run:
+To reset the tables on the server run:
 
 java -cp ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.server.Server new
 
 
-To check the tables run:
+To check the tables on the server run:
 
 java -classpath ";cloudstorage\server\sqlite-jdbc-3.36.0.3.jar" cloudstorage.server.TableReader
