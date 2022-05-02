@@ -4,12 +4,15 @@ import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+
+import java.io.File;
 import java.io.IOException;
 import java.net.*;
 import static java.nio.file.StandardWatchEventKinds.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 public class EventWatcher extends Thread
 {
@@ -19,8 +22,9 @@ public class EventWatcher extends Thread
     public String directory;
     public Synchronizer sync;
     public BoundedBuffer boundedBuffer;
+    public HashMap<String, FileData> originalFilesInDirectory;
 
-    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, Synchronizer s)
+    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, Synchronizer s, HashMap<String, FileData> ofid)
     {
         tcpm = tcp;
         udpm = udp;
@@ -28,6 +32,7 @@ public class EventWatcher extends Thread
         directory = d;
         boundedBuffer = bb;
         sync = s;
+        originalFilesInDirectory = ofid;
     }
 
     @SuppressWarnings("unchecked")
@@ -85,6 +90,22 @@ public class EventWatcher extends Thread
                         // If the event is a create or modify event begin "upload" synchronization
                         if((kind == ENTRY_CREATE || kind == ENTRY_MODIFY))
                         {
+
+                            //Update Hashmap for any modified file or created file
+                            
+                            byte[] sendData = Files.readAllBytes(fileName);
+
+                            FileData fileData = new FileData(sendData, fileName.toString(), sendData.length);
+
+                            fileData.createSegments(sendData, 1024 * 1024 * 4, Segment.Block);
+
+                            if(originalFilesInDirectory.containsKey(fileName.toString()))
+                            {
+                                originalFilesInDirectory.remove(fileName.toString());
+                            }
+
+                            originalFilesInDirectory.put(fileName.toString(), fileData);
+
                             FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory, boundedBuffer, sync);
                             fr.start();
                             fr.join();
@@ -92,6 +113,8 @@ public class EventWatcher extends Thread
 
                         else if(kind == ENTRY_DELETE)
                         {
+                            originalFilesInDirectory.remove(fileName.toString());
+
                             FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address, directory, boundedBuffer, sync);
                             fr.start();
                             fr.join();

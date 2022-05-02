@@ -97,6 +97,8 @@ public class FileReader extends Thread
     
         if(command == SystemAction.Upload)
         {
+            //Insert Logic for delta sync here
+            
             // Split file into blocks
             fd.createSegments(data, 1024 * 1024 * 4, Segment.Block);
 

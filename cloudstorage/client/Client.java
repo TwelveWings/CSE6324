@@ -1,9 +1,18 @@
 package cloudstorage.client;
 
 import cloudstorage.control.*;
+import cloudstorage.data.FileData;
+import cloudstorage.enums.Segment;
 import cloudstorage.network.*;
+
+import java.io.File;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
+
 import javax.swing.*;
 
 public class Client
@@ -16,6 +25,7 @@ public class Client
     public static Scanner sc;
     public static TCPManager tcpm;
     public static UDPManager udpm;
+    public static HashMap<String, FileData> originalFilesInDirectory;
 
     public static void main(String[] args)
     {
@@ -32,6 +42,31 @@ public class Client
 
         try
         {
+            // Local directory converted to a Path.
+            Path clientDirectory = Paths.get(directory);
+
+            originalFilesInDirectory= new HashMap<String, FileData>();
+
+            //Get all files in directory
+            List<File> filesInFolder = Files.walk(clientDirectory)
+                                            .filter(Files::isRegularFile)
+                                            .map(Path::toFile)
+                                            .collect(Collectors.toList());
+
+            //Load files into original files HashMap
+            for (File file : filesInFolder)
+            {
+                String fileName = file.getName();
+
+                byte[] sendData = Files.readAllBytes(file.toPath());
+
+                FileData tempFileData = new FileData(sendData, fileName, sendData.length);
+
+                tempFileData.createSegments(sendData, 1024 * 1024 * 4, Segment.Block);
+                
+                originalFilesInDirectory.put(fileName, tempFileData);
+            }
+
             // Get address of local host.
             address = InetAddress.getLocalHost();
             
@@ -46,7 +81,7 @@ public class Client
             udpm = new UDPManager(udpSocket);
 
             // Start event watcher to keep track of directory changes and synchronize with server.
-            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync);
+            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, originalFilesInDirectory);
             ew.start();
 
             ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, bb, directory, sync);
