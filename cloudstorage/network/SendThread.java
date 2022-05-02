@@ -1,5 +1,6 @@
 package cloudstorage.network;
 
+import cloudstorage.control.BoundedBuffer;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import java.net.*;
@@ -7,6 +8,7 @@ import java.util.*;
 
 public class SendThread extends Thread
 {
+    public BoundedBuffer boundedBuffer;
     public ConnectionType threadType;
     public Protocol sendProtocol;
     public String message;
@@ -25,7 +27,7 @@ public class SendThread extends Thread
         address = a;
     }
 
-    public SendThread(UDPManager udp, List<byte[]> dp, ConnectionType ct, Protocol proto, int p, InetAddress a)
+    public SendThread(UDPManager udp, List<byte[]> dp, ConnectionType ct, Protocol proto, int p, InetAddress a, BoundedBuffer bb)
     {
         udpm = udp;
         packets = dp;
@@ -33,6 +35,7 @@ public class SendThread extends Thread
         sendProtocol = proto;
         port = p;
         address = a;
+        boundedBuffer = bb;
     }
 
     public void run()
@@ -63,21 +66,12 @@ public class SendThread extends Thread
 
     public synchronized void sendUDP(UDPManager udpm, ConnectionType threadType, List<byte[]> sendPackets)
     {
-        if(threadType == ConnectionType.Client)
-        {            
-            for(int i = 0; i < sendPackets.size(); i++)
-            {    
-               // System.out.printf("SP: %d\n", sendPackets.get(i)[1]);
-                udpm.sendPacketToServer(sendPackets.get(i), address, port, 1000);
-            }
-        }
 
-        else
-        {
-            for(int i = 0; i < sendPackets.size(); i++)
-            {
-                udpm.sendPacketToClient(sendPackets.get(i), address, port, 1000);
-            }
-        }
+        byte[] packet = boundedBuffer.withdraw();
+
+       // System.out.printf("SP: %d\n", packet[1]);
+       // System.out.println(port);
+       // System.out.println(address);
+        udpm.sendPacket(packet, address, port, 75);
     }
 }

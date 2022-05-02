@@ -59,9 +59,14 @@ public class Server {
             {
                 tcpSocket = serverSocket.accept();
 
-                clients.add(new ClientData(tcpSocket.getPort(), tcpSocket.getInetAddress()));
+                System.out.println(tcpSocket.getPort());
+                System.out.println(tcpSocket.getInetAddress());
 
-                ServerThread st = new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, ++i, clients, ui);
+                i++;
+
+                clients.add(new ClientData(i, tcpSocket.getPort(), tcpSocket.getInetAddress(), tcpSocket, udpSocket));
+
+                ServerThread st = new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, i, clients, ui);
 
                 st.start();
             }

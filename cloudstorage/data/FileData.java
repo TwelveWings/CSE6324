@@ -138,6 +138,46 @@ public class FileData
         return maxMin;
     }
     
+    public byte[] combinePacketData(byte[][] data, int iterations)
+    {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+        try
+        {
+            for(int i = 0; i < iterations; i++)
+            {
+                bos.write(data[i]);
+            }
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return bos.toByteArray();
+    }
+
+    public byte[] combineBlockData(List<byte[]> data, int iterations)
+    {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+        try
+        {
+            for(int i = 0; i < iterations; i++)
+            {
+                bos.write(data.get(i));
+            }
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        return bos.toByteArray();
+    }
+
     public void createSegments(byte[] data, int size, Segment type)
     {
         List<byte[]> segments = new ArrayList<byte[]>();
@@ -197,6 +237,7 @@ public class FileData
 
                 else
                 {
+                   // System.out.println(remainingData);
                     segments.add(temp);
                     temp = new byte[size];
                 }

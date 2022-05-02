@@ -1,5 +1,6 @@
 package cloudstorage.client;
 
+import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
@@ -15,12 +16,18 @@ public class EventWatcher extends Thread
     public TCPManager tcpm;
     public UDPManager udpm;
     public InetAddress address;
+    public String directory;
+    public Synchronizer sync;
+    public BoundedBuffer boundedBuffer;
 
-    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr)
+    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, Synchronizer s)
     {
         tcpm = tcp;
         udpm = udp;
         address = addr;
+        directory = d;
+        boundedBuffer = bb;
+        sync = s;
     }
 
     @SuppressWarnings("unchecked")
@@ -31,11 +38,6 @@ public class EventWatcher extends Thread
 
     public void run()
     {
-        Set<String> fileEvents = new HashSet<String>();
-
-        // Concurrent hashmap to store all Reader threads
-        ConcurrentHashMap<String, FileReader> readers = new ConcurrentHashMap<String, FileReader>();
-
         try
         {
             // Watcher service to be used to watch changes in the specified directory.
@@ -44,11 +46,8 @@ public class EventWatcher extends Thread
             // Bytes of file being read
             byte[] data = null;
 
-            // The local directory that is being watched and will be used to synchronize with the server.
-            String localDir = System.getProperty("user.dir") + "/cloudstorage/client/files";
-
             // Local directory converted to a Path.
-            Path clientDirectory = Paths.get(localDir);
+            Path clientDirectory = Paths.get(directory);
 
             // Watch key will keep track of ENTRY_CREATE, ENTRY_DELETE, and ENTRY MODIFY events.
             WatchKey key = null;
@@ -84,29 +83,18 @@ public class EventWatcher extends Thread
                         Thread.sleep(1000);
 
                         // If the event is a create or modify event begin "upload" synchronization
-                        if((kind == ENTRY_CREATE || kind == ENTRY_MODIFY) && !fileEvents.contains(fileName.toString()))
+                        if((kind == ENTRY_CREATE || kind == ENTRY_MODIFY))
                         {
-                            // When a file is added to a directory, it creates a ENTRY_CREATE event and an ENTRY_MODIFY event in rapid succession because
-                            // the file is created and then its timestamp is modified. As such, if a thread is still processing a request prevent the system
-                            // from creating a new thread. Otherwise, remove the thread from the hashmap and allow it to create a new thread.
-                            if(readers.containsKey(fileName.toString()) && readers.get(fileName.toString()).getComplete())
-                            {
-                                readers.remove(fileName.toString());
-                            }
-
-                            if(readers.containsKey(fileName.toString()))
-                            {
-                                continue;
-                            }
-
-                            readers.put(fileName.toString(), new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address));
-                            readers.get(fileName.toString()).start();
+                            FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory, boundedBuffer, sync);
+                            fr.start();
+                            fr.join();
                         }
 
                         else if(kind == ENTRY_DELETE)
                         {
-                            readers.put(fileName.toString(), new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address));
-                            readers.get(fileName.toString()).start();                            
+                            FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address, directory, boundedBuffer, sync);
+                            fr.start();
+                            fr.join();
                         }
                     }
 

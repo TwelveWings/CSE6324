@@ -1,5 +1,6 @@
 package cloudstorage.server;
 
+import cloudstorage.control.BoundedBuffer;
 import cloudstorage.enums.*;
 import cloudstorage.data.*;
 import cloudstorage.network.*;
@@ -9,6 +10,7 @@ import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.text.SimpleDateFormat;
+import javax.swing.*;
 
 public class ServerThread extends Thread
 {
@@ -41,10 +43,12 @@ public class ServerThread extends Thread
 
     public void run()
     {
-        bb = new BoundedBuffer(1);
+        bb = new BoundedBuffer(1, false);
         tcpm = new TCPManager(tcpSocket);
         udpm = new UDPManager(udpSocket);
         sm = new SQLManager();
+
+        ClientData client = clients.get(ID - 1);
 
         sm.setDBConnection();
         
@@ -76,21 +80,37 @@ public class ServerThread extends Thread
                     deleteFile(fileName);
                     break;
             }
-
-            ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
-
-            while(files.get(fileName) == null)
+ 
+            while(!bb.getFileUploaded())
             {
-                downloadFile(fileName, files);
+                try
+                {
+                    System.out.println("Waiting for upload to complete...");
+                    Thread.sleep(3000);
+                }
+
+                catch(InterruptedException e)
+                {
+
+                }
             }
 
-            action = tcpm.receiveMessageFromClient(1000);
-
-            if(action.equals("quit"))
+            if(clients.size() > 1)
             {
-                sm.closeConnection();
-                return;
+                for(int i = 0; i < clients.size(); i++)
+                {
+                    if(clients.get(i).getClientID() == ID)
+                    {
+                        continue;
+                    }
+
+                    clients.get(i).synchronizeWithClients(fileName, action, sm, clients.get(i), bb);
+                }
             }
+
+            action  = tcpm.receiveMessageFromClient(1000);
+
+            System.out.println(action);
 
             Arrays.fill(buffer, (byte)0);
         }
@@ -109,49 +129,32 @@ public class ServerThread extends Thread
         }
     }
 
-    synchronized public void downloadFile(String fileName, ConcurrentHashMap<String, FileData> files)
-    {
-        try
-        {
-            if(files.get(fileName) != null)
-            {
-                System.out.println("Test");
-                for(int i = 0; i < clients.size(); i++)
-                {
-                    if(clients.get(i).getPort() == tcpSocket.getPort() && clients.get(i).getAddress() == tcpSocket.getInetAddress())
-                    {
-                        continue;
-                    }
-
-                    DBReader dbr = new DBReader(files.get(fileName).data, fileName, files.get(fileName).fileSize, tcpm, udpm, clients.get(i).getPort(), clients.get(i).getAddress(), SystemAction.Download);
-                    dbr.start();
-                }
-            }
-        }
-
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-    }
-
     synchronized public void uploadFile(String fileName)
     {
         try
         {
             int fileSize = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
-            // Receive a TCP message indicating the number of UDP packets being sent.
-            int numPackets = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
+            int numBlocks = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
-            byte[][] packets = new byte[numPackets][];
+            //JOptionPane.showMessageDialog(null, numPackets);
 
-            for(int i = 0; i < numPackets; i++)
+            List<byte[]> data = new ArrayList<byte[]>();
+
+            for(int i = 0; i < numBlocks; i++)
             {
-                ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP, buffer, packets,
-                    fileName, fileSize, numPackets, ui);
+                // Receive a TCP message indicating the number of UDP packets being sent.
+                int numPackets = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
-                rt.start();
+                byte[][] packets = new byte[numPackets][];
+
+                for(int j = 0; j < numPackets; j++)
+                {
+                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP, buffer, data, packets,
+                        fileName, fileSize, numBlocks, numPackets, bb, ui);
+
+                    rt.start();
+                }
             }
         }
 

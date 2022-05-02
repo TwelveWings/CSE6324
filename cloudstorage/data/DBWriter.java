@@ -1,5 +1,6 @@
 package cloudstorage.data;
 
+import cloudstorage.control.BoundedBuffer;
 import cloudstorage.enums.*;
 import java.io.*;
 import java.nio.file.Files;
@@ -11,14 +12,16 @@ import java.text.SimpleDateFormat;
 
 public class DBWriter extends Thread
 {
+    public BoundedBuffer boundedBuffer;
     public byte[][] combinedPackets;
-    public byte[] packet;
     public byte[] buffer;
+    public List<byte[]> data;
     public String fileName;
     public int bufferSize;
     public int fileSize;
     public int identifier;
     public int scale;
+    public int numBlocks;
     public int numPackets;
     public SQLManager sm;
     public ServerUI ui;
@@ -26,86 +29,80 @@ public class DBWriter extends Thread
     public Date date = new Date(System.currentTimeMillis());
     public String timestamp = formatter.format(date);
 
-    public DBWriter(byte[][] cp, byte[] p, byte[] b, String fn, int fs, int i, int s, int np, ServerUI u)
+    public DBWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int id, int s, int nb, 
+        int np, BoundedBuffer bb, ServerUI u)
     {
+        data = d;
         combinedPackets = cp;
         buffer = b;
         bufferSize = b.length;
-        packet = p;
         fileName = fn;
         fileSize = fs;
-        identifier = i;
+        identifier = id;
         scale = s;
+        numBlocks = nb;
         numPackets = np;
         ui = u;
+        boundedBuffer = bb;
     }
 
     public void run()
     {
         sm = new SQLManager();
-
-        boolean complete = true;
-
         FileData fd = new FileData();
 
         ui.textfield1.append(" [" + timestamp + "] ID: " + identifier + "\n");
         ui.textfield1.append(" [" + timestamp + "] SCALE: " + scale + "\n");
         ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS: " + numPackets + "\n");
+        
+        boolean packetComplete = true;
 
         System.out.printf("ID: %d\n", identifier);
-        System.out.printf("SCALE: %d\n", scale);
+        //System.out.printf("SCALE: %d\n", scale);
         System.out.printf("NUM_PACKETS: %d\n", numPackets);
 
-        combinedPackets[identifier + (128 * scale) + scale] = packet;
+        byte[] packet = boundedBuffer.withdraw();
+
+        //System.out.printf("PACKET_LEN: %d\n", packet.length);
+
+        synchronized(this)
+        {
+            combinedPackets[identifier + (128 * scale) + scale] = packet;
+        }
 
         for(int i = 0; i < combinedPackets.length; i++)
         {
             if(combinedPackets[i] == null)
             {
-                complete = false;
+                packetComplete = false;
                 break;
             }
         }
 
-        if(complete)
+        if(packetComplete)
         {
-            ui.textfield1.append(" [" + timestamp + "] Transmission Complete \n");
-            System.out.println("Complete");
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            byte[] packetData = fd.combinePacketData(combinedPackets, numPackets);
 
-            try
-            {
-                for(int i = 0; i < numPackets; i++)
-                {
-                    bos.write(combinedPackets[i]);
-                }
-            }
+            //System.out.printf("PACKET SIZE: %d\n", packetData.length);
 
-            catch(Exception e)
-            {
-                e.printStackTrace();
-            }
+            data.add(packetData);
+        }
 
-            byte[] completeData = bos.toByteArray();
+        if(data.size() == numBlocks)
+        {
+            byte[] blockData = fd.combineBlockData(data, numBlocks);
 
-            uploadFile(completeData);
+            // read from DB to get file currently saved.
+            // compare blockData with data in DB
+            // update DB data with block data
+            // upload updated DB data
+
+           // System.out.printf("Data Before Upload: %d\n", blockData.length);
+
+            uploadFile(blockData);
         }
     }
-
-    /*
-    public synchronized void deleteFile(SQLManager sm)
-    {
-        boolean deleteFile = (0 == JOptionPane.showOptionDialog(
-                null, "Are you sure you want to delete this file?", "Delete File", JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE, null, null, null));
-
-        if(!deleteFile)
-        {
-            return;
-        }
-
-        sm.deleteFile(fileName);
-    }*/
 
     public synchronized void uploadFile(byte[] completeData)
     {
@@ -129,6 +126,9 @@ public class DBWriter extends Thread
             e.printStackTrace();
         }
         ui.textfield1.append(" [" + timestamp + "] " + fileName + " of size " + fileSize + "bytes has been uploaded succesfully \n");
-        System.out.println("Upload complete!");
+        boundedBuffer.setFileUploaded(true);
+        System.out.println(boundedBuffer.getFileUploaded());
+        ui.textfield1.append(" [" + timestamp + "] Transmission Complete \n");
+        System.out.println("Complete");
     }
 }

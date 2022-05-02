@@ -1,7 +1,6 @@
 package cloudstorage.client;
 
-import cloudstorage.data.*;
-import cloudstorage.enums.*;
+import cloudstorage.control.*;
 import cloudstorage.network.*;
 import cloudstorage.client.view.*;
 import java.net.*;
@@ -18,17 +17,23 @@ public class Client
     public static TCPManager tcpm;
     public static UDPManager udpm;
 
-    public static void main(String[] args) {
-
+    public static void main(String[] args)
+    {
         ClientUI ui = new ClientUI();
 
         ui.textfield1.append(" [" + ui.timestamp + "] Client connected with Server\n");
+        
+        BoundedBuffer bb = new BoundedBuffer(1, false);
+        Synchronizer sync = new Synchronizer();
 
         sc = new Scanner(System.in);
 
         buffer = new byte[bufferSize];
 
         System.out.println("Opening Client GUI...");
+        System.out.println("Please specify which directory you want to synchronize:");
+
+        String directory = sc.nextLine();
 
         try
         {
@@ -46,25 +51,32 @@ public class Client
             udpm = new UDPManager(udpSocket);
 
             // Start event watcher to keep track of directory changes and synchronize with server.
-            EventWatcher ew = new EventWatcher(tcpm, udpm, address);
+            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync);
             ew.start();
 
-            String receivedMessage = tcpm.receiveMessageFromServer(1000);
+            ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, bb, directory, sync);
+            cr.start();
 
-            if(receivedMessage.equals("download"))
+            System.out.println("Client running...");
+
+            System.out.println("Enter P or R to pause/resume any synchronization.");
+
+            while(true)
             {
-                String fileName = tcpm.receiveMessageFromServer(1000);
-                int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
-                int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+                String command = sc.nextLine();
 
-                byte[][] packets = new byte[numPackets][];
-
-                for(int i = 0; i < numPackets; i++)
+                switch(command.toLowerCase())
                 {
-                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP, buffer, packets,
-                        fileName, fileSize, numPackets, null);
-
-                    rt.start();
+                    case "p":
+                        sync.setIsPaused(true);
+                        break;
+                    case "r":
+                        sync.setIsPaused(false);
+                        sync.resumeThread();
+                        break;
+                    default:
+                        System.out.println("Invalid action.");
+                        break;
                 }
             }
         }
