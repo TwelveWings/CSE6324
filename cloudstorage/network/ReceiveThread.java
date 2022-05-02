@@ -96,20 +96,36 @@ public class ReceiveThread extends Thread
     public synchronized void receiveUDP(UDPManager udpm, ConnectionType threadType)
     {        
         FileData fd = new FileData();
-        byte[] packet = udpm.receivePacket(buffer, 125);
+        byte[] packet = udpm.receivePacket(buffer, 75);
 
         //System.out.printf("RP: %d\n", packet[1]);
-        System.out.printf("NUM BLOCKS: %d\n", numBlocks);
+        //System.out.printf("NUM BLOCKS: %d\n", numBlocks);
     
         int identifier = packet[1];
         int scale = packet[0];
 
         packet = fd.stripIdentifier(packet);
 
-        if(fileSize % buffer.length > 0 && identifier == numPackets - 1)
+        //System.out.printf("BUFFER_LEN: %d\n", buffer.length);
+        
+        int newSize = 0;
+
+        if(data.size() == numBlocks - 1)
         {
-            packet = fd.stripPadding(packet, fileSize % (buffer.length - 2));
+            if(fileSize % buffer.length > 0 && identifier == numPackets - 1)
+            {
+                packet = fd.stripPadding(packet, (fileSize - ((numBlocks - 1) * ((1024 * 1024 * 4) % (buffer.length - 2)))) % (buffer.length - 2));
+            }    
         }
+
+        else
+        {
+            if(fileSize % buffer.length > 0 && identifier == numPackets - 1)
+            {
+                packet = fd.stripPadding(packet, (1024 * 1024 * 4) % (buffer.length - 2));
+            }
+        }
+
 
         boundedBuffer.deposit(packet);
 

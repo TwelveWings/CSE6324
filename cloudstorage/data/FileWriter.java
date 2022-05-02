@@ -71,7 +71,6 @@ public class FileWriter extends Thread
             fileData.add(packetData);
         }
 
-        System.out.println(numBlocks);
         if(fileData.size() == numBlocks)
         {
             byte[] blockData = combineBlockData(fileData, numBlocks);
