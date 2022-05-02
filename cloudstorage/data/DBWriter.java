@@ -21,14 +21,14 @@ public class DBWriter extends Thread
     public int numPackets;
     public SQLManager sm;
 
-    public DBWriter(byte[][] cp, byte[] b, String fn, int fs, int i, int s, int np, BoundedBuffer bb)
+    public DBWriter(byte[][] cp, byte[] b, String fn, int fs, int id, int s, int np, BoundedBuffer bb)
     {
         combinedPackets = cp;
         buffer = b;
         bufferSize = b.length;
         fileName = fn;
         fileSize = fs;
-        identifier = i;
+        identifier = id;
         scale = s;
         numPackets = np;
         boundedBuffer = bb;
@@ -46,7 +46,10 @@ public class DBWriter extends Thread
 
         byte[] packet = boundedBuffer.withdraw();
 
-        combinedPackets[identifier + (128 * scale) + scale] = packet;
+        synchronized(this)
+        {
+            combinedPackets[identifier + (128 * scale) + scale] = packet;
+        }
 
         for(int i = 0; i < combinedPackets.length; i++)
         {

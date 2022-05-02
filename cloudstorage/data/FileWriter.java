@@ -40,12 +40,11 @@ public class FileWriter extends Thread
         boolean complete = true;
 
         System.out.printf("ID: %d\n", identifier);
-        System.out.printf("SCALE: %d\n", scale);
         System.out.printf("NUM_PACKETS: %d\n", numPackets);
 
         byte[] packet = boundedBuffer.withdraw();
 
-        combinedPackets[identifier + (128 * scale) + scale] = packet;
+        combinedPackets[identifier] = packet;
 
         for(int i = 0; i < combinedPackets.length; i++)
         {
