@@ -107,6 +107,7 @@ public class FileReader extends Thread
                 tcpm.sendMessageToServer(String.valueOf(fileSize), 1000);
                 tcpm.sendMessageToServer(String.valueOf(fd.getBlocks().size()), 1000);
 
+                System.out.printf("BLOCK #: %d\n", fd.getBlocks().size());
                 for(int i = 0; i < fd.getBlocks().size(); i++)
                 {
                     sync.checkIfPaused();
@@ -116,9 +117,10 @@ public class FileReader extends Thread
 
                     tcpm.sendMessageToServer(String.valueOf(fd.getPackets().size()), 1000);
 
+                    System.out.printf("PACKET #: %d\n", fd.getPackets().size());
+
                     for(int j = 0; j < fd.getPackets().size(); j++)
                     {
-
                         sync.checkIfPaused();
 
                         boundedBuffer.deposit(fd.getPackets().get(j));

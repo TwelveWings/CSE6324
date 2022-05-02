@@ -13,16 +13,20 @@ public class DBWriter extends Thread
     public BoundedBuffer boundedBuffer;
     public byte[][] combinedPackets;
     public byte[] buffer;
+    public List<byte[]> data;
     public String fileName;
     public int bufferSize;
     public int fileSize;
     public int identifier;
     public int scale;
+    public int numBlocks;
     public int numPackets;
     public SQLManager sm;
 
-    public DBWriter(byte[][] cp, byte[] b, String fn, int fs, int id, int s, int np, BoundedBuffer bb)
+    public DBWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int id, int s, int nb, 
+        int np, BoundedBuffer bb)
     {
+        data = d;
         combinedPackets = cp;
         buffer = b;
         bufferSize = b.length;
@@ -30,6 +34,7 @@ public class DBWriter extends Thread
         fileSize = fs;
         identifier = id;
         scale = s;
+        numBlocks = nb;
         numPackets = np;
         boundedBuffer = bb;
     }
@@ -37,8 +42,9 @@ public class DBWriter extends Thread
     public void run()
     {
         sm = new SQLManager();
+        FileData fd = new FileData();
 
-        boolean complete = true;
+        boolean packetComplete = true;
 
         System.out.printf("ID: %d\n", identifier);
         System.out.printf("SCALE: %d\n", scale);
@@ -55,48 +61,25 @@ public class DBWriter extends Thread
         {
             if(combinedPackets[i] == null)
             {
-                complete = false;
+                packetComplete = false;
                 break;
             }
         }
 
-        if(complete)
+        if(packetComplete)
         {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            byte[] packetData = fd.combinePacketData(combinedPackets, numPackets);
 
-            try
-            {
-                for(int i = 0; i < numPackets; i++)
-                {
-                    bos.write(combinedPackets[i]);
-                }
-            }
+            data.add(packetData);
+        }
 
-            catch(Exception e)
-            {
-                e.printStackTrace();
-            }
+        if(data.size() == numBlocks)
+        {
+            byte[] blockData = fd.combineBlockData(data, numBlocks);
 
-            byte[] completeData = bos.toByteArray();
-
-            uploadFile(completeData);
+            uploadFile(blockData);
         }
     }
-
-    /*
-    public synchronized void deleteFile(SQLManager sm)
-    {
-        boolean deleteFile = (0 == JOptionPane.showOptionDialog(
-                null, "Are you sure you want to delete this file?", "Delete File", JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE, null, null, null));
-
-        if(!deleteFile)
-        {
-            return;
-        }
-
-        sm.deleteFile(fileName);
-    }*/
 
     public synchronized void uploadFile(byte[] completeData)
     {

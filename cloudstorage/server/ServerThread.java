@@ -8,6 +8,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.swing.*;
 
 public class ServerThread extends Thread
 {
@@ -125,17 +126,21 @@ public class ServerThread extends Thread
 
             int numBlocks = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
-            // Receive a TCP message indicating the number of UDP packets being sent.
-            int numPackets = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
+            //JOptionPane.showMessageDialog(null, numPackets);
 
-            byte[][] packets = new byte[numPackets][];
+            List<byte[]> data = new ArrayList<byte[]>();
 
             for(int i = 0; i < numBlocks; i++)
             {
+                // Receive a TCP message indicating the number of UDP packets being sent.
+                int numPackets = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
+
+                byte[][] packets = new byte[numPackets][];
+
                 for(int j = 0; j < numPackets; j++)
                 {
-                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP, buffer, packets,
-                        fileName, fileSize, numPackets, bb);
+                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP, buffer, data, packets,
+                        fileName, fileSize, numBlocks, numPackets, bb);
 
                     rt.start();
                 }
