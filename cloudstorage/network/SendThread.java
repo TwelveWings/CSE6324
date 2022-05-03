@@ -72,6 +72,6 @@ public class SendThread extends Thread
        // System.out.printf("SP: %d\n", packet[1]);
        // System.out.println(port);
        // System.out.println(address);
-        udpm.sendPacket(packet, address, port, 75);
+        udpm.sendPacket(packet, address, port, 300);
     }
 }

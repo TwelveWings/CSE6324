@@ -99,7 +99,7 @@ public class ReceiveThread extends Thread
     public synchronized void receiveUDP(UDPManager udpm, ConnectionType threadType)
     {        
         FileData fd = new FileData();
-        byte[] packet = udpm.receivePacket(buffer, 75);
+        byte[] packet = udpm.receivePacket(buffer, 300);
 
         //System.out.printf("RP: %d\n", packet[1]);
         //System.out.printf("NUM BLOCKS: %d\n", numBlocks);
