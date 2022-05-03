@@ -1,14 +1,17 @@
 package cloudstorage.control;
 
+import java.util.*;
 import javax.swing.*;
 
 public class Synchronizer 
 {
     public volatile boolean isPaused;
+    public HashMap<String, Boolean> blockedFiles;
 
     public Synchronizer()
     {
         isPaused = false;
+        blockedFiles = new HashMap<String, Boolean>();
     }
 
     public void setIsPaused(boolean p)

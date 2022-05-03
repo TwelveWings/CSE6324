@@ -16,6 +16,7 @@ public class FileReader extends Thread
     public BoundedBuffer boundedBuffer;
     public String fileName;
     public Synchronizer sync;
+    public Synchronizer uploadSync;
     public TCPManager tcpm;
     public UDPManager udpm;
     public int fileSize;
@@ -33,7 +34,7 @@ public class FileReader extends Thread
         command = null;
     }
 
-    public FileReader(String fn, TCPManager tcp, UDPManager udp, int p, InetAddress a, String d, BoundedBuffer bb, Synchronizer s)
+    public FileReader(String fn, TCPManager tcp, UDPManager udp, int p, InetAddress a, String d, BoundedBuffer bb, Synchronizer s, Synchronizer us)
     {
         data = getFileData(d + fn);
         fileName = fn;
@@ -45,11 +46,11 @@ public class FileReader extends Thread
         targetPort = p;
         targetAddress = a;
         boundedBuffer = bb;
-
+        uploadSync = us;
     }
 
     public FileReader(String fn, SystemAction c, TCPManager tcp, UDPManager udp, int p, 
-        InetAddress a, String d, BoundedBuffer bb, Synchronizer s)
+        InetAddress a, String d, BoundedBuffer bb, Synchronizer s, Synchronizer us)
     {
         data = getFileData(d + "/" + fn);
         fileName = fn;
@@ -61,6 +62,7 @@ public class FileReader extends Thread
         targetPort = p;
         targetAddress = a;
         boundedBuffer = bb;
+        uploadSync = us;
     }
 
     public void setData(byte[] d)
@@ -155,6 +157,8 @@ public class FileReader extends Thread
                         }
                     }
                 }
+
+                uploadSync.blockedFiles.replace(fileName, false);
             }
         }
 
