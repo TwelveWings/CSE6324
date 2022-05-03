@@ -21,6 +21,7 @@ public class Client
     {
         BoundedBuffer bb = new BoundedBuffer(1, false);
         Synchronizer sync = new Synchronizer();
+        Synchronizer watcherSync = new Synchronizer();
 
         sc = new Scanner(System.in);
 
@@ -46,10 +47,10 @@ public class Client
             udpm = new UDPManager(udpSocket);
 
             // Start event watcher to keep track of directory changes and synchronize with server.
-            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync);
+            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, watcherSync);
             ew.start();
 
-            ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, bb, directory, sync);
+            ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, bb, directory, sync, watcherSync);
             cr.start();
 
             System.out.println("Client running...");

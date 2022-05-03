@@ -126,13 +126,15 @@ public class FileWriter extends Thread
         try(FileOutputStream fos = new FileOutputStream(directory + "/" + fileName))
         {
             fos.write(data);
-
-            System.out.printf("Synchronization complete: %s added/updated!\n", fileName);
         }
        
         catch(IOException ioe)
         {
             ioe.printStackTrace();
         }
+        
+        boundedBuffer.setFileUploaded(true);
+        System.out.println(boundedBuffer.getFileUploaded());
+        System.out.printf("Synchronization complete: %s added/updated!\n", fileName);
     }    
 }

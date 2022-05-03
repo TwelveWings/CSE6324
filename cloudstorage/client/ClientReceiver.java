@@ -15,10 +15,11 @@ public class ClientReceiver extends Thread
     public InetAddress address;
     public String directory;
     public Synchronizer sync;
+    public Synchronizer watcherSync;
     public TCPManager tcpm;
     public UDPManager udpm;
 
-    public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, BoundedBuffer bb, String dir, Synchronizer s)
+    public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, BoundedBuffer bb, String dir, Synchronizer s, Synchronizer ws)
     {
         tcpm = tcp;
         udpm = udp;
@@ -27,6 +28,7 @@ public class ClientReceiver extends Thread
         boundedBuffer = bb;
         directory = dir;
         sync = s;
+        watcherSync = ws;
         tcpm = tcp;
         udpm = udp;
     }
@@ -43,6 +45,7 @@ public class ClientReceiver extends Thread
 
             if(action.equals("download"))
             {
+                watcherSync.setStopWatcher(true);
                 int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
             
                 int numBlocks = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
@@ -68,6 +71,23 @@ public class ClientReceiver extends Thread
                         rt.start();
                     }
                 }
+
+                while(boundedBuffer.getFileUploaded())
+                {
+                    try
+                    {
+                        System.out.println("Waiting for file to download...");
+                        Thread.sleep(1000);
+                    }
+
+                    catch(Exception e)
+                    {
+                        
+                    }
+                }
+
+                watcherSync.resumeThread(true);
+                watcherSync.setStopWatcher(false);
             }
 
             else if(action.equals("delete"))
