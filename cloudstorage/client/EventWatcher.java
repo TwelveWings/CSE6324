@@ -18,10 +18,11 @@ public class EventWatcher extends Thread
     public InetAddress address;
     public String directory;
     public Synchronizer sync;
-    public Synchronizer watcherSync;
+    public Synchronizer downloadSync;
+    public Synchronizer uploadSync;
     public BoundedBuffer boundedBuffer;
 
-    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, Synchronizer s, Synchronizer ws)
+    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, Synchronizer s, Synchronizer ds, Synchronizer us)
     {
         tcpm = tcp;
         udpm = udp;
@@ -29,7 +30,8 @@ public class EventWatcher extends Thread
         directory = d;
         boundedBuffer = bb;
         sync = s;
-        watcherSync = ws;
+        downloadSync = ds;
+        uploadSync = us;
     }
 
     @SuppressWarnings("unchecked")
@@ -40,6 +42,8 @@ public class EventWatcher extends Thread
 
     public void run()
     {
+        //Set<String> fileEvents = new HashSet<String>();
+
         try
         {
             // Watcher service to be used to watch changes in the specified directory.
@@ -68,8 +72,6 @@ public class EventWatcher extends Thread
 
                 for(WatchEvent<?> event : key.pollEvents())
                 {
-                    watcherSync.checkIfDownloading();
-
                     WatchEvent.Kind<?> kind = event.kind();
 
                     if(kind == OVERFLOW)
@@ -80,32 +82,14 @@ public class EventWatcher extends Thread
                     WatchEvent<Path> ev = cast(event);
                     Path fileName = ev.context();
 
-                    try
-                    {
-                        Path child = clientDirectory.resolve(fileName);
+                    System.out.println("FILE PROCESSED:");
+                    System.out.println(fileName.toString());
+                    System.out.println(kind);
 
-                        Thread.sleep(1000);
-
-                        // If the event is a create or modify event begin "upload" synchronization
-                        if((kind == ENTRY_CREATE || kind == ENTRY_MODIFY))
-                        {
-                            FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory, boundedBuffer, sync);
-                            fr.start();
-                            fr.join();
-                        }
-
-                        else if(kind == ENTRY_DELETE)
-                        {
-                            FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address, directory, boundedBuffer, sync);
-                            fr.start();
-                            fr.join();
-                        }
-                    }
-
-                    catch(Exception e)
-                    {
-                        e.printStackTrace();
-                    }
+                    EventProcessor ep = new EventProcessor(tcpm, udpm, address, fileName.toString(), downloadSync, sync, 
+                        uploadSync, directory, clientDirectory, kind, boundedBuffer);      
+                        
+                    ep.start();
                 }
 
                 // Reset the key. This is essential according to Oracle API.

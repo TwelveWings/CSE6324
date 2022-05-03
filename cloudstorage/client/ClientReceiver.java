@@ -10,98 +10,110 @@ import java.util.*;
 
 public class ClientReceiver extends Thread
 {
-    public BoundedBuffer boundedBuffer;
     public byte[] buffer;
     public InetAddress address;
+    public String action;
     public String directory;
+    public String fileName;
     public Synchronizer sync;
     public Synchronizer watcherSync;
     public TCPManager tcpm;
     public UDPManager udpm;
 
-    public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, BoundedBuffer bb, String dir, Synchronizer s, Synchronizer ws)
+    public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, String dir, Synchronizer s, Synchronizer ws, String a, String fn)
     {
         tcpm = tcp;
         udpm = udp;
         address = addr;
         buffer = b;
-        boundedBuffer = bb;
         directory = dir;
         sync = s;
         watcherSync = ws;
         tcpm = tcp;
         udpm = udp;
+        action = a;
+        fileName = fn;
     }
 
     public void run()
     {
-        while(true)
+        BoundedBuffer boundedBuffer = new BoundedBuffer(1, false);
+
+        if(action.equals("download"))
         {
-            String action = tcpm.receiveMessageFromServer(1000);
-
-            System.out.println(action);
-
-            String fileName = tcpm.receiveMessageFromServer(1000);
-
-            if(action.equals("download"))
+            if(watcherSync.blockedFiles.containsKey(fileName))
             {
-                watcherSync.setStopWatcher(true);
-                int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
-            
-                int numBlocks = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
-
-               // System.out.printf("NUM BLOCKS IN CR: %d\n", numBlocks);
-
-                // Send empty packet to establish UDP port connection with server.
-                udpm.sendEmptyPacket(1, address, 2023);
-
-                List<byte[]> data = new ArrayList<byte[]>();
-
-                for(int i = 0; i < numBlocks; i++)
-                {
-                    int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
-
-                    byte[][] packets = new byte[numPackets][];
-
-                    for(int j = 0; j < numPackets; j++)
-                    {
-                        ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP, buffer, data, packets,
-                            fileName, fileSize, numBlocks, numPackets, boundedBuffer, directory, sync);
-
-                        rt.start();
-                    }
-                }
-
-                while(boundedBuffer.getFileUploaded())
-                {
-                    try
-                    {
-                        System.out.println("Waiting for file to download...");
-                        Thread.sleep(1000);
-                    }
-
-                    catch(Exception e)
-                    {
-                        
-                    }
-                }
-
-                watcherSync.resumeThread(true);
-                watcherSync.setStopWatcher(false);
+                watcherSync.blockedFiles.replace(fileName, true);
             }
 
-            else if(action.equals("delete"))
+            else
+            {
+                watcherSync.blockedFiles.put(fileName, true);                
+            }
+
+            int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+        
+            int numBlocks = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
+        // System.out.printf("NUM BLOCKS IN CR: %d\n", numBlocks);
+
+            // Send empty packet to establish UDP port connection with server.
+            udpm.sendEmptyPacket(1, address, 2023);
+
+            List<byte[]> data = new ArrayList<byte[]>();
+
+            for(int i = 0; i < numBlocks; i++)
+            {
+                int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
+                byte[][] packets = new byte[numPackets][];
+
+                for(int j = 0; j < numPackets; j++)
+                {
+                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP, buffer, data, packets,
+                        fileName, fileSize, numBlocks, numPackets, boundedBuffer, directory, sync);
+
+                    rt.start();
+                }
+            }
+
+            while(boundedBuffer.getFileUploaded())
             {
                 try
                 {
-                    Files.deleteIfExists(Paths.get(directory + "/" + fileName));
-                    System.out.printf("Synchronization complete: %s deleted!\n", fileName);
+                    System.out.println("Waiting for file to download...");
+                    Thread.sleep(1000);
                 }
 
                 catch(Exception e)
                 {
-
+                    
                 }
+            }
+
+            try
+            {
+                Thread.sleep(3000);
+            }
+
+            catch(Exception e)
+            {
+                
+            }
+
+                watcherSync.blockedFiles.replace(fileName, false);
+        }
+
+        else if(action.equals("delete"))
+        {
+            try
+            {
+                Files.deleteIfExists(Paths.get(directory + "/" + fileName));
+                System.out.printf("Synchronization complete: %s deleted!\n", fileName);
+            }
+
+            catch(Exception e)
+            {
 
             }
         }
