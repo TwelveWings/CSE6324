@@ -24,6 +24,7 @@ public class FileReader extends Thread
     public boolean complete = false;
     public volatile SystemAction command;
     public volatile Set<String> files = new HashSet<String>();
+    public FileData originalFileData;
 
     public FileReader()
     {
@@ -49,7 +50,22 @@ public class FileReader extends Thread
     }
 
     public FileReader(String fn, SystemAction c, TCPManager tcp, UDPManager udp, int p, 
-        InetAddress a, String d, BoundedBuffer bb, Synchronizer s)
+    InetAddress a, String d, BoundedBuffer bb, Synchronizer s)
+{
+    data = getFileData(d + "/" + fn);
+    fileName = fn;
+    fileSize = data.length;
+    command = c;
+    tcpm = tcp;
+    udpm = udp;
+    sync = s;
+    targetPort = p;
+    targetAddress = a;
+    boundedBuffer = bb;
+}
+
+    public FileReader(String fn, SystemAction c, TCPManager tcp, UDPManager udp, int p, 
+        InetAddress a, String d, BoundedBuffer bb, Synchronizer s, FileData ofd)
     {
         data = getFileData(d + "/" + fn);
         fileName = fn;
@@ -61,6 +77,7 @@ public class FileReader extends Thread
         targetPort = p;
         targetAddress = a;
         boundedBuffer = bb;
+        originalFileData = ofd;
     }
 
     public void setData(byte[] d)
@@ -99,6 +116,8 @@ public class FileReader extends Thread
     
         if(command == SystemAction.Upload)
         {
+            //Insert Logic for delta sync here
+
             // Split file into blocks
             fd.createSegments(data, 1024 * 1024 * 4, Segment.Block);
 
