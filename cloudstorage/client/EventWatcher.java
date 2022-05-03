@@ -21,10 +21,13 @@ public class EventWatcher extends Thread
     public InetAddress address;
     public String directory;
     public Synchronizer sync;
+    public Synchronizer watcherSync;
     public BoundedBuffer boundedBuffer;
     public HashMap<String, FileData> originalFilesInDirectory;
 
-    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, Synchronizer s, HashMap<String, FileData> ofid)
+
+    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, Synchronizer s, HashMap<String, FileData> ofid, 
+                        Synchronizer ws)
     {
         tcpm = tcp;
         udpm = udp;
@@ -33,6 +36,7 @@ public class EventWatcher extends Thread
         boundedBuffer = bb;
         sync = s;
         originalFilesInDirectory = ofid;
+        watcherSync = ws;
     }
 
     @SuppressWarnings("unchecked")
@@ -74,6 +78,8 @@ public class EventWatcher extends Thread
 
                 for(WatchEvent<?> event : key.pollEvents())
                 {
+
+                    watcherSync.checkIfDownloading();
                     WatchEvent.Kind<?> kind = event.kind();
 
                     if(kind == OVERFLOW)

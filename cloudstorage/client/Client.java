@@ -41,6 +41,7 @@ public class Client
         
         BoundedBuffer bb = new BoundedBuffer(1, false);
         Synchronizer sync = new Synchronizer();
+        Synchronizer watcherSync = new Synchronizer();
 
         sc = new Scanner(System.in);
 
@@ -49,8 +50,8 @@ public class Client
         System.out.println("Opening Client GUI...");
         System.out.println("Please specify which directory you want to synchronize:");
 
-        //String getfromclientui = ui.absolutepath.replaceAll("[\\\\\\\\]", "\\\\");
-        //String directory = getfromclientui;
+        // String getfromclientui = ui.absolutepath;
+        // String directory = getfromclientui;
         String directory = sc.nextLine();
         System.out.println(directory);
         try
@@ -94,15 +95,13 @@ public class Client
             udpm = new UDPManager(udpSocket);
 
             // Start event watcher to keep track of directory changes and synchronize with server.
-            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, originalFilesInDirectory);
+            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, originalFilesInDirectory, watcherSync);
             ew.start();
 
-            ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, bb, directory, sync, originalFilesInDirectory);
+            ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, bb, directory, sync, originalFilesInDirectory, watcherSync);
             cr.start();
 
             System.out.println("Client running...");
-
-            System.out.println("Enter P or R to pause/resume any synchronization.");
 
             //Suspend Button Function - (Log Message)
             ui.button2.addActionListener(new ActionListener()

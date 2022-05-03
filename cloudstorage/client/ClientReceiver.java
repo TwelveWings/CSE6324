@@ -16,10 +16,12 @@ public class ClientReceiver extends Thread
     public InetAddress address;
     public String directory;
     public Synchronizer sync;
+    public Synchronizer watcherSync;
     public TCPManager tcpm;
     public UDPManager udpm;
 
-    public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, BoundedBuffer bb, String dir, Synchronizer s, HashMap<String, FileData> fid)
+    public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, BoundedBuffer bb, String dir, Synchronizer s, HashMap<String, FileData> fid,
+                            Synchronizer ws)
     {
         tcpm = tcp;
         udpm = udp;
@@ -31,6 +33,7 @@ public class ClientReceiver extends Thread
         tcpm = tcp;
         udpm = udp;
         filesInDirectory = fid;
+        watcherSync = ws;
     }
 
     public void run()
@@ -45,6 +48,8 @@ public class ClientReceiver extends Thread
 
             if(action.equals("download"))
             {
+                watcherSync.setStopWatcher(true);
+
                 int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
             
                 int numBlocks = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
@@ -75,7 +80,7 @@ public class ClientReceiver extends Thread
                 {
                     try
                     {
-                        System.out.println("Waiting for upload to complete...");
+                        //System.out.println("Waiting for upload to complete...");
                         Thread.sleep(3000);
                     }
     
@@ -84,6 +89,8 @@ public class ClientReceiver extends Thread
     
                     }
                 }
+                watcherSync.resumeThread(true);
+                watcherSync.setStopWatcher(false);
                 System.out.printf("After Bounded Client: %d", data.size());
                 FileData fd = new FileData();
 

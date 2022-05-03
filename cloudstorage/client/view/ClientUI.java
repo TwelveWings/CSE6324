@@ -22,6 +22,8 @@ public class ClientUI {
     
     public ClientUI() {  
 
+        absolutepath = "";
+
         //*********************** Application Appearance Section **********************//
  
         //Creating an instance of JFrame
@@ -78,9 +80,6 @@ public class ClientUI {
         
         //Append a text to notify user to select directory 
         textfield1.append(" [-ALERT-] Select a directory to sync\n");
-
-        
-
 
         //Suspend Button Function - (Log Message)
         button1.addActionListener(new ActionListener()
