@@ -5,6 +5,9 @@ import cloudstorage.data.FileData;
 import cloudstorage.enums.Segment;
 import cloudstorage.network.*;
 import cloudstorage.client.view.*;
+import java.sql.Date;
+import java.text.SimpleDateFormat;
+import java.awt.event.*;
 
 import java.io.File;
 import java.net.*;
@@ -14,7 +17,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import javax.swing.*;
 
 public class Client
 {
@@ -31,8 +33,11 @@ public class Client
     public static void main(String[] args)
     {
         ClientUI ui = new ClientUI();
+        SimpleDateFormat formatter= new SimpleDateFormat("HH:mm:ss");
+        Date date = new Date(System.currentTimeMillis());
+        String timestamp = formatter.format(date);
 
-        ui.textfield1.append(" [" + ui.timestamp + "] Client connected with Server\n");
+        ui.textfield1.append(" [" + timestamp + "] Client connected with Server\n");
         
         BoundedBuffer bb = new BoundedBuffer(1, false);
         Synchronizer sync = new Synchronizer();
@@ -44,8 +49,10 @@ public class Client
         System.out.println("Opening Client GUI...");
         System.out.println("Please specify which directory you want to synchronize:");
 
+        //String getfromclientui = ui.absolutepath.replaceAll("[\\\\\\\\]", "\\\\");
+        //String directory = getfromclientui;
         String directory = sc.nextLine();
-
+        System.out.println(directory);
         try
         {
             // Local directory converted to a Path.
@@ -90,31 +97,37 @@ public class Client
             EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, originalFilesInDirectory);
             ew.start();
 
-            ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, bb, directory, sync);
+            ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, bb, directory, sync, originalFilesInDirectory);
             cr.start();
 
             System.out.println("Client running...");
 
             System.out.println("Enter P or R to pause/resume any synchronization.");
 
-            while(true)
-            {
-                String command = sc.nextLine();
+            //Suspend Button Function - (Log Message)
+            ui.button2.addActionListener(new ActionListener()
+            {  
+                public void actionPerformed(ActionEvent e)
+                {  
+                    Date date = new Date(System.currentTimeMillis());
+                    String timestamp = formatter.format(date);
+                    sync.setIsPaused(true);
+                    ui.textfield1.append(" [" + timestamp + "] File Transmission Suspended\n");
+                }  
+            });
 
-                switch(command.toLowerCase())
-                {
-                    case "p":
-                        sync.setIsPaused(true);
-                        break;
-                    case "r":
-                        sync.setIsPaused(false);
-                        sync.resumeThread();
-                        break;
-                    default:
-                        System.out.println("Invalid action.");
-                        break;
-                }
-            }
+            //Resume Button Function - (Log Message)
+            ui.button3.addActionListener(new ActionListener()
+            {  
+                public void actionPerformed(ActionEvent e)
+                {  
+                    Date date = new Date(System.currentTimeMillis());
+                    String timestamp = formatter.format(date);
+                    sync.setIsPaused(false);
+                    sync.resumeThread();
+                    ui.textfield1.append(" [" + timestamp + "] File Transmission Resumed\n");
+                }  
+            });
         }
 
         catch(Exception e)

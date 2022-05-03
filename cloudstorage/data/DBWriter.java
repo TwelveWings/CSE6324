@@ -125,7 +125,7 @@ public class DBWriter extends Thread
         {
             e.printStackTrace();
         }
-        ui.textfield1.append(" [" + timestamp + "] " + fileName + " of size " + fileSize + "bytes has been uploaded succesfully \n");
+        ui.textfield1.append(" [" + timestamp + "] " + fileName + " of size " + fileSize + " bytes has been uploaded succesfully \n");
         boundedBuffer.setFileUploaded(true);
         System.out.println(boundedBuffer.getFileUploaded());
         ui.textfield1.append(" [" + timestamp + "] Transmission Complete \n");

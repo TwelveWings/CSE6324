@@ -43,6 +43,7 @@ public class EventWatcher extends Thread
 
     public void run()
     {
+        Set<String> fileEvents = new HashSet<String>();
         try
         {
             // Watcher service to be used to watch changes in the specified directory.
@@ -56,6 +57,8 @@ public class EventWatcher extends Thread
 
             // Watch key will keep track of ENTRY_CREATE, ENTRY_DELETE, and ENTRY MODIFY events.
             WatchKey key = null;
+
+            FileData lastModified = null;
 
             while(true)
             {
@@ -81,6 +84,29 @@ public class EventWatcher extends Thread
                     WatchEvent<Path> ev = cast(event);
                     Path fileName = ev.context();
 
+                    System.out.println("EVENT THAT WAS FIRED");
+
+                    System.out.println(kind);
+
+                    if(originalFilesInDirectory.containsKey(fileName.toString()) && originalFilesInDirectory.get(fileName.toString()).getSystemCreated())
+                    {
+                        System.out.println("EVENT IN IF STATEMENT");
+                        System.out.println(kind);
+//                        originalFilesInDirectory.get(fileName.toString()).setSystemCreated(false);
+                        continue;
+                    }
+
+                    else
+                    {
+                        if(lastModified != null)
+                        {
+                            lastModified.setSystemCreated(false);
+                        }
+
+                        lastModified = originalFilesInDirectory.get(fileName.toString());
+                    }
+
+
                     try
                     {
                         Path child = clientDirectory.resolve(fileName);
@@ -88,8 +114,8 @@ public class EventWatcher extends Thread
                         Thread.sleep(1000);
 
                         // If the event is a create or modify event begin "upload" synchronization
-                        if((kind == ENTRY_CREATE || kind == ENTRY_MODIFY))
-                        {
+                        if((kind == ENTRY_MODIFY))
+                        {   
                             FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory, boundedBuffer, sync, originalFilesInDirectory.get(fileName.toString()));
 
                             //Update Hashmap for any modified file or created file before running threads

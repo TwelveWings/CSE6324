@@ -15,6 +15,10 @@ public class ClientUI {
     public Date date = new Date(System.currentTimeMillis());
     public String timestamp = formatter.format(date);
     public JScrollPane s1, s2;
+    public String absolutepath;
+    public JFileChooser j;
+    public JButton button1, button2, button3, button4;
+
     
     public ClientUI() {  
 
@@ -26,7 +30,7 @@ public class ClientUI {
         f.setIconImage(icon);   
         
         //Creating instance of Buttons  
-        JButton button1, button2, button3, button4;
+
 
         //Button2 - Upload
         ImageIcon icon1 = new ImageIcon(".\\icons\\folder.png");
@@ -75,14 +79,17 @@ public class ClientUI {
         //Append a text to notify user to select directory 
         textfield1.append(" [-ALERT-] Select a directory to sync\n");
 
+        
+
+
         //Suspend Button Function - (Log Message)
         button1.addActionListener(new ActionListener()
         {  
             public void actionPerformed(ActionEvent e)
             {  
-                JFileChooser j = new JFileChooser(new File(".\\"));
+                j = new JFileChooser(new File(".\\"));
                 j.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                int r = j.showOpenDialog(null);
+                int r = j.showOpenDialog(null);  
 
                 //Label1 - File Directory
                 JLabel label1 = new JLabel("Client Files");  
@@ -93,50 +100,22 @@ public class ClientUI {
                 if (r == JFileChooser.APPROVE_OPTION) {
                     
                     String localfiles[]; 
-                    String absolutepath = j.getSelectedFile().getAbsolutePath().replaceAll("[\\\\]", "\\\\\\\\");                   
+                    absolutepath = j.getSelectedFile().getAbsolutePath().replaceAll("[\\\\]", "\\\\\\\\");  
                     File filepath = new File(absolutepath);
+                    System.out.println(absolutepath);
                     localfiles = filepath.list();
-                    JList<String> list;
-            
-                    if (localfiles != null) {
-                        System.out.println("Files found");
-                        list = new JList<String>(localfiles);
-                        list.setEnabled(false);
-                        s2 = new JScrollPane(list);
-                        s2.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-                        s2.setBounds(20,35, 150,300);     
-                        f.add(s2); 
-                        f.revalidate();
-                        f.repaint();
-                    }      
+                    JList<String> list = new JList<String>(localfiles);
+                    list.setEnabled(false);
+                    s2 = new JScrollPane(list);
+                    s2.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+                    s2.setBounds(20,35, 150,300);     
+                    f.add(s2); 
+                    f.revalidate();
+                    f.repaint();
+   
                 }
-                // // if the user cancelled the operation
-                // else
-                //     textfield1.append(" [Error] No directory has been selected\n");
                 button1.setEnabled(false);
                 
-            }  
-        });
-
-        //Suspend Button Function - (Log Message)
-        button2.addActionListener(new ActionListener()
-        {  
-            public void actionPerformed(ActionEvent e)
-            {  
-                Date date = new Date(System.currentTimeMillis());
-                String timestamp = formatter.format(date);
-                textfield1.append(" [" + timestamp + "] File Transmission Suspended\n");
-            }  
-        });
-
-        //Resume Button Function - (Log Message)
-        button3.addActionListener(new ActionListener()
-        {  
-            public void actionPerformed(ActionEvent e)
-            {  
-                Date date = new Date(System.currentTimeMillis());
-                String timestamp = formatter.format(date);
-                textfield1.append(" [" + timestamp + "] File Transmission Resumed\n");
             }  
         });
 

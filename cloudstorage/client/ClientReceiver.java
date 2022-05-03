@@ -12,13 +12,14 @@ public class ClientReceiver extends Thread
 {
     public BoundedBuffer boundedBuffer;
     public byte[] buffer;
+    public HashMap<String, FileData> filesInDirectory;
     public InetAddress address;
     public String directory;
     public Synchronizer sync;
     public TCPManager tcpm;
     public UDPManager udpm;
 
-    public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, BoundedBuffer bb, String dir, Synchronizer s)
+    public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, BoundedBuffer bb, String dir, Synchronizer s, HashMap<String, FileData> fid)
     {
         tcpm = tcp;
         udpm = udp;
@@ -29,6 +30,7 @@ public class ClientReceiver extends Thread
         sync = s;
         tcpm = tcp;
         udpm = udp;
+        filesInDirectory = fid;
     }
 
     public void run()
@@ -63,11 +65,39 @@ public class ClientReceiver extends Thread
                     for(int j = 0; j < numPackets; j++)
                     {
                         ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP, buffer, data, packets,
-                            fileName, fileSize, numBlocks, numPackets, boundedBuffer, directory, sync);
+                            fileName, fileSize, filesInDirectory, numBlocks, numPackets, boundedBuffer, directory, sync);
 
                         rt.start();
                     }
                 }
+
+                while(!boundedBuffer.getFileUploaded())
+                {
+                    try
+                    {
+                        System.out.println("Waiting for upload to complete...");
+                        Thread.sleep(3000);
+                    }
+    
+                    catch(InterruptedException e)
+                    {
+    
+                    }
+                }
+                System.out.printf("After Bounded Client: %d", data.size());
+                FileData fd = new FileData();
+
+                byte[] combinedData = fd.combineBlockData(data, numBlocks);
+
+                if(!filesInDirectory.containsKey(fileName))
+                {
+                    fd.setData(combinedData);
+                    fd.setFileName(fileName);
+                    fd.setFileSize(fileSize);
+                    filesInDirectory.put(fileName, fd);
+                }
+
+                filesInDirectory.get(fileName).setSystemCreated(true);
             }
 
             else if(action.equals("delete"))

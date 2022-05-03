@@ -11,6 +11,7 @@ public class FileData
     public List<Integer> packetMap;
     public byte[] data;
     public String fileName;
+    public boolean systemCreated;
     public int fileSize;
 
     public FileData()
@@ -25,6 +26,7 @@ public class FileData
         data = d;
         fileName = fn;
         fileSize = fs;
+        systemCreated = false;
     }
 
     public byte[] getData()
@@ -75,6 +77,16 @@ public class FileData
     public void setPackets(List<byte[]> p)
     {
         packets = p;
+    }
+
+    public boolean getSystemCreated()
+    {
+        return systemCreated;
+    }
+
+    public void setSystemCreated(boolean sc)
+    {
+        systemCreated = true;
     }
 
     public int[] findChange(List<byte[]> currData, List<byte[]> newData)

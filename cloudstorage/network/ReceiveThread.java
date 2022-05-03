@@ -14,6 +14,7 @@ public class ReceiveThread extends Thread
     public byte[] buffer;
     public BoundedBuffer boundedBuffer;
     public ConnectionType threadType;
+    public HashMap<String, FileData> filesInDirectory;
     public List<byte[]> data;
     public Protocol receiveProtocol;
     public String fileName;
@@ -51,8 +52,8 @@ public class ReceiveThread extends Thread
     }
 
     public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
-        List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, 
-        String dir, Synchronizer s)
+        List<byte[]> d, byte[][] cp, String fn, int fs, HashMap<String, FileData> fid, 
+        int nb, int np, BoundedBuffer bb, String dir, Synchronizer s)
     {
         data = d;
         combinedPackets = cp;

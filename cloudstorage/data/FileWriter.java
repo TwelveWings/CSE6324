@@ -127,6 +127,7 @@ public class FileWriter extends Thread
         {
             fos.write(data);
 
+
             System.out.printf("Synchronization complete: %s added/updated!\n", fileName);
         }
        
@@ -134,5 +135,8 @@ public class FileWriter extends Thread
         {
             ioe.printStackTrace();
         }
+
+        boundedBuffer.setFileUploaded(true);
+        System.out.println(boundedBuffer.getFileUploaded());
     }    
 }
