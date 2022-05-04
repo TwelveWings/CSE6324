@@ -62,6 +62,7 @@ public class FileController
 
             tcpm.sendMessageToServer(String.valueOf(packetsCreated.size()), 1000);
 
+            ui.textfield1.append(" [" + timestamp + "] Transmitting data to server...\n");
 
             for(int j = 0; j < packetsCreated.size(); j++)
             {
@@ -93,11 +94,18 @@ public class FileController
             }
         }
 
-        uploadSync.blockedFiles.replace(fileName, false);
+        ui.textfield1.append(" [" + timestamp + "] Data transmission for " + fileData.getFileName() + 
+            " complete.\n");
+
+        uploadSync.blockedFiles.replace(fileData.getFileName(), false);
+
     }
 
     synchronized public void delete()
     {
+        ui.textfield1.append(" [" + timestamp + "] " + fileData.getFileName() + " deleted. Updating " +
+            "server.\n");
+
         tcpm.sendMessageToServer("delete", 1000);
 
         try
@@ -111,6 +119,9 @@ public class FileController
             e.printStackTrace();
         }
 
-        uploadSync.blockedFiles.replace(fileName, false);
+        ui.textfield1.append(" [" + timestamp + "] Complete.\n");
+
+
+        uploadSync.blockedFiles.replace(fileData.getFileName(), false);
     }
 }

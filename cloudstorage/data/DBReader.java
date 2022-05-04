@@ -12,16 +12,14 @@ import javax.swing.*;
 public class DBReader extends Thread
 {
     public BoundedBuffer boundedBuffer;
-    public volatile byte[] data;
+    public byte[] data;
     public String fileName;
     public TCPManager tcpm;
     public UDPManager udpm;
     public int fileSize;
     public int targetPort;
     public InetAddress targetAddress;
-    public boolean complete = false;
     public SystemAction command;
-    public volatile Set<String> files = new HashSet<String>();
 
     public DBReader()
     {
@@ -54,40 +52,10 @@ public class DBReader extends Thread
         command = c;
         boundedBuffer = bb;
     }
-
-    public void setData(byte[] d)
-    {
-        data = d;
-    }
-
-    public void setFileSize(int fs)
-    {
-        fileSize = fs;
-    }
-
-    public void setCommand(SystemAction c)
-    {
-        command = c;
-    }
-
-    public boolean getComplete()
-    {
-        return complete;
-    }
     
     public void run()
     {
         FileData fd = new FileData(data, fileName, fileSize);
-
-        System.out.printf("READ DATA INTO MEMORY: %s\n", fileName);
-
-        // If file name already has an associate FileReader thread, return.
-        if(files.contains(fileName))
-        {
-            return;
-        }
-
-        files.add(fileName);
 
         byte[] buffer = new byte[65507];
     
@@ -118,8 +86,6 @@ public class DBReader extends Thread
                 targetPort = connector.getPort();
                 targetAddress = connector.getAddress();
 
-                //System.out.printf("PACKET #: %d\n", packetsCreated.size());
-
                 for(int j = 0; j < packetsCreated.size(); j++)
                 {
                     boundedBuffer.deposit(packetsCreated.get(j));
@@ -145,7 +111,6 @@ public class DBReader extends Thread
 
         else if(command == SystemAction.Delete)
         {
-            System.out.println("SEND DELETE COMMAND");
             tcpm.sendMessageToClient("delete", 1000);
 
             try
@@ -159,9 +124,5 @@ public class DBReader extends Thread
                 e.printStackTrace();
             }
         }
-
-        files.remove(fileName);
-
-        complete = true;
     }
 }

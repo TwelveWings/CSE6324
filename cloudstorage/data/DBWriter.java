@@ -90,8 +90,6 @@ public class DBWriter extends Thread
             // update DB data with block data
             // upload updated DB data
 
-           // System.out.printf("Data Before Upload: %d\n", blockData.length);
-
             uploadFile(blockData);
         }
     }

@@ -102,9 +102,6 @@ public class ReceiveThread extends Thread
     {        
         FileData fd = new FileData();
         byte[] packet = udpm.receivePacket(buffer, 75);
-
-        //System.out.printf("RP: %d\n", packet[1]);
-        //System.out.printf("NUM BLOCKS: %d\n", numBlocks);
     
         int identifier = packet[1];
         int scale = packet[0];

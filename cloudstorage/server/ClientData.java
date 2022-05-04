@@ -77,7 +77,6 @@ public class ClientData
     synchronized public void synchronizeWithClients(String fileName, String action, SQLManager sm,
         ClientData client, BoundedBuffer bb)
     {
-        System.out.printf("SYNCHRONIZE WITH CLIENTS: %s\n", fileName);
         ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
 
         SystemAction command = (action.equals("delete")) ? SystemAction.Delete : SystemAction.Download;

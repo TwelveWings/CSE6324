@@ -1,11 +1,12 @@
 package cloudstorage.views;
 
-import javax.swing.*;
+import cloudstorage.control.Synchronizer;
 import java.awt.event.*;
 import java.io.File;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.awt.*;
+import javax.swing.*;
 
 public class ClientUI 
 {
@@ -23,7 +24,7 @@ public class ClientUI
     public JButton button3;
     public JButton button4;
 
-    public ClientUI() 
+    public ClientUI(Synchronizer sync) 
     {
         absolutepath = "";
 
@@ -36,12 +37,13 @@ public class ClientUI
         
         //Creating instance of Buttons
 
-        //Button2 - Upload
+        /*
+        //Button1 - Select Directory
         ImageIcon icon1 = new ImageIcon(".\\icons\\folder.png");
         button1 = new JButton("Directory", icon1);
         button1.setBounds(20,380,145,40);
         f.add(button1);        
-
+        */
         //Button2 - Upload
         ImageIcon icon2 = new ImageIcon(".\\icons\\pause.png");
         button2 = new JButton("Suspend", icon2);
@@ -81,8 +83,9 @@ public class ClientUI
         //*********************** Application Logic Section **********************//
         
         //Append a text to notify user to select directory 
-        textfield1.append(" [-ALERT-] Select a directory to sync\n");
+       //textfield1.append(" [-ALERT-] Select a directory to sync\n");
 
+        /*
         //Suspend Button Function - (Log Message)
         button1.addActionListener(new ActionListener()
         {
@@ -100,11 +103,11 @@ public class ClientUI
 
                 if (r == JFileChooser.APPROVE_OPTION) 
                 {
-                    
                     String localfiles[]; 
                     absolutepath = j.getSelectedFile().getAbsolutePath().replaceAll("[\\\\]", "\\\\\\\\");  
-                    File filepath = new File(absolutepath);
                     System.out.println(absolutepath);
+                    File filepath = new File(absolutepath);
+
                     localfiles = filepath.list();
                     JList<String> list = new JList<String>(localfiles);
                     list.setEnabled(false);
@@ -118,7 +121,33 @@ public class ClientUI
 
                 button1.setEnabled(false);
             }
-        });
+        });*/
+
+            // Start the Pauser object to control the pause/resume functionality
+            //Suspend Button Function - (Log Message)
+            button2.addActionListener(new ActionListener()
+            {  
+                public void actionPerformed(ActionEvent e)
+                {  
+                    Date date = new Date(System.currentTimeMillis());
+                    String timestamp = formatter.format(date);
+                    sync.setIsPaused(true);
+                    textfield1.append(" [" + timestamp + "] File Transmission Suspended\n");
+                }  
+            });
+
+            //Resume Button Function - (Log Message)
+           button3.addActionListener(new ActionListener()
+            {  
+                public void actionPerformed(ActionEvent e)
+                {  
+                    Date date = new Date(System.currentTimeMillis());
+                    String timestamp = formatter.format(date);
+                    sync.setIsPaused(false);
+                    sync.resumeThread();
+                    textfield1.append(" [" + timestamp + "] File Transmission Resumed\n");
+                }  
+            });
 
         //Clear Button Function - (Log Message)
         button4.addActionListener(new ActionListener()
@@ -142,5 +171,29 @@ public class ClientUI
 
         //making the frame visible 
         f.setVisible(true); 
-    }  
+    }
+
+    public String selectDirectory()
+    {
+        String absolutepath = "";
+        j = new JFileChooser(new File(".\\"));
+        j.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        int r = j.showOpenDialog(null);  
+
+        //Label1 - File Directory
+        JLabel label1 = new JLabel("Client Files");  
+        label1.setBounds(45,5, 100,30);
+        label1.setFont( new Font("Sans",Font.BOLD,15));
+        f.add(label1);
+
+        if (r == JFileChooser.APPROVE_OPTION) 
+        {
+            String localfiles[]; 
+            absolutepath = j.getSelectedFile().getAbsolutePath().replaceAll("[\\\\]", "\\\\\\\\");  
+            System.out.println(absolutepath);
+            File filepath = new File(absolutepath);
+        }
+
+        return absolutepath;
+    }
 }  

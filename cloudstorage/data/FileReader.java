@@ -69,6 +69,7 @@ public class FileReader extends Thread
     public void run()
     {
         FileData fd = new FileData(data, fileName, fileSize);
+
         FileController fc = new FileController(fd, tcpm, udpm, sync, uploadSync, boundedBuffer, targetAddress,
             targetPort, ui);
 

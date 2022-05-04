@@ -78,7 +78,6 @@ public class ServerReceiver extends Thread
         // If there is more than one client active, synchronize all other clients.
         if(clients.size() > 1)
         {
-            System.out.printf("SEND COMMAND TO OTHER CLIENTS: %s", fileName);
             for(int i = 0; i < clients.size(); i++)
             {
                 if(clients.get(i).getClientID() == ID)

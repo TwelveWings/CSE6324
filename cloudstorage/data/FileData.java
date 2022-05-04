@@ -214,8 +214,6 @@ public class FileData
                     ByteArrayOutputStream bos = new ByteArrayOutputStream();
                     byte[] block = new byte[2];
 
-                    //System.out.printf("SS: %d\n", segments.size() % 129);
-
                     block[0] = (byte)(segments.size() / 129);
                     block[1] = (byte)(segments.size() % 129);
                     

@@ -44,6 +44,10 @@ public class EventProcessor extends Thread
     
     public void run()
     {
+        // Checks to see if a download or upload is currently in progress for a certain file. If so, 
+        // prevent any threads for the same file from completing. The downloadSync was added to prevent
+        // an infinite upload loop once files were pushed from the server to the client. The uploadSync
+        // was added to counteract the OS creating multiple events upon file creation.
         if((downloadSync.blockedFiles.containsKey(fileName) && downloadSync.blockedFiles.get(fileName)) ||
            (uploadSync.blockedFiles.containsKey(fileName) && uploadSync.blockedFiles.get(fileName)))
         {
@@ -52,6 +56,8 @@ public class EventProcessor extends Thread
             return;
         }
 
+        // If the file has not been added to the blockedFiles, add it and set it to true. Otherwise, if
+        // the file exists in blockedFiles, set it to true.
         if(uploadSync.blockedFiles.containsKey(fileName) && !uploadSync.blockedFiles.get(fileName))
         {
             uploadSync.blockedFiles.replace(fileName, true);
@@ -75,6 +81,7 @@ public class EventProcessor extends Thread
                     address, directory, boundedBuffer, sync, uploadSync, ui);
 
                 fr.start();
+                fr.join();
             }
 
             else if(kind == ENTRY_DELETE)
@@ -83,6 +90,7 @@ public class EventProcessor extends Thread
                     address, directory, boundedBuffer, sync, uploadSync, ui);
 
                 fr.start();
+                fr.join();
             }
         }
 

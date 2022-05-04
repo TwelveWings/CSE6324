@@ -64,8 +64,6 @@ public class ServerThread extends Thread
 
         while(true)
         {
-            System.out.printf("Active Clients: %d\n", clients.size());
-
             String action = tcpm.receiveMessageFromClient(1000);
             String fileName = tcpm.receiveMessageFromClient(1000);
 
