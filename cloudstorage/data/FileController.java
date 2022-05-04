@@ -4,15 +4,21 @@ import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import java.net.*;
 import java.util.*;
+import java.text.SimpleDateFormat;
 
 public class FileController 
 {
     public BoundedBuffer boundedBuffer;
+    public ClientUI ui;
+    public Date date = new Date(System.currentTimeMillis());
     public FileData fileData;
     public InetAddress targetAddress;
+    public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public String fileName;
+    public String timestamp = formatter.format(date);
     public Synchronizer sync;
     public Synchronizer uploadSync;
     public TCPManager tcpm;
@@ -20,7 +26,7 @@ public class FileController
     public int targetPort;
 
     public FileController(FileData fd, TCPManager tcp, UDPManager udp, Synchronizer s, Synchronizer us, 
-        BoundedBuffer bb, InetAddress a, int p)
+        BoundedBuffer bb, InetAddress a, int p, ClientUI u)
     {
         fileData = fd;
         tcpm = tcp;
@@ -30,6 +36,7 @@ public class FileController
         boundedBuffer = bb;
         targetAddress = a;
         targetPort = p;
+        ui = u;
     }
 
     synchronized public void upload()
@@ -55,7 +62,6 @@ public class FileController
 
             tcpm.sendMessageToServer(String.valueOf(packetsCreated.size()), 1000);
 
-            // System.out.printf("PACKET #: %d\n", packetsCreated.size());
 
             for(int j = 0; j < packetsCreated.size(); j++)
             {
@@ -66,6 +72,14 @@ public class FileController
                 SendThread st = new SendThread(udpm, packetsCreated, ConnectionType.Client, 
                     Protocol.UDP, targetPort, targetAddress, boundedBuffer);
                 st.start();
+
+                ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS : " + 
+                    String.valueOf(packetsCreated.get(j)[1] + 1) + " OUT OF " + 
+                    String.valueOf(packetsCreated.size()) + "\n");
+
+                ui.textfield1.append(" [" + timestamp + "] NUM_BLOCKS : " + 
+                    String.valueOf(i + 1) + " OUT OF " + 
+                    String.valueOf(blocksCreated.size()) + "\n");
 
                 try
                 {

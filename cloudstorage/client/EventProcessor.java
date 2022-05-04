@@ -4,6 +4,7 @@ import cloudstorage.enums.*;
 import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import static java.nio.file.StandardWatchEventKinds.*;
 import java.net.*;
 import java.nio.file.*;
@@ -11,6 +12,7 @@ import java.nio.file.*;
 public class EventProcessor extends Thread
 {
     public BoundedBuffer boundedBuffer;
+    public ClientUI ui;
     public InetAddress address;
     public Path synchronizedDirectory;
     public String directory;
@@ -23,7 +25,8 @@ public class EventProcessor extends Thread
     public WatchEvent.Kind<?> kind;
 
     public EventProcessor(TCPManager tcp, UDPManager udp, InetAddress a, String fn, Synchronizer ds, 
-        Synchronizer s, Synchronizer us, String d, Path sd, WatchEvent.Kind<?> k, BoundedBuffer bb)
+        Synchronizer s, Synchronizer us, String d, Path sd, WatchEvent.Kind<?> k, BoundedBuffer bb,
+        ClientUI u)
     {
         tcpm = tcp;
         udpm = udp;
@@ -36,7 +39,8 @@ public class EventProcessor extends Thread
         synchronizedDirectory = sd;
         kind = k;
         boundedBuffer = bb;
-    }   
+        ui = u;
+    }
     
     public void run()
     {
@@ -68,7 +72,7 @@ public class EventProcessor extends Thread
             if(kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
             {
                 FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023,
-                    address, directory, boundedBuffer, sync, uploadSync);
+                    address, directory, boundedBuffer, sync, uploadSync, ui);
 
                 fr.start();
             }
@@ -76,7 +80,7 @@ public class EventProcessor extends Thread
             else if(kind == ENTRY_DELETE)
             {
                 FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023,
-                    address, directory, boundedBuffer, sync, uploadSync);
+                    address, directory, boundedBuffer, sync, uploadSync, ui);
 
                 fr.start();
             }

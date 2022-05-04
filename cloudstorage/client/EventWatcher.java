@@ -4,6 +4,7 @@ import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import java.io.IOException;
 import java.net.*;
 import static java.nio.file.StandardWatchEventKinds.*;
@@ -13,6 +14,7 @@ import java.util.concurrent.*;
 
 public class EventWatcher extends Thread
 {
+    public ClientUI ui;
     public TCPManager tcpm;
     public UDPManager udpm;
     public InetAddress address;
@@ -23,7 +25,7 @@ public class EventWatcher extends Thread
     public BoundedBuffer boundedBuffer;
 
     public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, 
-        Synchronizer s, Synchronizer ds, Synchronizer us)
+        Synchronizer s, Synchronizer ds, Synchronizer us, ClientUI u)
     {
         tcpm = tcp;
         udpm = udp;
@@ -33,6 +35,7 @@ public class EventWatcher extends Thread
         sync = s;
         downloadSync = ds;
         uploadSync = us;
+        ui = u;
     }
 
     /*
@@ -97,7 +100,7 @@ public class EventWatcher extends Thread
 
                     EventProcessor ep = new EventProcessor(tcpm, udpm, address, fileName.toString(),
                         downloadSync, sync, uploadSync, directory, clientDirectory, kind, 
-                        boundedBuffer);      
+                        boundedBuffer, ui);      
                         
                     ep.start();
                 }

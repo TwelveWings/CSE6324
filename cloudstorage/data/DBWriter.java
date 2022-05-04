@@ -5,10 +5,10 @@ import cloudstorage.enums.*;
 import cloudstorage.views.*;
 import java.io.*;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 import javax.swing.*;
-import java.text.SimpleDateFormat;
 
 public class DBWriter extends Thread
 {
@@ -51,10 +51,10 @@ public class DBWriter extends Thread
         sm = new SQLManager();
         FileData fd = new FileData();
 
-        ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS: " + String.valueOf(identifier + 1) +
-            " OUT OF " + numPackets + "\n");
+        ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS : " + String.valueOf(identifier + 1) +
+            " OUT OF " + String.valueOf(numPackets) + "\n");
         ui.textfield1.append(" [" + timestamp + "] NUM_BLOCKS: " + String.valueOf(data.size() + 1) + 
-            " OUT OF " + numBlocks + "\n");
+            " OUT OF " + String.valueOf(numBlocks) + "\n");
 
         boolean packetComplete = true;
 

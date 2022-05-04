@@ -2,9 +2,17 @@ package cloudstorage.client;
 
 import cloudstorage.control.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
+import java.awt.event.*;
+import java.io.File;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 import javax.swing.*;
+import java.text.SimpleDateFormat;
 
 public class Client
 {
@@ -18,6 +26,12 @@ public class Client
 
     public static void main(String[] args)
     {
+        // Instantiate the UI.
+        ClientUI ui = new ClientUI();
+        SimpleDateFormat formatter= new SimpleDateFormat("HH:mm:ss");
+        Date date = new Date(System.currentTimeMillis());
+        String timestamp = formatter.format(date);
+
         // Instantiate the Bounded Buffer and Synchronization objects
         BoundedBuffer bb = new BoundedBuffer(1, false);
         Synchronizer sync = new Synchronizer();
@@ -31,9 +45,14 @@ public class Client
 
         Scanner sc = new Scanner(System.in);
 
+        System.out.println("Opening Client GUI...");
         System.out.println("Please specify which directory you want to synchronize:");
 
+        // String getfromclientui = ui.absolutepath;
+        // String directory = getfromclientui;
         String directory = sc.nextLine();
+
+        ui.textfield1.append(" [" + timestamp + "] Client connected with Server\n");
 
         try
         {
@@ -64,7 +83,7 @@ public class Client
                     fileName = tcpm.receiveMessageFromServer(1000);
     
                     ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync, 
-                        downloadSync, action, fileName);
+                        downloadSync, action, fileName, ui);
 
                     cr.start();
     
@@ -82,7 +101,7 @@ public class Client
 
             // Start event watcher to keep track of directory changes and synchronize with server.
             EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, downloadSync,
-                uploadSync);
+                uploadSync, ui);
 
             ew.start();
 
@@ -91,8 +110,30 @@ public class Client
             System.out.println("Enter P or R to pause/resume any synchronization.");
 
             // Start the Pauser object to control the pause/resume functionality
-            Pauser p = new Pauser(sync);
-            p.start();
+            //Suspend Button Function - (Log Message)
+            ui.button2.addActionListener(new ActionListener()
+            {  
+                public void actionPerformed(ActionEvent e)
+                {  
+                    Date date = new Date(System.currentTimeMillis());
+                    String timestamp = formatter.format(date);
+                    sync.setIsPaused(true);
+                    ui.textfield1.append(" [" + timestamp + "] File Transmission Suspended\n");
+                }  
+            });
+
+            //Resume Button Function - (Log Message)
+            ui.button3.addActionListener(new ActionListener()
+            {  
+                public void actionPerformed(ActionEvent e)
+                {  
+                    Date date = new Date(System.currentTimeMillis());
+                    String timestamp = formatter.format(date);
+                    sync.setIsPaused(false);
+                    sync.resumeThread();
+                    ui.textfield1.append(" [" + timestamp + "] File Transmission Resumed\n");
+                }  
+            });
 
             // This is for the data synchronization from the server. Once the client receives a message
             // from the server it creates a ClientReceiver thread to handle the action.
@@ -102,7 +143,7 @@ public class Client
                 fileName = tcpm.receiveMessageFromServer(1000);
 
                 ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync,
-                    downloadSync, action, fileName);
+                    downloadSync, action, fileName, ui);
 
                 cr.start();
 

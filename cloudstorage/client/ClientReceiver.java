@@ -4,6 +4,7 @@ import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import java.net.*;
 import java.nio.file.*;
 import java.util.*;
@@ -11,6 +12,7 @@ import java.util.*;
 public class ClientReceiver extends Thread
 {
     public byte[] buffer;
+    public ClientUI ui;
     public InetAddress address;
     public String action;
     public String directory;
@@ -21,7 +23,7 @@ public class ClientReceiver extends Thread
     public UDPManager udpm;
 
     public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, String dir, 
-        Synchronizer s, Synchronizer ws, String a, String fn)
+        Synchronizer s, Synchronizer ws, String a, String fn, ClientUI u)
     {
         tcpm = tcp;
         udpm = udp;
@@ -34,6 +36,7 @@ public class ClientReceiver extends Thread
         udpm = udp;
         action = a;
         fileName = fn;
+        ui = u;
     }
 
     public void run()

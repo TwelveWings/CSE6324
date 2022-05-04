@@ -18,23 +18,45 @@ public class BoundedBuffer
         buffer = new byte[c][];
     }
 
+    /*
+     * \brief setFileUploaded
+     * 
+     * Assigns a value to the object's fileUploaded variable.
+     * 
+     * \param u is the new boolean value being assigned to fileUploaded.
+    */
     public void setFileUploaded(boolean u)
     {
         fileUploaded = u;
     }
 
+    /*
+     * \brief getFileUploaded
+     * 
+     * Retreives the value currently assigned to fileUploaded.
+     * 
+     * Returns the boolean value of fileUploaded
+    */
     public boolean getFileUploaded()
     {
         return fileUploaded;
     }
 
+    
+    /*
+     * \brief deposit
+     * 
+     * Stores a byte array into the jagged buffer array. If a the buffer is full, any incoming thread
+     * is made to wait, until notified by a withdraw operation.
+     * 
+     * \param data is the byte array being assigned to the buffer.
+    */
     public synchronized void deposit(byte[] data)
     {
         while(fullSlots == capacity)
         {
             try
             {
-                //System.out.println("Thread waiting at deposit");
                 wait();
             }
 
@@ -44,7 +66,6 @@ public class BoundedBuffer
             }
         }
 
-        //System.out.println("Thread depositing!");
         buffer[in]= data;
 
         in = (in + 1) % capacity;
@@ -52,11 +73,18 @@ public class BoundedBuffer
         if(fullSlots == 0)
         {
             fullSlots++;
-            //System.out.println("Thread notified by deposit");
             notify();
         }
     }
 
+    /*
+     * \brief withdraw
+     * 
+     * Retrieves the byte array stored in the jagged buffer array. If the buffer is empty, any incoming
+     * thread is made to wait, until notified by a deposit operation.
+     * 
+     * Returns the byte array that has been stored in the bounded buffer.
+    */
     public synchronized byte[] withdraw()
     {
         byte[] data;
@@ -65,7 +93,6 @@ public class BoundedBuffer
         {
             try
             {
-                //System.out.println("Thread waiting at withdraw");
                 wait();
             }
 
@@ -82,12 +109,9 @@ public class BoundedBuffer
         if(fullSlots == capacity)
         {
             fullSlots--;
-            //System.out.println("Thread notified by withdraw");
             notify();
         }
 
-
-        //System.out.println("Thread withdrawing!");
         return data;
     }
 }

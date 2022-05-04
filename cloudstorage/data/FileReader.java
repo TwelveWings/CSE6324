@@ -3,6 +3,7 @@ package cloudstorage.data;
 import cloudstorage.control.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import java.io.*;
 import java.net.*;
 import java.nio.file.*;
@@ -14,6 +15,7 @@ public class FileReader extends Thread
 {
     public volatile byte[] data;
     public BoundedBuffer boundedBuffer;
+    public ClientUI ui;
     public String fileName;
     public Synchronizer sync;
     public Synchronizer uploadSync;
@@ -32,24 +34,8 @@ public class FileReader extends Thread
         command = null;
     }
 
-    public FileReader(String fn, TCPManager tcp, UDPManager udp, int p, InetAddress a, String d, 
-        BoundedBuffer bb, Synchronizer s, Synchronizer us)
-    {
-        data = getFileData(d + fn);
-        fileName = fn;
-        fileSize = data.length;
-        command = null;
-        tcpm = tcp;
-        udpm = udp;
-        sync = s;
-        targetPort = p;
-        targetAddress = a;
-        boundedBuffer = bb;
-        uploadSync = us;
-    }
-
     public FileReader(String fn, SystemAction c, TCPManager tcp, UDPManager udp, int p, 
-        InetAddress a, String d, BoundedBuffer bb, Synchronizer s, Synchronizer us)
+        InetAddress a, String d, BoundedBuffer bb, Synchronizer s, Synchronizer us, ClientUI u)
     {
         data = getFileData(d + "/" + fn);
         fileName = fn;
@@ -62,6 +48,7 @@ public class FileReader extends Thread
         targetAddress = a;
         boundedBuffer = bb;
         uploadSync = us;
+        ui = u;
     }
 
     public void setData(byte[] d)
@@ -83,7 +70,7 @@ public class FileReader extends Thread
     {
         FileData fd = new FileData(data, fileName, fileSize);
         FileController fc = new FileController(fd, tcpm, udpm, sync, uploadSync, boundedBuffer, targetAddress,
-            targetPort);
+            targetPort, ui);
 
         if(command == SystemAction.Upload)
         {
