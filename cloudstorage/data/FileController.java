@@ -14,7 +14,6 @@ public class FileController
     public BoundedBuffer boundedBuffer;
     public ClientUI ui;
     public Date date = new Date(System.currentTimeMillis());
-    public FileData fileData;
     public InetAddress targetAddress;
     public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public String fileName;
@@ -24,11 +23,11 @@ public class FileController
     public TCPManager tcpm;
     public UDPManager udpm;
     public int targetPort;
+    public volatile String token;
 
-    public FileController(FileData fd, TCPManager tcp, UDPManager udp, Synchronizer s, Synchronizer us, 
-        BoundedBuffer bb, InetAddress a, int p, ClientUI u)
+    public FileController(TCPManager tcp, UDPManager udp, Synchronizer s, Synchronizer us, BoundedBuffer bb,
+        InetAddress a, int p, ClientUI u)
     {
-        fileData = fd;
         tcpm = tcp;
         udpm = udp;
         sync = s;
@@ -37,19 +36,46 @@ public class FileController
         targetAddress = a;
         targetPort = p;
         ui = u;
+        token = "";
     }
 
-    synchronized public void upload()
+    synchronized public void upload(FileData fileData)
     {
+        System.out.printf("CURR_FILE: %s\n", fileData.getFileName());
+        System.out.printf("TOKEN: %s\n", token);
+        while(!token.equals("") && !fileData.getFileName().equals(token))
+        {
+            try
+            {
+                System.out.printf("%s is waiting\n", fileData.getFileName());
+                wait();
+
+                Thread.sleep(2000);
+            }
+
+            catch(Exception e)
+            {
+
+            }
+        }
+
+        token = fileData.getFileName();
+
+        System.out.printf("%s has the token\n", fileData.getFileName());
+
         // Split file into blocks
         fileData.createSegments(fileData.getData(), 1024 * 1024 * 4, Segment.Block);
 
         List<byte[]> blocksCreated = fileData.getBlocks();
 
-        tcpm.sendMessageToServer("upload", 1000);
-        tcpm.sendMessageToServer(fileData.getFileName(), 1000);
-        tcpm.sendMessageToServer(String.valueOf(fileData.getFileSize()), 1000);
-        tcpm.sendMessageToServer(String.valueOf(blocksCreated.size()), 1000);
+        System.out.printf("FILE NAME BEFORE: %s\n", fileData.getFileName());
+
+        tcpm.sendMessageToServer("upload", 1500);
+        tcpm.sendMessageToServer(fileData.getFileName(), 1500);
+        tcpm.sendMessageToServer(String.valueOf(fileData.getFileSize()), 1500);
+        tcpm.sendMessageToServer(String.valueOf(blocksCreated.size()), 1500);
+
+        System.out.printf("FILE NAME AFTER: %s\n", fileData.getFileName());
 
         for(int i = 0; i < blocksCreated.size(); i++)
         {
@@ -99,10 +125,39 @@ public class FileController
 
         uploadSync.blockedFiles.replace(fileData.getFileName(), false);
 
+        token = "";
+
+        try
+        {
+            notify();
+        }
+
+        catch(Exception e)
+        {
+
+        }
+
     }
 
-    synchronized public void delete()
+    synchronized public void delete(FileData fileData)
     {
+        while(!token.equals("") && !fileData.getFileName().equals(token))
+        {
+            try
+            {
+                wait();
+
+                Thread.sleep(2000);
+            }
+
+            catch(Exception e)
+            {
+
+            }
+        }
+
+        token = fileData.getFileName();   
+     
         ui.textfield1.append(" [" + timestamp + "] " + fileData.getFileName() + " deleted. Updating " +
             "server.\n");
 
@@ -123,5 +178,18 @@ public class FileController
 
 
         uploadSync.blockedFiles.replace(fileData.getFileName(), false);
+
+
+        token = "";
+
+        try
+        {
+            notify();
+        }
+
+        catch(Exception e)
+        {
+
+        }
     }
 }

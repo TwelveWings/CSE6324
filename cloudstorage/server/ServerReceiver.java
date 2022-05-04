@@ -45,7 +45,7 @@ public class ServerReceiver extends Thread
 
     public void run()
     {
-        bb = new BoundedBuffer(1, false);
+        bb = new BoundedBuffer(1, false, false);
         tcpm = new TCPManager(tcpSocket);
         udpm = new UDPManager(udpSocket);
 
@@ -54,6 +54,7 @@ public class ServerReceiver extends Thread
         switch(action)
         {
             case "upload":
+                bb.setFileUploading(true);
                 uploadFile(fileName);
                 break;
             case "delete":
@@ -61,7 +62,7 @@ public class ServerReceiver extends Thread
                 break;
         }
 
-        while(!bb.getFileUploaded() && action.equals("upload"))
+        while(bb.getFileUploading() && action.equals("upload"))
         {
             try
             {

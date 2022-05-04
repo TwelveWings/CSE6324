@@ -70,6 +70,8 @@ public class EventWatcher extends Thread
             // Watch key will keep track of ENTRY_CREATE, ENTRY_DELETE, and ENTRY MODIFY events.
             WatchKey key = null;
 
+            FileController fc = new FileController(tcpm, udpm, sync, uploadSync, boundedBuffer, address, 2023, ui);
+
             while(true)
             {
                 try
@@ -98,9 +100,8 @@ public class EventWatcher extends Thread
                     System.out.println(fileName.toString());
                     System.out.println(kind);
 
-                    EventProcessor ep = new EventProcessor(tcpm, udpm, address, fileName.toString(),
-                        downloadSync, sync, uploadSync, directory, clientDirectory, kind, 
-                        boundedBuffer, ui);      
+                    EventProcessor ep = new EventProcessor(fileName.toString(), downloadSync, uploadSync,
+                        directory, clientDirectory, kind, fc);      
                         
                     ep.start();
                 }

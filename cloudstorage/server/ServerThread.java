@@ -47,7 +47,7 @@ public class ServerThread extends Thread
 
         sm.setDBConnection();
 
-        BoundedBuffer bb = new BoundedBuffer(1, false);
+        BoundedBuffer bb = new BoundedBuffer(1, false, false);
 
         ConcurrentHashMap<String, FileData> filesInServer = sm.selectAllFiles();
 
@@ -66,6 +66,8 @@ public class ServerThread extends Thread
         {
             String action = tcpm.receiveMessageFromClient(1000);
             String fileName = tcpm.receiveMessageFromClient(1000);
+
+            System.out.printf("FILE NAME: %s\n", fileName);
 
             ui.textfield1.append(" [" + timestamp + "] Active Clients: " + clients.size() + "\n");
 

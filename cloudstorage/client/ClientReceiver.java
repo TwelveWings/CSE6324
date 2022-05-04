@@ -41,7 +41,7 @@ public class ClientReceiver extends Thread
 
     public void run()
     {
-        BoundedBuffer boundedBuffer = new BoundedBuffer(1, false);
+        BoundedBuffer boundedBuffer = new BoundedBuffer(1, false, false);
 
         if(watcherSync.blockedFiles.containsKey(fileName))
         {
@@ -55,6 +55,7 @@ public class ClientReceiver extends Thread
 
         if(action.equals("download"))
         {
+            boundedBuffer.setFileDownloading(true);
             int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
         
             int numBlocks = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
@@ -80,7 +81,7 @@ public class ClientReceiver extends Thread
                 }
             }
 
-            while(boundedBuffer.getFileUploaded())
+            while(boundedBuffer.getFileDownloading())
             {
                 try
                 {

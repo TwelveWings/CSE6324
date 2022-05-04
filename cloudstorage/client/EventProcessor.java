@@ -11,35 +11,23 @@ import java.nio.file.*;
 
 public class EventProcessor extends Thread
 {
-    public BoundedBuffer boundedBuffer;
-    public ClientUI ui;
-    public InetAddress address;
+    public FileController controller;
     public Path synchronizedDirectory;
     public String directory;
     public String fileName;
     public Synchronizer downloadSync;
-    public Synchronizer sync;
     public Synchronizer uploadSync;
-    public TCPManager tcpm;
-    public UDPManager udpm;
     public WatchEvent.Kind<?> kind;
 
-    public EventProcessor(TCPManager tcp, UDPManager udp, InetAddress a, String fn, Synchronizer ds, 
-        Synchronizer s, Synchronizer us, String d, Path sd, WatchEvent.Kind<?> k, BoundedBuffer bb,
-        ClientUI u)
+    public EventProcessor(String fn, Synchronizer ds, Synchronizer us, String d, Path sd, WatchEvent.Kind<?> k, FileController fc)
     {
-        tcpm = tcp;
-        udpm = udp;
-        address = a;
         fileName = fn;
         downloadSync = ds;
         uploadSync = us;
-        sync = s;
         directory = d;
         synchronizedDirectory = sd;
         kind = k;
-        boundedBuffer = bb;
-        ui = u;
+        controller = fc;
     }
     
     public void run()
@@ -77,8 +65,7 @@ public class EventProcessor extends Thread
             // If the event is a create or modify event begin "upload" synchronization
             if(kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
             {
-                FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023,
-                    address, directory, boundedBuffer, sync, uploadSync, ui);
+                FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, directory, controller);
 
                 fr.start();
                 fr.join();
@@ -86,8 +73,7 @@ public class EventProcessor extends Thread
 
             else if(kind == ENTRY_DELETE)
             {
-                FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023,
-                    address, directory, boundedBuffer, sync, uploadSync, ui);
+                FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, directory, controller);
 
                 fr.start();
                 fr.join();

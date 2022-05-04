@@ -27,7 +27,7 @@ public class Client
     public static void main(String[] args)
     {
         // Instantiate the Bounded Buffer and Synchronization objects
-        BoundedBuffer bb = new BoundedBuffer(1, false);
+        BoundedBuffer bb = new BoundedBuffer(1, false, false);
         Synchronizer sync = new Synchronizer();
         Synchronizer downloadSync = new Synchronizer();
         Synchronizer uploadSync = new Synchronizer();

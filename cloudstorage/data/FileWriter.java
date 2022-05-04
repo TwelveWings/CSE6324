@@ -133,8 +133,8 @@ public class FileWriter extends Thread
             ioe.printStackTrace();
         }
         
-        boundedBuffer.setFileUploaded(true);
-        System.out.println(boundedBuffer.getFileUploaded());
+        boundedBuffer.setFileDownloading(false);
+        System.out.println(boundedBuffer.getFileDownloading());
         System.out.printf("Synchronization complete: %s added/updated!\n", fileName);
     }    
 }

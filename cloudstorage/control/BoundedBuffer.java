@@ -9,37 +9,63 @@ public class BoundedBuffer
     public byte[][] buffer = null;
     public int in = 0;
     public int out = 0;
-    public volatile boolean fileUploaded;
+    public volatile boolean fileDownloading;
+    public volatile boolean fileUploading;
 
-    public BoundedBuffer(int c, boolean u)
+    public BoundedBuffer(int c, boolean fd, boolean fu)
     {
         capacity = c;
-        fileUploaded = u;
+        fileDownloading = fd;
+        fileUploading = fu;
         buffer = new byte[c][];
     }
 
     /*
-     * \brief setFileUploaded
+     * \brief setFileUploading
      * 
-     * Assigns a value to the object's fileUploaded variable.
+     * Assigns a value to the object's fileUploading variable.
      * 
-     * \param u is the new boolean value being assigned to fileUploaded.
+     * \param u is the new boolean value being assigned to fileUploading.
     */
-    public void setFileUploaded(boolean u)
+    public void setFileUploading(boolean fu)
     {
-        fileUploaded = u;
+        fileUploading = fu;
     }
 
     /*
      * \brief getFileUploaded
      * 
-     * Retreives the value currently assigned to fileUploaded.
+     * Retreives the value currently assigned to fileUploading.
      * 
-     * Returns the boolean value of fileUploaded
+     * Returns the boolean value of fileUploading.
     */
-    public boolean getFileUploaded()
+    public boolean getFileUploading()
     {
-        return fileUploaded;
+        return fileUploading;
+    }
+
+    /*
+     * \brief setFileUploading
+     * 
+     * Assigns a value to the object's fileUploading variable.
+     * 
+     * \param u is the new boolean value being assigned to fileUploading.
+    */
+    public void setFileDownloading(boolean fd)
+    {
+        fileDownloading = fd;
+    }
+
+    /*
+     * \brief getFileDownloading
+     * 
+     * Retreives the value currently assigned to fileDownloading.
+     * 
+     * Returns the boolean value of fileDownloading
+    */
+    public boolean getFileDownloading()
+    {
+        return fileDownloading;
     }
 
     
