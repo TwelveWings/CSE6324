@@ -3,8 +3,10 @@ package cloudstorage.data;
 import cloudstorage.control.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import java.io.*;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class FileWriter extends Thread
@@ -12,9 +14,13 @@ public class FileWriter extends Thread
     public BoundedBuffer boundedBuffer;
     public byte[][] combinedPackets;
     public byte[] buffer;
+    public ClientUI ui;
+    public Date date = new Date(System.currentTimeMillis());
     public List<byte[]> fileData;
+    public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public String directory;
     public String fileName;
+    public String timestamp = formatter.format(date);
     public Synchronizer sync;
     public int bufferSize;
     public int fileSize;
@@ -24,7 +30,7 @@ public class FileWriter extends Thread
     public int numPackets;
 
     public FileWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int i, int s, int nb,
-        int np, BoundedBuffer bb, String dir, Synchronizer syn)
+        int np, BoundedBuffer bb, String dir, Synchronizer syn, ClientUI u)
     {
         fileData = d;
         combinedPackets = cp;
@@ -39,15 +45,18 @@ public class FileWriter extends Thread
         numPackets = np;
         boundedBuffer = bb;
         directory = dir;
+        ui = u;
     }
 
     public void run()
     {
         boolean packetComplete = true;
 
-        System.out.printf("ID: %d\n", identifier);
-        System.out.printf("NUM_PACKETS: %d\n", numPackets);
-
+        ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS : " + String.valueOf(identifier + 1) +
+            " OUT OF " + String.valueOf(numPackets) + "\n");
+        ui.textfield1.append(" [" + timestamp + "] NUM_BLOCKS: " + String.valueOf(fileData.size() + 1) + 
+            " OUT OF " + String.valueOf(numBlocks) + "\n");
+            
         byte[] packet = boundedBuffer.withdraw();
 
         synchronized(this)
@@ -133,8 +142,7 @@ public class FileWriter extends Thread
             ioe.printStackTrace();
         }
         
-        boundedBuffer.setFileUploaded(true);
-        System.out.println(boundedBuffer.getFileUploaded());
-        System.out.printf("Synchronization complete: %s added/updated!\n", fileName);
+        boundedBuffer.setFileDownloading(false);
+        ui.textfield1.append(String.format("Synchronization complete: %s added/updated!\n", fileName));
     }    
 }

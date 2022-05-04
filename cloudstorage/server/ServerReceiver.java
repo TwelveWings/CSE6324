@@ -45,7 +45,7 @@ public class ServerReceiver extends Thread
 
     public void run()
     {
-        bb = new BoundedBuffer(1, false);
+        bb = new BoundedBuffer(1, false, false);
         tcpm = new TCPManager(tcpSocket);
         udpm = new UDPManager(udpSocket);
 
@@ -54,6 +54,7 @@ public class ServerReceiver extends Thread
         switch(action)
         {
             case "upload":
+                bb.setFileUploading(true);
                 uploadFile(fileName);
                 break;
             case "delete":
@@ -61,7 +62,7 @@ public class ServerReceiver extends Thread
                 break;
         }
 
-        while(!bb.getFileUploaded() && action.equals("upload"))
+        while(bb.getFileUploading() && action.equals("upload"))
         {
             try
             {
@@ -78,7 +79,6 @@ public class ServerReceiver extends Thread
         // If there is more than one client active, synchronize all other clients.
         if(clients.size() > 1)
         {
-            System.out.printf("SEND COMMAND TO OTHER CLIENTS: %s", fileName);
             for(int i = 0; i < clients.size(); i++)
             {
                 if(clients.get(i).getClientID() == ID)
@@ -86,7 +86,7 @@ public class ServerReceiver extends Thread
                     continue;
                 }
 
-                clients.get(i).synchronizeWithClients(fileName, action, sm, clients.get(i), bb);
+                clients.get(i).synchronizeWithClients(fileName, action, sm, clients.get(i), bb, ui);
             }
         }
 
@@ -114,9 +114,10 @@ public class ServerReceiver extends Thread
 
             int numBlocks = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
-            //JOptionPane.showMessageDialog(null, numPackets);
-
             List<byte[]> data = new ArrayList<byte[]>();
+
+            ui.textfield1.append(" [" + timestamp + "] Receiving data from Client " + String.valueOf(ID) +
+                "...\n");
 
             for(int i = 0; i < numBlocks; i++)
             {

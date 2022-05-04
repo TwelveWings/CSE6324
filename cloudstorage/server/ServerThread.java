@@ -47,7 +47,7 @@ public class ServerThread extends Thread
 
         sm.setDBConnection();
 
-        BoundedBuffer bb = new BoundedBuffer(1, false);
+        BoundedBuffer bb = new BoundedBuffer(1, false, false);
 
         ConcurrentHashMap<String, FileData> filesInServer = sm.selectAllFiles();
 
@@ -58,14 +58,12 @@ public class ServerThread extends Thread
             for(String i : filesInServer.keySet())
             {
                 clients.get(ID - 1).synchronizeWithClients(filesInServer.get(i).getFileName(), "download", 
-                    sm, clients.get(ID - 1), bb);
+                    sm, clients.get(ID - 1), bb, ui);
             }
         }
 
         while(true)
         {
-            System.out.printf("Active Clients: %d\n", clients.size());
-
             String action = tcpm.receiveMessageFromClient(1000);
             String fileName = tcpm.receiveMessageFromClient(1000);
 

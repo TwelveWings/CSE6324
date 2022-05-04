@@ -13,17 +13,10 @@ import javax.swing.*;
 
 public class FileReader extends Thread
 {
-    public volatile byte[] data;
-    public BoundedBuffer boundedBuffer;
-    public ClientUI ui;
+    public byte[] data;
+    public FileController controller;
     public String fileName;
-    public Synchronizer sync;
-    public Synchronizer uploadSync;
-    public TCPManager tcpm;
-    public UDPManager udpm;
     public int fileSize;
-    public int targetPort;
-    public InetAddress targetAddress;
     public volatile SystemAction command;
 
     public FileReader()
@@ -34,21 +27,13 @@ public class FileReader extends Thread
         command = null;
     }
 
-    public FileReader(String fn, SystemAction c, TCPManager tcp, UDPManager udp, int p, 
-        InetAddress a, String d, BoundedBuffer bb, Synchronizer s, Synchronizer us, ClientUI u)
+    public FileReader(String fn, SystemAction c, String d, FileController fc)
     {
         data = getFileData(d + "/" + fn);
         fileName = fn;
         fileSize = data.length;
         command = c;
-        tcpm = tcp;
-        udpm = udp;
-        sync = s;
-        targetPort = p;
-        targetAddress = a;
-        boundedBuffer = bb;
-        uploadSync = us;
-        ui = u;
+        controller = fc;
     }
 
     public void setData(byte[] d)
@@ -56,30 +41,18 @@ public class FileReader extends Thread
         data = d;
     }
 
-    public void setFileSize(int fs)
-    {
-        fileSize = fs;
-    }
-
-    public void setCommand(SystemAction c)
-    {
-        command = c;
-    }
-
     public void run()
     {
         FileData fd = new FileData(data, fileName, fileSize);
-        FileController fc = new FileController(fd, tcpm, udpm, sync, uploadSync, boundedBuffer, targetAddress,
-            targetPort, ui);
 
         if(command == SystemAction.Upload)
         {
-            fc.upload();
+            controller.upload(fd);
         }
 
         else if(command == SystemAction.Delete)
         {
-            fc.delete();
+            controller.delete(fd);
         }
     }  
 

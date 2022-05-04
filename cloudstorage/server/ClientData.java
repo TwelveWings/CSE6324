@@ -4,6 +4,7 @@ import cloudstorage.control.BoundedBuffer;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import java.net.*;
 import java.util.concurrent.*;
 
@@ -74,29 +75,33 @@ public class ClientData
         return clientFile;
     }
 
-    synchronized public void synchronizeWithClients(String fileName, String action, SQLManager sm,
-        ClientData client, BoundedBuffer bb)
+    public void synchronizeWithClients(String fileName, String action, SQLManager sm, ClientData client,
+        BoundedBuffer bb, ServerUI ui)
     {
-        System.out.printf("SYNCHRONIZE WITH CLIENTS: %s\n", fileName);
         ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
 
         SystemAction command = (action.equals("delete")) ? SystemAction.Delete : SystemAction.Download;
+
+        DataController dc = new DataController(tcpm, udpm, client.getAddress(), client.getPort(), bb, ui,
+            client.getClientID());
 
         try
         {
             if(files.get(fileName) != null)
             {
                 DBReader dbr = new DBReader(files.get(fileName).data, fileName, files.get(fileName).fileSize,
-                    tcpm, udpm, client.getPort(), client.getAddress(), command, bb);
+                    command, dc);
 
                 dbr.start();
+                dbr.join();
             }
 
             else if(command == SystemAction.Delete)
             {
-                DBReader dbr = new DBReader(fileName, tcpm, udpm, client.getPort(), client.getAddress(), command, bb);
+                DBReader dbr = new DBReader(fileName, command, dc);
 
                 dbr.start();
+                dbr.join();
             }
         }
 

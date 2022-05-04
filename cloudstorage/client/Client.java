@@ -26,17 +26,17 @@ public class Client
 
     public static void main(String[] args)
     {
-        // Instantiate the UI.
-        ClientUI ui = new ClientUI();
-        SimpleDateFormat formatter= new SimpleDateFormat("HH:mm:ss");
-        Date date = new Date(System.currentTimeMillis());
-        String timestamp = formatter.format(date);
-
         // Instantiate the Bounded Buffer and Synchronization objects
-        BoundedBuffer bb = new BoundedBuffer(1, false);
+        BoundedBuffer bb = new BoundedBuffer(1, false, false);
         Synchronizer sync = new Synchronizer();
         Synchronizer downloadSync = new Synchronizer();
         Synchronizer uploadSync = new Synchronizer();
+
+        // Instantiate the UI.
+        ClientUI ui = new ClientUI(sync);
+        SimpleDateFormat formatter= new SimpleDateFormat("HH:mm:ss");
+        Date date = new Date(System.currentTimeMillis());
+        String timestamp = formatter.format(date);
 
         String action = "";
         String fileName = "";
@@ -46,13 +46,10 @@ public class Client
         Scanner sc = new Scanner(System.in);
 
         System.out.println("Opening Client GUI...");
-        System.out.println("Please specify which directory you want to synchronize:");
 
-        // String getfromclientui = ui.absolutepath;
-        // String directory = getfromclientui;
-        String directory = sc.nextLine();
+        String directory = ui.selectDirectory();
 
-        ui.textfield1.append(" [" + timestamp + "] Client connected with Server\n");
+        ui.textfield1.append(" [" + timestamp + "] Client will synchronize " + directory + "\n");
 
         try
         {
@@ -68,6 +65,8 @@ public class Client
             // TCP and UDP helper objects to send and receive messages and packets.
             tcpm = new TCPManager(tcpSocket);
             udpm = new UDPManager(udpSocket);
+
+            ui.textfield1.append(" [" + timestamp + "] Client connected with Server\n");
 
             // Receive a message for the server indicating the number of files stored there
             int filesSent = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
@@ -107,40 +106,14 @@ public class Client
 
             System.out.println("Client running...");
 
-            System.out.println("Enter P or R to pause/resume any synchronization.");
-
-            // Start the Pauser object to control the pause/resume functionality
-            //Suspend Button Function - (Log Message)
-            ui.button2.addActionListener(new ActionListener()
-            {  
-                public void actionPerformed(ActionEvent e)
-                {  
-                    Date date = new Date(System.currentTimeMillis());
-                    String timestamp = formatter.format(date);
-                    sync.setIsPaused(true);
-                    ui.textfield1.append(" [" + timestamp + "] File Transmission Suspended\n");
-                }  
-            });
-
-            //Resume Button Function - (Log Message)
-            ui.button3.addActionListener(new ActionListener()
-            {  
-                public void actionPerformed(ActionEvent e)
-                {  
-                    Date date = new Date(System.currentTimeMillis());
-                    String timestamp = formatter.format(date);
-                    sync.setIsPaused(false);
-                    sync.resumeThread();
-                    ui.textfield1.append(" [" + timestamp + "] File Transmission Resumed\n");
-                }  
-            });
-
             // This is for the data synchronization from the server. Once the client receives a message
             // from the server it creates a ClientReceiver thread to handle the action.
             while(true)
             {
                 action = tcpm.receiveMessageFromServer(1000);
                 fileName = tcpm.receiveMessageFromServer(1000);
+
+                System.out.printf("ACTION RECEIVED: %s\n", action);
 
                 ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync,
                     downloadSync, action, fileName, ui);
