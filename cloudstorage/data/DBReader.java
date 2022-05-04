@@ -30,7 +30,19 @@ public class DBReader extends Thread
         fileSize = 0;
     }
 
-    public DBReader(byte[] d, String fn, int fs, TCPManager tcp, UDPManager udp, int p, InetAddress a, SystemAction c, BoundedBuffer bb)
+    public DBReader(String fn, TCPManager tcp, UDPManager udp, int p, InetAddress a, SystemAction c, BoundedBuffer bb)
+    {
+        fileName = fn;
+        tcpm = tcp;
+        udpm = udp;
+        targetPort = p;
+        targetAddress = a;
+        command = c;
+        boundedBuffer = bb;
+    }
+
+    public DBReader(byte[] d, String fn, int fs, TCPManager tcp, UDPManager udp, int p, InetAddress a,
+        SystemAction c, BoundedBuffer bb)
     {
         data = d;
         fileName = fn;
@@ -67,8 +79,7 @@ public class DBReader extends Thread
     {
         FileData fd = new FileData(data, fileName, fileSize);
 
-//        System.out.printf("FILEDATALENGTH: %d\n", data.length);
-//        System.out.printf("FILESIZE: %d\n", fd.fileSize);
+        System.out.printf("READ DATA INTO MEMORY: %s\n", fileName);
 
         // If file name already has an associate FileReader thread, return.
         if(files.contains(fileName))
@@ -87,57 +98,46 @@ public class DBReader extends Thread
 
             List<byte[]> blocksCreated = fd.getBlocks();
 
-            /*
-            int x = 0;
+            tcpm.sendMessageToClient("download", 1000);
+            tcpm.sendMessageToClient(fileName, 1000);
+            tcpm.sendMessageToClient(String.valueOf(fileSize), 1000);
+            tcpm.sendMessageToServer(String.valueOf(blocksCreated.size()), 1000);
+
+            DatagramPacket connector = udpm.receiveDatagramPacket(buffer, 1000);
+
+            //System.out.printf("BLOCK #: %d\n", blocksCreated.size());
             for(int i = 0; i < blocksCreated.size(); i++)
             {
-                x += blocksCreated.get(i).length;
-                System.out.println(blocksCreated.get(i).length);
-            }*/
+                // Read the block and create packets
+                fd.createSegments(blocksCreated.get(i), 65505, Segment.Packet);
 
-            //System.out.printf("Size in DBR BLOCKS: %d\n", x);
+                List<byte[]> packetsCreated = fd.getPackets();
 
-            synchronized(this)
-            {
-                tcpm.sendMessageToClient("download", 1000);
-                tcpm.sendMessageToClient(fileName, 1000);
-                tcpm.sendMessageToClient(String.valueOf(fileSize), 1000);
-                tcpm.sendMessageToServer(String.valueOf(blocksCreated.size()), 1000);
+                tcpm.sendMessageToClient(String.valueOf(packetsCreated.size()), 1000);
 
-                DatagramPacket connector = udpm.receiveDatagramPacket(buffer, 1000);
+                targetPort = connector.getPort();
+                targetAddress = connector.getAddress();
 
-                //System.out.printf("BLOCK #: %d\n", blocksCreated.size());
-                for(int i = 0; i < blocksCreated.size(); i++)
+                //System.out.printf("PACKET #: %d\n", packetsCreated.size());
+
+                for(int j = 0; j < packetsCreated.size(); j++)
                 {
-                    // Read the block and create packets
-                    fd.createSegments(blocksCreated.get(i), 65505, Segment.Packet);
+                    boundedBuffer.deposit(packetsCreated.get(j));
 
-                    List<byte[]> packetsCreated = fd.getPackets();
+                    // Send the packet
+                    SendThread st = new SendThread(udpm, packetsCreated, ConnectionType.Server,
+                        Protocol.UDP, targetPort, targetAddress, boundedBuffer);
 
-                    tcpm.sendMessageToClient(String.valueOf(packetsCreated.size()), 1000);
+                    st.start();
 
-                    targetPort = connector.getPort();
-                    targetAddress = connector.getAddress();
-
-                    //System.out.printf("PACKET #: %d\n", packetsCreated.size());
-
-                    for(int j = 0; j < packetsCreated.size(); j++)
+                    try
                     {
-                        boundedBuffer.deposit(packetsCreated.get(j));
+                        st.join();
+                    }
 
-                        // Send the packet
-                        SendThread st = new SendThread(udpm, packetsCreated, ConnectionType.Server, Protocol.UDP, targetPort, targetAddress, boundedBuffer);
-                        st.start();
+                    catch (Exception e)
+                    {
 
-                        try
-                        {
-                            st.join();
-                        }
-
-                        catch (Exception e)
-                        {
-
-                        }
                     }
                 }
             }
@@ -145,12 +145,13 @@ public class DBReader extends Thread
 
         else if(command == SystemAction.Delete)
         {
-            tcpm.sendMessageToServer("delete", 1000);
+            System.out.println("SEND DELETE COMMAND");
+            tcpm.sendMessageToClient("delete", 1000);
 
             try
             {
                 // Send file name to delete on server.
-                tcpm.sendMessageToServer(fileName, 1000);
+                tcpm.sendMessageToClient(fileName, 1000);
             }
     
             catch (Exception e)

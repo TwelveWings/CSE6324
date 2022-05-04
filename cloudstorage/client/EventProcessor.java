@@ -4,6 +4,7 @@ import cloudstorage.enums.*;
 import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import static java.nio.file.StandardWatchEventKinds.*;
 import java.net.*;
 import java.nio.file.*;
@@ -11,6 +12,7 @@ import java.nio.file.*;
 public class EventProcessor extends Thread
 {
     public BoundedBuffer boundedBuffer;
+    public ClientUI ui;
     public InetAddress address;
     public Path synchronizedDirectory;
     public String directory;
@@ -22,8 +24,9 @@ public class EventProcessor extends Thread
     public UDPManager udpm;
     public WatchEvent.Kind<?> kind;
 
-    public EventProcessor(TCPManager tcp, UDPManager udp, InetAddress a, String fn, Synchronizer ds, Synchronizer s, Synchronizer us, String d, 
-        Path sd, WatchEvent.Kind<?> k, BoundedBuffer bb)
+    public EventProcessor(TCPManager tcp, UDPManager udp, InetAddress a, String fn, Synchronizer ds, 
+        Synchronizer s, Synchronizer us, String d, Path sd, WatchEvent.Kind<?> k, BoundedBuffer bb,
+        ClientUI u)
     {
         tcpm = tcp;
         udpm = udp;
@@ -36,14 +39,16 @@ public class EventProcessor extends Thread
         synchronizedDirectory = sd;
         kind = k;
         boundedBuffer = bb;
-    }   
+        ui = u;
+    }
     
     public void run()
     {
         if((downloadSync.blockedFiles.containsKey(fileName) && downloadSync.blockedFiles.get(fileName)) ||
            (uploadSync.blockedFiles.containsKey(fileName) && uploadSync.blockedFiles.get(fileName)))
         {
-            System.out.println("Entered");
+            System.out.printf("DOWNLOAD BLOCKED: %b\n", downloadSync.blockedFiles.get(fileName));
+            System.out.printf("UPLOAD BLOCKED: %b\n", uploadSync.blockedFiles.get(fileName));
             return;
         }
 
@@ -66,16 +71,18 @@ public class EventProcessor extends Thread
             // If the event is a create or modify event begin "upload" synchronization
             if(kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
             {
-                FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory, boundedBuffer, sync, uploadSync);
+                FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023,
+                    address, directory, boundedBuffer, sync, uploadSync, ui);
+
                 fr.start();
-                fr.join();
             }
 
             else if(kind == ENTRY_DELETE)
             {
-                FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address, directory, boundedBuffer, sync, uploadSync);
+                FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023,
+                    address, directory, boundedBuffer, sync, uploadSync, ui);
+
                 fr.start();
-                fr.join();
             }
         }
 

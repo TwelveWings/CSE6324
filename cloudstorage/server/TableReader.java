@@ -28,7 +28,7 @@ public class TableReader
 
         else
         {
-            fd.forEach((k, v) -> System.out.printf("Name: %s\nSize:%d\nData:%s\n", v.fileName, v.fileSize, new String(v.data, 0, v.data.length)));
+            fd.forEach((k, v) -> System.out.printf("Name: %s\nSize:%d\n", v.fileName, v.fileSize));
         }
 
 

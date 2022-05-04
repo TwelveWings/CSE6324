@@ -4,6 +4,7 @@ import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import java.net.*;
 import java.nio.file.*;
 import java.util.*;
@@ -11,6 +12,7 @@ import java.util.*;
 public class ClientReceiver extends Thread
 {
     public byte[] buffer;
+    public ClientUI ui;
     public InetAddress address;
     public String action;
     public String directory;
@@ -20,7 +22,8 @@ public class ClientReceiver extends Thread
     public TCPManager tcpm;
     public UDPManager udpm;
 
-    public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, String dir, Synchronizer s, Synchronizer ws, String a, String fn)
+    public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, String dir, 
+        Synchronizer s, Synchronizer ws, String a, String fn, ClientUI u)
     {
         tcpm = tcp;
         udpm = udp;
@@ -33,29 +36,28 @@ public class ClientReceiver extends Thread
         udpm = udp;
         action = a;
         fileName = fn;
+        ui = u;
     }
 
     public void run()
     {
         BoundedBuffer boundedBuffer = new BoundedBuffer(1, false);
 
+        if(watcherSync.blockedFiles.containsKey(fileName))
+        {
+            watcherSync.blockedFiles.replace(fileName, true);
+        }
+
+        else
+        {
+            watcherSync.blockedFiles.put(fileName, true);
+        }
+
         if(action.equals("download"))
         {
-            if(watcherSync.blockedFiles.containsKey(fileName))
-            {
-                watcherSync.blockedFiles.replace(fileName, true);
-            }
-
-            else
-            {
-                watcherSync.blockedFiles.put(fileName, true);                
-            }
-
             int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
         
             int numBlocks = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
-
-        // System.out.printf("NUM BLOCKS IN CR: %d\n", numBlocks);
 
             // Send empty packet to establish UDP port connection with server.
             udpm.sendEmptyPacket(1, address, 2023);
@@ -70,8 +72,9 @@ public class ClientReceiver extends Thread
 
                 for(int j = 0; j < numPackets; j++)
                 {
-                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP, buffer, data, packets,
-                        fileName, fileSize, numBlocks, numPackets, boundedBuffer, directory, sync);
+                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP,
+                        buffer, data, packets, fileName, fileSize, numBlocks, numPackets, boundedBuffer, 
+                        directory, sync);
 
                     rt.start();
                 }
@@ -90,18 +93,6 @@ public class ClientReceiver extends Thread
                     
                 }
             }
-
-            try
-            {
-                Thread.sleep(3000);
-            }
-
-            catch(Exception e)
-            {
-                
-            }
-
-                watcherSync.blockedFiles.replace(fileName, false);
         }
 
         else if(action.equals("delete"))
@@ -117,5 +108,17 @@ public class ClientReceiver extends Thread
 
             }
         }
+
+        try
+        {
+            Thread.sleep(3000);
+        }
+
+        catch(Exception e)
+        {
+            
+        }
+
+        watcherSync.blockedFiles.replace(fileName, false);
     }
 }

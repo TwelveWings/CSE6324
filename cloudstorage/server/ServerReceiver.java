@@ -4,7 +4,9 @@ import cloudstorage.control.BoundedBuffer;
 import cloudstorage.enums.*;
 import cloudstorage.data.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import java.net.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class ServerReceiver extends Thread
@@ -12,17 +14,22 @@ public class ServerReceiver extends Thread
     public BoundedBuffer bb;
     public byte[] buffer;
     public DatagramSocket udpSocket;
+    public Date date = new Date(System.currentTimeMillis());
+    public ServerUI ui;
+    public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public Socket tcpSocket;
     public List<ClientData> clients;
+    public SQLManager sm;
     public String action;
     public String fileName;
-    public SQLManager sm;
+    public String timestamp = formatter.format(date);
     public TCPManager tcpm;
     public UDPManager udpm;
     public int ID;
     public int bufferSize;
 
-    public ServerReceiver(int tID, Socket tcp, DatagramSocket udp, byte[] b, int bs, String a, String fn, SQLManager sql, List<ClientData> c)
+    public ServerReceiver(int tID, Socket tcp, DatagramSocket udp, byte[] b, int bs, String a, String fn,
+        SQLManager sql, List<ClientData> c, ServerUI u)
     {
         tcpSocket = tcp;
         udpSocket = udp;
@@ -33,6 +40,7 @@ public class ServerReceiver extends Thread
         fileName = fn;
         sm = sql;
         clients = c;
+        ui = u;
     }
 
     public void run()
@@ -41,7 +49,7 @@ public class ServerReceiver extends Thread
         tcpm = new TCPManager(tcpSocket);
         udpm = new UDPManager(udpSocket);
 
-        System.out.printf("Thread %d peforming %s\n", ID, action);
+        ui.textfield1.append(" [" + timestamp + "] Client " + ID + " performing " + action + " on " + fileName + "\n");
 
         switch(action)
         {
@@ -53,7 +61,7 @@ public class ServerReceiver extends Thread
                 break;
         }
 
-        while(!bb.getFileUploaded())
+        while(!bb.getFileUploaded() && action.equals("upload"))
         {
             try
             {
@@ -70,6 +78,7 @@ public class ServerReceiver extends Thread
         // If there is more than one client active, synchronize all other clients.
         if(clients.size() > 1)
         {
+            System.out.printf("SEND COMMAND TO OTHER CLIENTS: %s", fileName);
             for(int i = 0; i < clients.size(); i++)
             {
                 if(clients.get(i).getClientID() == ID)
@@ -81,12 +90,10 @@ public class ServerReceiver extends Thread
             }
         }
 
-        System.out.println(action);
-
         Arrays.fill(buffer, (byte)0);
     }
 
-    synchronized public void deleteFile(String fileName)
+    public void deleteFile(String fileName)
     {
         try
         {
@@ -99,7 +106,7 @@ public class ServerReceiver extends Thread
         }
     }
 
-    synchronized public void uploadFile(String fileName)
+    public void uploadFile(String fileName)
     {
         try
         {
@@ -120,8 +127,8 @@ public class ServerReceiver extends Thread
 
                 for(int j = 0; j < numPackets; j++)
                 {
-                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP, buffer, data, packets,
-                        fileName, fileSize, numBlocks, numPackets, bb);
+                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP,
+                        buffer, data, packets, fileName, fileSize, numBlocks, numPackets, bb, ui);
 
                     rt.start();
                 }

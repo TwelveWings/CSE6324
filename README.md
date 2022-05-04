@@ -1,5 +1,5 @@
 # CSE6324
-The cloudstorage directory contains 6 subdirectories.
+The cloudstorage directory contains 7 subdirectories.
 
 1) client stores the clients and related thread classes that will access the server
 2) control stores the BoundedBuffer class and a Synchronizer class which control the data transmission and pause/resume functionality, respectively.
@@ -7,6 +7,7 @@ The cloudstorage directory contains 6 subdirectories.
 4) enums stores enums used in the survey
 5) network stores the TCP and UDP helper classes as well as their corresponding thread classes.
 6) server contains the server and its related thread classes that will receive data from and respond to the clients.
+7) views contains the GUI elements for the server and client.
 
 To run the program, first compile CloudStorage.java in the root directory.
 
@@ -25,6 +26,8 @@ javac cloudstorage\control\\*.java
 javac cloudstorage\server\\*.java
 
 javac cloudstorage\client\\*.java
+
+javac cloudstorage\views\\*.java
 
 To run the server program, run: 
 

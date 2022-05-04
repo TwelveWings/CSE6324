@@ -190,8 +190,8 @@ public class FileData
         // Used to see how much of the file data has been processed.
         int remainingData = data.length;
 
-        // For each byte in the file, add it to the temp byte array. If the temp array gets filled add it
-        // to the dataBlocks ArrayList. Then clear it to begin processing the next block.
+        // For each byte in the file, add it to the temp byte array. If the temp array gets filled add
+        // it to the dataBlocks ArrayList. Then clear it to begin processing the next block.
         for(int i = 0; i < data.length; i++)
         {
             // If the array is empty and remaining data is not equal to or greater than the buffer size, 
@@ -207,7 +207,8 @@ public class FileData
             // dataBlocks ArrayList and clear it the temp array.
             if(i > 0 && (((i + 1) % size == 0) || (i == data.length - 1 && remainingData < size)))
             {
-                // If the segment is a packet add extra information to detail which block the packet corresponds to.
+                // If the segment is a packet add extra information to detail which block the packet
+                // corresponds to.
                 if(type == Segment.Packet)
                 {
                     ByteArrayOutputStream bos = new ByteArrayOutputStream();

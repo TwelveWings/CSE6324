@@ -4,6 +4,7 @@ import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import java.io.IOException;
 import java.net.*;
 import static java.nio.file.StandardWatchEventKinds.*;
@@ -13,6 +14,7 @@ import java.util.concurrent.*;
 
 public class EventWatcher extends Thread
 {
+    public ClientUI ui;
     public TCPManager tcpm;
     public UDPManager udpm;
     public InetAddress address;
@@ -22,7 +24,8 @@ public class EventWatcher extends Thread
     public Synchronizer uploadSync;
     public BoundedBuffer boundedBuffer;
 
-    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, Synchronizer s, Synchronizer ds, Synchronizer us)
+    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, 
+        Synchronizer s, Synchronizer ds, Synchronizer us, ClientUI u)
     {
         tcpm = tcp;
         udpm = udp;
@@ -32,8 +35,19 @@ public class EventWatcher extends Thread
         sync = s;
         downloadSync = ds;
         uploadSync = us;
+        ui = u;
     }
 
+    /*
+     * \brief cast
+     * 
+     * Casts WatchEvent<Path> to WatchEvent<T>. The standard cast causes the Java compiler to throw a
+     * warning. @SuppressWarnings bypasses this.
+     * 
+     * \param event is the WatchEvent<Path> that is being cast to WatchEvent<T>
+     * 
+     * Returns the object that has been cast as WatchEvent<T>
+     */
     @SuppressWarnings("unchecked")
     static<T> WatchEvent<T> cast(WatchEvent<?> event)
     {
@@ -42,8 +56,6 @@ public class EventWatcher extends Thread
 
     public void run()
     {
-        //Set<String> fileEvents = new HashSet<String>();
-
         try
         {
             // Watcher service to be used to watch changes in the specified directory.
@@ -86,8 +98,9 @@ public class EventWatcher extends Thread
                     System.out.println(fileName.toString());
                     System.out.println(kind);
 
-                    EventProcessor ep = new EventProcessor(tcpm, udpm, address, fileName.toString(), downloadSync, sync, 
-                        uploadSync, directory, clientDirectory, kind, boundedBuffer);      
+                    EventProcessor ep = new EventProcessor(tcpm, udpm, address, fileName.toString(),
+                        downloadSync, sync, uploadSync, directory, clientDirectory, kind, 
+                        boundedBuffer, ui);      
                         
                     ep.start();
                 }
