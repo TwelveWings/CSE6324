@@ -22,7 +22,8 @@ public class ServerReceiver extends Thread
     public int ID;
     public int bufferSize;
 
-    public ServerReceiver(int tID, Socket tcp, DatagramSocket udp, byte[] b, int bs, String a, String fn, SQLManager sql, List<ClientData> c)
+    public ServerReceiver(int tID, Socket tcp, DatagramSocket udp, byte[] b, int bs, String a, String fn,
+        SQLManager sql, List<ClientData> c)
     {
         tcpSocket = tcp;
         udpSocket = udp;
@@ -53,7 +54,7 @@ public class ServerReceiver extends Thread
                 break;
         }
 
-        while(!bb.getFileUploaded())
+        while(!bb.getFileUploaded() && action.equals("upload"))
         {
             try
             {
@@ -70,6 +71,7 @@ public class ServerReceiver extends Thread
         // If there is more than one client active, synchronize all other clients.
         if(clients.size() > 1)
         {
+            System.out.printf("SEND COMMAND TO OTHER CLIENTS: %s", fileName);
             for(int i = 0; i < clients.size(); i++)
             {
                 if(clients.get(i).getClientID() == ID)
@@ -81,12 +83,10 @@ public class ServerReceiver extends Thread
             }
         }
 
-        System.out.println(action);
-
         Arrays.fill(buffer, (byte)0);
     }
 
-    synchronized public void deleteFile(String fileName)
+    public void deleteFile(String fileName)
     {
         try
         {
@@ -99,7 +99,7 @@ public class ServerReceiver extends Thread
         }
     }
 
-    synchronized public void uploadFile(String fileName)
+    public void uploadFile(String fileName)
     {
         try
         {
@@ -120,8 +120,8 @@ public class ServerReceiver extends Thread
 
                 for(int j = 0; j < numPackets; j++)
                 {
-                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP, buffer, data, packets,
-                        fileName, fileSize, numBlocks, numPackets, bb);
+                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP,
+                        buffer, data, packets, fileName, fileSize, numBlocks, numPackets, bb);
 
                     rt.start();
                 }

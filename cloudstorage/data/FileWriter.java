@@ -23,8 +23,8 @@ public class FileWriter extends Thread
     public int numBlocks;
     public int numPackets;
 
-    public FileWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int i, int s, int nb, int np, BoundedBuffer bb, 
-        String dir, Synchronizer syn)
+    public FileWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int i, int s, int nb,
+        int np, BoundedBuffer bb, String dir, Synchronizer syn)
     {
         fileData = d;
         combinedPackets = cp;

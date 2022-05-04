@@ -27,7 +27,8 @@ public class SendThread extends Thread
         address = a;
     }
 
-    public SendThread(UDPManager udp, List<byte[]> dp, ConnectionType ct, Protocol proto, int p, InetAddress a, BoundedBuffer bb)
+    public SendThread(UDPManager udp, List<byte[]> dp, ConnectionType ct, Protocol proto, int p, InetAddress a,
+        BoundedBuffer bb)
     {
         udpm = udp;
         packets = dp;

@@ -18,10 +18,14 @@ public class Client
 
     public static void main(String[] args)
     {
+        // Instantiate the Bounded Buffer and Synchronization objects
         BoundedBuffer bb = new BoundedBuffer(1, false);
         Synchronizer sync = new Synchronizer();
         Synchronizer downloadSync = new Synchronizer();
         Synchronizer uploadSync = new Synchronizer();
+
+        String action = "";
+        String fileName = "";
 
         buffer = new byte[bufferSize];
 
@@ -46,23 +50,60 @@ public class Client
             tcpm = new TCPManager(tcpSocket);
             udpm = new UDPManager(udpSocket);
 
+            // Receive a message for the server indicating the number of files stored there
+            int filesSent = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
+            // If there are files, send the files to the client.
+            if(filesSent > 0)
+            {
+                System.out.println("Synchronizing with server, please wait...");
+                
+                for(int i = 0; i < filesSent; i++)
+                {
+                    action = tcpm.receiveMessageFromServer(1000);
+                    fileName = tcpm.receiveMessageFromServer(1000);
+    
+                    ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync, 
+                        downloadSync, action, fileName);
+
+                    cr.start();
+    
+                    try
+                    {
+                        cr.join();
+                    }
+    
+                    catch(Exception e)
+                    {
+    
+                    }
+                }
+            }
+
             // Start event watcher to keep track of directory changes and synchronize with server.
-            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, downloadSync, uploadSync);
+            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, downloadSync,
+                uploadSync);
+
             ew.start();
 
             System.out.println("Client running...");
 
             System.out.println("Enter P or R to pause/resume any synchronization.");
 
+            // Start the Pauser object to control the pause/resume functionality
             Pauser p = new Pauser(sync);
             p.start();
 
+            // This is for the data synchronization from the server. Once the client receives a message
+            // from the server it creates a ClientReceiver thread to handle the action.
             while(true)
             {
-                String action = tcpm.receiveMessageFromServer(1000);
-                String fileName = tcpm.receiveMessageFromServer(1000);
+                action = tcpm.receiveMessageFromServer(1000);
+                fileName = tcpm.receiveMessageFromServer(1000);
 
-                ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync, downloadSync, action, fileName);
+                ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync,
+                    downloadSync, action, fileName);
+
                 cr.start();
 
                 try

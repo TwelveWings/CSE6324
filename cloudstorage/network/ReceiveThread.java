@@ -104,9 +104,8 @@ public class ReceiveThread extends Thread
         int identifier = packet[1];
         int scale = packet[0];
 
+        // Remove 2 byte identifier from byte array.
         packet = fd.stripIdentifier(packet);
-
-        //System.out.printf("BUFFER_LEN: %d\n", buffer.length);
         
         int newSize = 0;
 
@@ -114,7 +113,8 @@ public class ReceiveThread extends Thread
         {
             if(fileSize % buffer.length > 0 && identifier == numPackets - 1)
             {
-                packet = fd.stripPadding(packet, (fileSize - ((numBlocks - 1) * ((1024 * 1024 * 4) % (buffer.length - 2)))) % (buffer.length - 2));
+                packet = fd.stripPadding(packet, (fileSize - ((numBlocks - 1) * 
+                    ((1024 * 1024 * 4) % (buffer.length - 2)))) % (buffer.length - 2));
             }    
         }
 
@@ -131,13 +131,17 @@ public class ReceiveThread extends Thread
 
         if(threadType == ConnectionType.Client)
         {
-            FileWriter writer = new FileWriter(data, combinedPackets, buffer, fileName, fileSize, identifier, scale, numBlocks, numPackets, boundedBuffer, directory, sync);
+            FileWriter writer = new FileWriter(data, combinedPackets, buffer, fileName, fileSize, 
+                identifier, scale, numBlocks, numPackets, boundedBuffer, directory, sync);
+
             writer.start();
         }
 
         else
         {
-            DBWriter writer = new DBWriter(data, combinedPackets, buffer, fileName, fileSize, identifier, scale, numBlocks, numPackets, boundedBuffer);
+            DBWriter writer = new DBWriter(data, combinedPackets, buffer, fileName, fileSize, identifier,
+                scale, numBlocks, numPackets, boundedBuffer);
+
             writer.start();
         }
     }
