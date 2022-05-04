@@ -58,7 +58,7 @@ public class ServerThread extends Thread
             for(String i : filesInServer.keySet())
             {
                 clients.get(ID - 1).synchronizeWithClients(filesInServer.get(i).getFileName(), "download", 
-                    sm, clients.get(ID - 1), bb);
+                    sm, clients.get(ID - 1), bb, ui);
             }
         }
 
@@ -66,8 +66,6 @@ public class ServerThread extends Thread
         {
             String action = tcpm.receiveMessageFromClient(1000);
             String fileName = tcpm.receiveMessageFromClient(1000);
-
-            System.out.printf("FILE NAME: %s\n", fileName);
 
             ui.textfield1.append(" [" + timestamp + "] Active Clients: " + clients.size() + "\n");
 

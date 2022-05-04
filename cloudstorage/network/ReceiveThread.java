@@ -14,6 +14,7 @@ public class ReceiveThread extends Thread
     public byte[] buffer;
     public BoundedBuffer boundedBuffer;
     public ConnectionType threadType;
+    public ClientUI cUI;
     public List<byte[]> data;
     public Protocol receiveProtocol;
     public String fileName;
@@ -24,7 +25,7 @@ public class ReceiveThread extends Thread
     public int numBlocks;
     public int numPackets;
     public int fileSize;
-    public ServerUI ui;
+    public ServerUI sUI;
 
     public ReceiveThread(TCPManager tcp, ConnectionType ct, Protocol p)
     {
@@ -48,13 +49,13 @@ public class ReceiveThread extends Thread
         numBlocks = nb;
         numPackets = np;
         boundedBuffer = bb;
-        ui = u;
+        sUI = u;
     }
 
     // Constructor for Client ReceiveThread
     public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
         List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, 
-        String dir, Synchronizer s)
+        String dir, Synchronizer s, ClientUI u)
     {
         data = d;
         combinedPackets = cp;
@@ -69,6 +70,7 @@ public class ReceiveThread extends Thread
         numPackets = np;
         boundedBuffer = bb;
         directory = dir;
+        cUI = u;
     }
 
     public void run()
@@ -134,7 +136,7 @@ public class ReceiveThread extends Thread
         if(threadType == ConnectionType.Client)
         {
             FileWriter writer = new FileWriter(data, combinedPackets, buffer, fileName, fileSize, 
-                identifier, scale, numBlocks, numPackets, boundedBuffer, directory, sync);
+                identifier, scale, numBlocks, numPackets, boundedBuffer, directory, sync, cUI);
 
             writer.start();
         }
@@ -142,7 +144,7 @@ public class ReceiveThread extends Thread
         else
         {
             DBWriter writer = new DBWriter(data, combinedPackets, buffer, fileName, fileSize, identifier,
-                scale, numBlocks, numPackets, boundedBuffer, ui);
+                scale, numBlocks, numPackets, boundedBuffer, sUI);
 
             writer.start();
         }

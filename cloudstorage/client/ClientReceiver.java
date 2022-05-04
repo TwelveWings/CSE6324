@@ -7,16 +7,20 @@ import cloudstorage.network.*;
 import cloudstorage.views.*;
 import java.net.*;
 import java.nio.file.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class ClientReceiver extends Thread
 {
     public byte[] buffer;
     public ClientUI ui;
+    public Date date = new Date(System.currentTimeMillis());
     public InetAddress address;
+    public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public String action;
     public String directory;
     public String fileName;
+    public String timestamp = formatter.format(date);
     public Synchronizer sync;
     public Synchronizer watcherSync;
     public TCPManager tcpm;
@@ -63,6 +67,8 @@ public class ClientReceiver extends Thread
             // Send empty packet to establish UDP port connection with server.
             udpm.sendEmptyPacket(1, address, 2023);
 
+            ui.textfield1.append(" [" + timestamp + "] Receiving data from Server...\n");
+
             List<byte[]> data = new ArrayList<byte[]>();
 
             for(int i = 0; i < numBlocks; i++)
@@ -75,7 +81,7 @@ public class ClientReceiver extends Thread
                 {
                     ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP,
                         buffer, data, packets, fileName, fileSize, numBlocks, numPackets, boundedBuffer, 
-                        directory, sync);
+                        directory, sync, ui);
 
                     rt.start();
                 }

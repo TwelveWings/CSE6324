@@ -113,6 +113,8 @@ public class Client
                 action = tcpm.receiveMessageFromServer(1000);
                 fileName = tcpm.receiveMessageFromServer(1000);
 
+                System.out.printf("ACTION RECEIVED: %s\n", action);
+
                 ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync,
                     downloadSync, action, fileName, ui);
 

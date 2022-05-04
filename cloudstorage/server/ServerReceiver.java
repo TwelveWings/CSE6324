@@ -86,7 +86,7 @@ public class ServerReceiver extends Thread
                     continue;
                 }
 
-                clients.get(i).synchronizeWithClients(fileName, action, sm, clients.get(i), bb);
+                clients.get(i).synchronizeWithClients(fileName, action, sm, clients.get(i), bb, ui);
             }
         }
 
@@ -114,9 +114,10 @@ public class ServerReceiver extends Thread
 
             int numBlocks = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
-            //JOptionPane.showMessageDialog(null, numPackets);
-
             List<byte[]> data = new ArrayList<byte[]>();
+
+            ui.textfield1.append(" [" + timestamp + "] Receiving data from Client " + String.valueOf(ID) +
+                "...\n");
 
             for(int i = 0; i < numBlocks; i++)
             {

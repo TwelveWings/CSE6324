@@ -180,12 +180,6 @@ public class ClientUI
         j.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         int r = j.showOpenDialog(null);  
 
-        //Label1 - File Directory
-        JLabel label1 = new JLabel("Client Files");  
-        label1.setBounds(45,5, 100,30);
-        label1.setFont( new Font("Sans",Font.BOLD,15));
-        f.add(label1);
-
         if (r == JFileChooser.APPROVE_OPTION) 
         {
             String localfiles[]; 
