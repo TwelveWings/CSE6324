@@ -96,5 +96,7 @@ public class FileController
         {
             e.printStackTrace();
         }
+
+        uploadSync.blockedFiles.replace(fileName, false);
     }
 }

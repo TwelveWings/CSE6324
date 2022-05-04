@@ -2,17 +2,20 @@ package cloudstorage.data;
 
 import cloudstorage.control.BoundedBuffer;
 import cloudstorage.enums.*;
+import cloudstorage.views.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.*;
 import javax.swing.*;
+import java.text.SimpleDateFormat;
 
 public class DBWriter extends Thread
 {
     public BoundedBuffer boundedBuffer;
     public byte[][] combinedPackets;
     public byte[] buffer;
+    public Date date = new Date(System.currentTimeMillis());
     public List<byte[]> data;
     public String fileName;
     public int bufferSize;
@@ -21,10 +24,13 @@ public class DBWriter extends Thread
     public int scale;
     public int numBlocks;
     public int numPackets;
+    public ServerUI ui;
+    public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public SQLManager sm;
+    public String timestamp = formatter.format(date);
 
     public DBWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int id, int s, int nb, 
-        int np, BoundedBuffer bb)
+        int np, BoundedBuffer bb, ServerUI u)
     {
         data = d;
         combinedPackets = cp;
@@ -37,6 +43,7 @@ public class DBWriter extends Thread
         numBlocks = nb;
         numPackets = np;
         boundedBuffer = bb;
+        ui = u;
     }
 
     public void run()
@@ -44,15 +51,14 @@ public class DBWriter extends Thread
         sm = new SQLManager();
         FileData fd = new FileData();
 
+        ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS: " + String.valueOf(identifier + 1) +
+            " OUT OF " + numPackets + "\n");
+        ui.textfield1.append(" [" + timestamp + "] NUM_BLOCKS: " + String.valueOf(data.size() + 1) + 
+            " OUT OF " + numBlocks + "\n");
+
         boolean packetComplete = true;
 
-        System.out.printf("ID: %d\n", identifier);
-        //System.out.printf("SCALE: %d\n", scale);
-        System.out.printf("NUM_PACKETS: %d\n", numPackets);
-
         byte[] packet = boundedBuffer.withdraw();
-
-        //System.out.printf("PACKET_LEN: %d\n", packet.length);
 
         synchronized(this)
         {
@@ -71,8 +77,6 @@ public class DBWriter extends Thread
         if(packetComplete)
         {
             byte[] packetData = fd.combinePacketData(combinedPackets, numPackets);
-
-            //System.out.printf("PACKET SIZE: %d\n", packetData.length);
 
             data.add(packetData);
         }
@@ -113,8 +117,10 @@ public class DBWriter extends Thread
         {
             e.printStackTrace();
         }
+
+        ui.textfield1.append(" [" + timestamp + "] " + fileName + " of size " + fileSize + 
+            " bytes have been uploaded succesfully \n");
         boundedBuffer.setFileUploaded(true);
-        System.out.println(boundedBuffer.getFileUploaded());
-        System.out.println("Upload complete!");
+        ui.textfield1.append(" [" + timestamp + "] Transmission Complete \n");
     }
 }

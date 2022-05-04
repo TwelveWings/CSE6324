@@ -3,7 +3,9 @@ package cloudstorage.server;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import java.net.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class Server
@@ -17,7 +19,12 @@ public class Server
 
     public static void main(String[] args)
     {
-        System.out.println("Server running...");
+        ServerUI ui = new ServerUI();
+
+        System.out.println("Opening Server GUI...");
+
+        ui.textfield1.append(" [" + ui.timestamp + "] Server is running\n");
+
         port = 2023;
 
         List<ClientData> clients = new ArrayList<ClientData>();
@@ -61,7 +68,8 @@ public class Server
                 clients.add(new ClientData(i, tcpSocket.getPort(), tcpSocket.getInetAddress(), tcpSocket,
                     udpSocket));
 
-                ServerThread st = new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, i, clients);
+                ServerThread st = new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, i, clients,
+                    ui);
 
                 st.start();
             }

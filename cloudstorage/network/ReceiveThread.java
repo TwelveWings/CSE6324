@@ -4,6 +4,7 @@ import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import java.net.*;
 import java.util.*;
 
@@ -23,6 +24,7 @@ public class ReceiveThread extends Thread
     public int numBlocks;
     public int numPackets;
     public int fileSize;
+    public ServerUI ui;
 
     public ReceiveThread(TCPManager tcp, ConnectionType ct, Protocol p)
     {
@@ -31,8 +33,9 @@ public class ReceiveThread extends Thread
         receiveProtocol = p;
     }
 
+    // Constructor for Server ReceiveThread
     public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
-        List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb)
+        List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, ServerUI u)
     {
         data = d;
         combinedPackets = cp;
@@ -45,8 +48,10 @@ public class ReceiveThread extends Thread
         numBlocks = nb;
         numPackets = np;
         boundedBuffer = bb;
+        ui = u;
     }
 
+    // Constructor for Client ReceiveThread
     public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
         List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, 
         String dir, Synchronizer s)
@@ -140,7 +145,7 @@ public class ReceiveThread extends Thread
         else
         {
             DBWriter writer = new DBWriter(data, combinedPackets, buffer, fileName, fileSize, identifier,
-                scale, numBlocks, numPackets, boundedBuffer);
+                scale, numBlocks, numPackets, boundedBuffer, ui);
 
             writer.start();
         }
