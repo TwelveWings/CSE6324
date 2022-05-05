@@ -112,7 +112,7 @@ public class Client
             {
                 String message = tcpm.receiveMessageFromServer(1000);
 
-                String[] components = message.split(",");
+                String[] components = message.split("/");
 
                 ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync,
                     downloadSync, components, ui);

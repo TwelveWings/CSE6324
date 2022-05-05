@@ -11,11 +11,11 @@ import java.util.*;
 public class DataController 
 {
     public BoundedBuffer boundedBuffer;
-    public Date date = new Date(System.currentTimeMillis());
+    public Date date;
     public InetAddress targetAddress;
     public ServerUI ui;
     public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
-    public String timestamp = formatter.format(date);
+    public String timestamp;
     public TCPManager tcpm;
     public UDPManager udpm;
     public int clientID;
@@ -72,13 +72,15 @@ public class DataController
 
         List<byte[]> blocksCreated = fileData.getBlocks();
         
-        tcpm.sendMessageToClient(String.format("download,%s,%d,%d", fileData.getFileName(),
+        tcpm.sendMessageToClient(String.format("download/%s/%d/%d", fileData.getFileName(),
             fileData.getFileSize(), blocksCreated.size()), 2000);
 
         // A datagram packet must be received from the client in order to establish which port is being
         // used.
         DatagramPacket connector = udpm.receiveDatagramPacket(buffer, 2000);
 
+        date = new Date(System.currentTimeMillis());
+        timestamp = formatter.format(date);
         ui.textfield1.append(" [" + timestamp + "] Transmitting data to Client " + String.valueOf(clientID) + 
             "...\n");
 
@@ -104,10 +106,14 @@ public class DataController
 
                 st.start();
 
+                date = new Date(System.currentTimeMillis());
+                timestamp = formatter.format(date);
                 ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS : " + 
                     String.valueOf(packetsCreated.get(j)[1] + 1) + " OUT OF " + 
                     String.valueOf(packetsCreated.size()) + "\n");
 
+                date = new Date(System.currentTimeMillis());
+                timestamp = formatter.format(date);
                 ui.textfield1.append(" [" + timestamp + "] NUM_BLOCKS : " + 
                     String.valueOf(i + 1) + " OUT OF " + 
                     String.valueOf(blocksCreated.size()) + "\n");
@@ -124,6 +130,8 @@ public class DataController
             }
         }
 
+        date = new Date(System.currentTimeMillis());
+        timestamp = formatter.format(date);
         ui.textfield1.append(" [" + timestamp + "] Data transmission for " + fileData.getFileName() + 
             " to Client complete.\n");
         
@@ -169,11 +177,15 @@ public class DataController
 
         token = fileData.getFileName();
 
+        date = new Date(System.currentTimeMillis());
+        timestamp = formatter.format(date);
         ui.textfield1.append(" [" + timestamp + "] " + fileData.getFileName() + " deleted. Updating " +
             "Client " + String.valueOf(clientID) + "...\n");
 
         tcpm.sendMessageToClient(String.format("delete,%s", fileData.getFileName()), 1000);
 
+        date = new Date(System.currentTimeMillis());
+        timestamp = formatter.format(date);
         ui.textfield1.append(" [" + timestamp + "] Complete.\n");
 
         token = "";

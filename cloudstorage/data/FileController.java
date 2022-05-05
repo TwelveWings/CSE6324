@@ -13,11 +13,11 @@ public class FileController
 {
     public BoundedBuffer boundedBuffer;
     public ClientUI ui;
-    public Date date = new Date(System.currentTimeMillis());
+    public Date date;
     public InetAddress targetAddress;
     public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public String fileName;
-    public String timestamp = formatter.format(date);
+    public String timestamp;
     public Synchronizer sync;
     public Synchronizer uploadSync;
     public TCPManager tcpm;
@@ -66,7 +66,7 @@ public class FileController
 
         List<byte[]> blocksCreated = fileData.getBlocks();
 
-        tcpm.sendMessageToServer(String.format("upload,%s,%d,%d", fileData.getFileName(), 
+        tcpm.sendMessageToServer(String.format("upload/%s/%d/%d", fileData.getFileName(), 
             fileData.getFileSize(), blocksCreated.size()), 2000);
 
         for(int i = 0; i < blocksCreated.size(); i++)
@@ -80,6 +80,8 @@ public class FileController
 
             tcpm.sendMessageToServer(String.valueOf(packetsCreated.size()), 1000);
 
+            date = new Date(System.currentTimeMillis());
+            timestamp = formatter.format(date);
             ui.textfield1.append(" [" + timestamp + "] Transmitting data to server...\n");
 
             for(int j = 0; j < packetsCreated.size(); j++)
@@ -92,10 +94,14 @@ public class FileController
                     Protocol.UDP, targetPort, targetAddress, boundedBuffer);
                 st.start();
 
+                date = new Date(System.currentTimeMillis());
+                timestamp = formatter.format(date);
                 ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS : " + 
                     String.valueOf(packetsCreated.get(j)[1] + 1) + " OUT OF " + 
                     String.valueOf(packetsCreated.size()) + "\n");
 
+                date = new Date(System.currentTimeMillis());
+                timestamp = formatter.format(date);
                 ui.textfield1.append(" [" + timestamp + "] NUM_BLOCKS : " + 
                     String.valueOf(i + 1) + " OUT OF " + 
                     String.valueOf(blocksCreated.size()) + "\n");
@@ -111,6 +117,8 @@ public class FileController
             }
         }
 
+        date = new Date(System.currentTimeMillis());
+        timestamp = formatter.format(date);
         ui.textfield1.append(" [" + timestamp + "] Data transmission for " + fileData.getFileName() + 
             " complete.\n");
 
@@ -148,12 +156,16 @@ public class FileController
         }
 
         token = fileData.getFileName();   
-     
+
+        date = new Date(System.currentTimeMillis());
+        timestamp = formatter.format(date);
         ui.textfield1.append(" [" + timestamp + "] " + fileData.getFileName() + " deleted. Updating " +
             "server.\n");
 
         tcpm.sendMessageToServer(String.format("delete,%s", fileData.getFileName()), 1000);
 
+        date = new Date(System.currentTimeMillis());
+        timestamp = formatter.format(date);
         ui.textfield1.append(" [" + timestamp + "] Complete.\n");
 
         uploadSync.blockedFiles.replace(fileData.getFileName(), false);

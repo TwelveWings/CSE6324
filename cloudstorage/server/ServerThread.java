@@ -69,7 +69,7 @@ public class ServerThread extends Thread
 
             String message = tcpm.receiveMessageFromClient(1000);
 
-            String[] components = message.split(",");
+            String[] components = message.split("/");
 
             ui.textfield1.append(" [" + timestamp + "] Active Clients: " + clients.size() + "\n");
 
