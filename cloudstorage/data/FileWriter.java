@@ -57,6 +57,9 @@ public class FileWriter extends Thread
         ui.textfield1.append(" [" + timestamp + "] NUM_BLOCKS: " + String.valueOf(fileData.size() + 1) + 
             " OUT OF " + String.valueOf(numBlocks) + "\n");
             
+
+        sync.checkIfPaused();
+        
         byte[] packet = boundedBuffer.withdraw();
 
         synchronized(this)
