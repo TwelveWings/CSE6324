@@ -66,10 +66,8 @@ public class FileController
 
         List<byte[]> blocksCreated = fileData.getBlocks();
 
-        tcpm.sendMessageToServer("upload", 2000);
-        tcpm.sendMessageToServer(fileData.getFileName(), 2000);
-        tcpm.sendMessageToServer(String.valueOf(fileData.getFileSize()), 2000);
-        tcpm.sendMessageToServer(String.valueOf(blocksCreated.size()), 2000);
+        tcpm.sendMessageToServer(String.format("upload,%s,%d,%d", fileData.getFileName(), 
+            fileData.getFileSize(), blocksCreated.size()), 2000);
 
         for(int i = 0; i < blocksCreated.size(); i++)
         {
@@ -101,7 +99,6 @@ public class FileController
                 ui.textfield1.append(" [" + timestamp + "] NUM_BLOCKS : " + 
                     String.valueOf(i + 1) + " OUT OF " + 
                     String.valueOf(blocksCreated.size()) + "\n");
-
                 try
                 {
                     st.join();
@@ -155,18 +152,7 @@ public class FileController
         ui.textfield1.append(" [" + timestamp + "] " + fileData.getFileName() + " deleted. Updating " +
             "server.\n");
 
-        tcpm.sendMessageToServer("delete", 1000);
-
-        try
-        {
-            // Send file name to delete on server.
-            tcpm.sendMessageToServer(fileData.getFileName(), 1000);
-        }
-
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
+        tcpm.sendMessageToServer(String.format("delete,%s", fileData.getFileName()), 1000);
 
         ui.textfield1.append(" [" + timestamp + "] Complete.\n");
 

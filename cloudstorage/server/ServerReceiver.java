@@ -20,15 +20,16 @@ public class ServerReceiver extends Thread
     public Socket tcpSocket;
     public List<ClientData> clients;
     public SQLManager sm;
+    public String[] components;
     public String action;
     public String fileName;
     public String timestamp = formatter.format(date);
     public TCPManager tcpm;
     public UDPManager udpm;
-    public int ID;
     public int bufferSize;
+    public int ID;
 
-    public ServerReceiver(int tID, Socket tcp, DatagramSocket udp, byte[] b, int bs, String a, String fn,
+    public ServerReceiver(int tID, Socket tcp, DatagramSocket udp, byte[] b, int bs, String[] comp, 
         SQLManager sql, List<ClientData> c, ServerUI u)
     {
         tcpSocket = tcp;
@@ -36,15 +37,17 @@ public class ServerReceiver extends Thread
         ID = tID;
         buffer = b;
         bufferSize = bs;
-        action = a;
-        fileName = fn;
         sm = sql;
         clients = c;
         ui = u;
+        components = comp;
     }
 
     public void run()
     {
+        action = components[0];
+        fileName = components[1];
+        
         bb = new BoundedBuffer(1, false, false);
         tcpm = new TCPManager(tcpSocket);
         udpm = new UDPManager(udpSocket);
@@ -110,9 +113,9 @@ public class ServerReceiver extends Thread
     {
         try
         {
-            int fileSize = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
+            int fileSize = Integer.valueOf(components[2]);
 
-            int numBlocks = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
+            int numBlocks = Integer.valueOf(components[3]);
 
             List<byte[]> data = new ArrayList<byte[]>();
 
@@ -123,6 +126,8 @@ public class ServerReceiver extends Thread
             {
                 // Receive a TCP message indicating the number of UDP packets being sent.
                 int numPackets = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
+
+                System.out.printf("NUM PACKETS: %d\n", numPackets);
 
                 byte[][] packets = new byte[numPackets][];
 

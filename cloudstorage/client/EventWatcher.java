@@ -101,7 +101,7 @@ public class EventWatcher extends Thread
                     System.out.println(kind);
 
                     EventProcessor ep = new EventProcessor(fileName.toString(), downloadSync, uploadSync,
-                        directory, clientDirectory, kind, fc);      
+                        directory, clientDirectory, kind, fc);
                         
                     ep.start();
                 }

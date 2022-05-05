@@ -38,7 +38,6 @@ public class Client
         Date date = new Date(System.currentTimeMillis());
         String timestamp = formatter.format(date);
 
-        String action = "";
         String fileName = "";
 
         buffer = new byte[bufferSize];
@@ -71,6 +70,7 @@ public class Client
             // Receive a message for the server indicating the number of files stored there
             int filesSent = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
 
+            /*
             // If there are files, send the files to the client.
             if(filesSent > 0)
             {
@@ -96,7 +96,7 @@ public class Client
     
                     }
                 }
-            }
+            }*/
 
             // Start event watcher to keep track of directory changes and synchronize with server.
             EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, downloadSync,
@@ -110,13 +110,12 @@ public class Client
             // from the server it creates a ClientReceiver thread to handle the action.
             while(true)
             {
-                action = tcpm.receiveMessageFromServer(1000);
-                fileName = tcpm.receiveMessageFromServer(1000);
+                String message = tcpm.receiveMessageFromServer(1000);
 
-                System.out.printf("ACTION RECEIVED: %s\n", action);
+                String[] components = message.split(",");
 
                 ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync,
-                    downloadSync, action, fileName, ui);
+                    downloadSync, components, ui);
 
                 cr.start();
 

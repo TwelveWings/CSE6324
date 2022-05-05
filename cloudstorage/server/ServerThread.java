@@ -53,6 +53,7 @@ public class ServerThread extends Thread
 
         tcpm.sendMessageToClient(String.valueOf(filesInServer.size()), 1000);
 
+        /*
         if(filesInServer.size() > 0)
         {
             for(String i : filesInServer.keySet())
@@ -60,17 +61,20 @@ public class ServerThread extends Thread
                 clients.get(ID - 1).synchronizeWithClients(filesInServer.get(i).getFileName(), "download", 
                     sm, clients.get(ID - 1), bb, ui);
             }
-        }
+        }*/
 
         while(true)
         {
-            String action = tcpm.receiveMessageFromClient(1000);
-            String fileName = tcpm.receiveMessageFromClient(1000);
+            List<String[]> threadComponents = new  ArrayList<String[]>();
+
+            String message = tcpm.receiveMessageFromClient(1000);
+
+            String[] components = message.split(",");
 
             ui.textfield1.append(" [" + timestamp + "] Active Clients: " + clients.size() + "\n");
 
-            ServerReceiver sr = new ServerReceiver(ID, tcpSocket, udpSocket, buffer, bufferSize, action,
-                fileName, sm, clients, ui);
+            ServerReceiver sr = new ServerReceiver(ID, tcpSocket, udpSocket, buffer, bufferSize, components, sm,
+                clients, ui);
 
             sr.start();
 
@@ -84,8 +88,5 @@ public class ServerThread extends Thread
 
             }
         }
-
-
-
     }
 }

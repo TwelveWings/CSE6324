@@ -35,6 +35,14 @@ public class DataController
         clientID = ID;
     }
 
+    /* 
+     * \brief download
+     * 
+     * Sends the bytes of a file to a client. Bytes are sent in blocks, which are broken into packets
+     * before transmission.
+     * 
+     * \param fileData is the an instance of FileData which stores relevant information about the file.
+    */
     synchronized public void download(FileData fileData)
     {
         byte[] buffer = new byte[65507];
@@ -63,12 +71,12 @@ public class DataController
         fileData.createSegments(fileData.getData(), 1024 * 1024 * 4, Segment.Block);
 
         List<byte[]> blocksCreated = fileData.getBlocks();
+        
+        tcpm.sendMessageToClient(String.format("download,%s,%d,%d", fileData.getFileName(),
+            fileData.getFileSize(), blocksCreated.size()), 2000);
 
-        tcpm.sendMessageToClient("download", 2000);
-        tcpm.sendMessageToClient(fileData.getFileName(), 2000);
-        tcpm.sendMessageToClient(String.valueOf(fileData.getFileSize()), 2000);
-        tcpm.sendMessageToServer(String.valueOf(blocksCreated.size()), 2000);
-
+        // A datagram packet must be received from the client in order to establish which port is being
+        // used.
         DatagramPacket connector = udpm.receiveDatagramPacket(buffer, 2000);
 
         ui.textfield1.append(" [" + timestamp + "] Transmitting data to Client " + String.valueOf(clientID) + 
@@ -114,9 +122,31 @@ public class DataController
 
                 }
             }
-        }      
+        }
+
+        ui.textfield1.append(" [" + timestamp + "] Data transmission for " + fileData.getFileName() + 
+            " to Client complete.\n");
+        
+        token = "";
+
+        try
+        {
+            notify();
+        }
+
+        catch(Exception e)
+        {
+
+        }
     }
 
+    /*
+     * \brief delete
+     * 
+     * Sends the delete command to a client, to delete a file from the local directory.
+     * 
+     * \param fileData is the an instance of FileData which stores relevant information about the file.
+    */
     synchronized public void delete(FileData fileData)
     {
         System.out.printf("CURR_FILE: %s\n", fileData.getFileName());
@@ -142,18 +172,7 @@ public class DataController
         ui.textfield1.append(" [" + timestamp + "] " + fileData.getFileName() + " deleted. Updating " +
             "Client " + String.valueOf(clientID) + "...\n");
 
-        tcpm.sendMessageToClient("delete", 1000);
-
-        try
-        {
-            // Send file name to delete on server.
-            tcpm.sendMessageToClient(fileData.getFileName(), 1000);
-        }
-
-        catch (Exception e)
-        {
-            e.printStackTrace();
-        }
+        tcpm.sendMessageToClient(String.format("delete,%s", fileData.getFileName()), 1000);
 
         ui.textfield1.append(" [" + timestamp + "] Complete.\n");
 
