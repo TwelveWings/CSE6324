@@ -23,7 +23,7 @@ public class Server
 
         System.out.println("Opening Server GUI...");
 
-        ui.textfield1.append(" [" + ui.timestamp + "] Server is running\n");
+        ui.appendToLog("Server is running...");
 
         port = 2023;
 

@@ -11,17 +11,15 @@ import java.util.*;
 public class DataController 
 {
     public BoundedBuffer boundedBuffer;
-    public Date date;
     public InetAddress targetAddress;
     public ServerUI ui;
-    public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public String timestamp;
     public TCPManager tcpm;
     public UDPManager udpm;
     public int clientID;
     public int targetPort;
     public volatile String token;
-
+    
     public DataController(TCPManager tcp, UDPManager udp, InetAddress a, int p, BoundedBuffer bb, 
         ServerUI u, int ID)
     {
@@ -31,8 +29,8 @@ public class DataController
         targetPort = p;
         boundedBuffer = bb;
         ui = u;
-        token = "";
         clientID = ID;
+        token = "";
     }
 
     /* 
@@ -55,7 +53,6 @@ public class DataController
             {
                 System.out.printf("%s is waiting\n", fileData.getFileName());
                 wait();
-
                 Thread.sleep(2000);
             }
 
@@ -77,12 +74,12 @@ public class DataController
 
         // A datagram packet must be received from the client in order to establish which port is being
         // used.
-        DatagramPacket connector = udpm.receiveDatagramPacket(buffer, 2000);
+        DatagramPacket connector = udpm.receiveDatagramPacket(buffer, 3000);
 
-        date = new Date(System.currentTimeMillis());
-        timestamp = formatter.format(date);
-        ui.textfield1.append(" [" + timestamp + "] Transmitting data to Client " + String.valueOf(clientID) + 
-            "...\n");
+        targetPort = connector.getPort();
+        targetAddress = connector.getAddress();
+
+        System.out.printf("UDP PORT: %d\n", targetPort);
 
         for(int i = 0; i < blocksCreated.size(); i++)
         {
@@ -93,8 +90,7 @@ public class DataController
 
             tcpm.sendMessageToClient(String.valueOf(packetsCreated.size()), 1000);
 
-            targetPort = connector.getPort();
-            targetAddress = connector.getAddress();
+            ui.appendToLog(String.format("Transmitting data to Client %d...", clientID));
 
             for(int j = 0; j < packetsCreated.size(); j++)
             {
@@ -106,17 +102,10 @@ public class DataController
 
                 st.start();
 
-                date = new Date(System.currentTimeMillis());
-                timestamp = formatter.format(date);
-                ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS : " + 
-                    String.valueOf(packetsCreated.get(j)[1] + 1) + " OUT OF " + 
-                    String.valueOf(packetsCreated.size()) + "\n");
+                ui.appendToLog(String.format("NUM_PACKETS: %d OUT OF %d", (packetsCreated.get(j)[1] + 1),
+                    packetsCreated.size()));
 
-                date = new Date(System.currentTimeMillis());
-                timestamp = formatter.format(date);
-                ui.textfield1.append(" [" + timestamp + "] NUM_BLOCKS : " + 
-                    String.valueOf(i + 1) + " OUT OF " + 
-                    String.valueOf(blocksCreated.size()) + "\n");
+                ui.appendToLog(String.format("NUM_BLOCKS: %d OUT OF %d", (i + 1), blocksCreated.size()));
 
                 try
                 {
@@ -130,11 +119,8 @@ public class DataController
             }
         }
 
-        date = new Date(System.currentTimeMillis());
-        timestamp = formatter.format(date);
-        ui.textfield1.append(" [" + timestamp + "] Data transmission for " + fileData.getFileName() + 
-            " to Client complete.\n");
-        
+        ui.appendToLog(String.format("Data transmission for %s", fileData.getFileName()));
+
         token = "";
 
         try
@@ -165,7 +151,6 @@ public class DataController
             {
                 System.out.printf("%s is waiting\n", fileData.getFileName());
                 wait();
-
                 Thread.sleep(2000);
             }
 
@@ -177,16 +162,11 @@ public class DataController
 
         token = fileData.getFileName();
 
-        date = new Date(System.currentTimeMillis());
-        timestamp = formatter.format(date);
-        ui.textfield1.append(" [" + timestamp + "] " + fileData.getFileName() + " deleted. Updating " +
-            "Client " + String.valueOf(clientID) + "...\n");
+        ui.appendToLog(String.format("%s deleted. Updating Client %d...", fileData.getFileName(), clientID));
 
-        tcpm.sendMessageToClient(String.format("delete,%s", fileData.getFileName()), 1000);
+        tcpm.sendMessageToClient(String.format("delete/%s", fileData.getFileName()), 1000);
 
-        date = new Date(System.currentTimeMillis());
-        timestamp = formatter.format(date);
-        ui.textfield1.append(" [" + timestamp + "] Complete.\n");
+        ui.appendToLog("Complete.");
 
         token = "";
 

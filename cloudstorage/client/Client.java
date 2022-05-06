@@ -12,7 +12,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.swing.*;
-import java.text.SimpleDateFormat;
 
 public class Client
 {
@@ -34,11 +33,6 @@ public class Client
 
         // Instantiate the UI.
         ClientUI ui = new ClientUI(sync);
-        SimpleDateFormat formatter= new SimpleDateFormat("HH:mm:ss");
-        Date date = new Date(System.currentTimeMillis());
-        String timestamp = formatter.format(date);
-
-        String fileName = "";
 
         buffer = new byte[bufferSize];
 
@@ -48,7 +42,7 @@ public class Client
 
         String directory = ui.selectDirectory();
 
-        ui.textfield1.append(" [" + timestamp + "] Client will synchronize " + directory + "\n");
+        ui.appendToLog(String.format("Client will synchronize with  %s", directory));
 
         try
         {
@@ -65,7 +59,7 @@ public class Client
             tcpm = new TCPManager(tcpSocket);
             udpm = new UDPManager(udpSocket);
 
-            ui.textfield1.append(" [" + timestamp + "] Client connected with Server\n");
+            ui.appendToLog("Client connected with Server");
 
             // Receive a message for the server indicating the number of files stored there
             int filesSent = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
@@ -78,11 +72,12 @@ public class Client
                 
                 for(int i = 0; i < filesSent; i++)
                 {
-                    action = tcpm.receiveMessageFromServer(1000);
-                    fileName = tcpm.receiveMessageFromServer(1000);
+                    String action = tcpm.receiveMessageFromServer(1000);
+
+                    String[] components = action.split("/");
     
                     ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync, 
-                        downloadSync, action, fileName, ui);
+                        downloadSync, components, ui);
 
                     cr.start();
     
@@ -111,6 +106,8 @@ public class Client
             while(true)
             {
                 String message = tcpm.receiveMessageFromServer(1000);
+
+                System.out.println(message);
 
                 String[] components = message.split("/");
 

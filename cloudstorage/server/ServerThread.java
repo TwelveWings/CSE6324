@@ -65,15 +65,15 @@ public class ServerThread extends Thread
 
         while(true)
         {
-            List<String[]> threadComponents = new  ArrayList<String[]>();
-
             String message = tcpm.receiveMessageFromClient(1000);
+
+            System.out.printf("MESSAGE RECEIVED FROM CLIENT%d: %s", ID, message);
 
             String[] components = message.split("/");
 
-            ui.textfield1.append(" [" + timestamp + "] Active Clients: " + clients.size() + "\n");
+            ui.appendToLog(String.format("Active Clients: %d", clients.size()));
 
-            ServerReceiver sr = new ServerReceiver(ID, tcpSocket, udpSocket, buffer, bufferSize, components, sm,
+            ServerReceiver sr = new ServerReceiver(ID, tcpSocket, udpSocket, buffer, bufferSize, components.clone(), sm,
                 clients, ui);
 
             sr.start();

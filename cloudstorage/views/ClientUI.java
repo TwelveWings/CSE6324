@@ -191,4 +191,12 @@ public class ClientUI
 
         return absolutepath;
     }
+
+    public void appendToLog(String message)
+    {
+        date = new Date(System.currentTimeMillis());
+        timestamp = formatter.format(date);
+        
+        textfield1.append(" [" + timestamp + "] " + message + "\n");
+    }
 }  
