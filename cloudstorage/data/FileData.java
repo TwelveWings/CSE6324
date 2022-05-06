@@ -24,6 +24,14 @@ public class FileData
         fileSize = 0;
     }
 
+    public FileData(byte[] d, String fn, int fs, Boolean fim)
+    {
+        data = d;
+        fileName = fn;
+        fileSize = fs;
+        fileIsModified = fim;
+    }
+
     public FileData(byte[] d, String fn, int fs, Boolean fim, List<byte[]> ub)
     {
         data = d;

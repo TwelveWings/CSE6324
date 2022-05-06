@@ -29,6 +29,16 @@ public class FileReader extends Thread
         command = null;
     }
 
+    public FileReader(String fn, SystemAction c, String d, FileController fc, Boolean fim)
+    {
+        data = getFileData(d + "/" + fn);
+        fileName = fn;
+        fileSize = data.length;
+        command = c;
+        controller = fc;
+        fileIsModified = fim;
+    }
+
     public FileReader(String fn, SystemAction c, String d, FileController fc, Boolean fim, FileData ufid)
     {
         data = getFileData(d + "/" + fn);
@@ -47,9 +57,18 @@ public class FileReader extends Thread
 
     public void run()
     {
-        unmodifiedFileInDirectory.createSegments(unmodifiedFileInDirectory.getData(), 1024 * 1024 * 4, Segment.Block);
-        
-        FileData fd = new FileData(data, fileName, fileSize, fileIsModified, unmodifiedFileInDirectory.blocks);
+        FileData fd;
+
+        if (fileIsModified)
+        {
+            unmodifiedFileInDirectory.createSegments(unmodifiedFileInDirectory.getData(), 1024 * 1024 * 4, Segment.Block);
+
+            fd = new FileData(data, fileName, fileSize, fileIsModified, unmodifiedFileInDirectory.blocks);
+        }
+        else
+        {
+            fd = new FileData(data, fileName, fileSize, fileIsModified);
+        }
 
         if(command == SystemAction.Upload)
         {

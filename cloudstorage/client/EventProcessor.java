@@ -68,7 +68,7 @@ public class EventProcessor extends Thread
             // If the event is a create or modify event begin "upload" synchronization
             if(kind == ENTRY_CREATE)
             {
-                FileReader fr = new FileReader(fileName, SystemAction.Upload, directory, controller, false, unmodifiedFilesInDirectory.get(fileName));
+                FileReader fr = new FileReader(fileName, SystemAction.Upload, directory, controller, false);
             
                 //Update Hashmap for any modified file or created file before running threads
                 
@@ -87,6 +87,9 @@ public class EventProcessor extends Thread
 
             else if (kind == ENTRY_MODIFY)
             {
+                System.out.println("getting file in unmodified hashmap:");
+                System.out.println(unmodifiedFilesInDirectory.get(fileName));
+
                 FileReader fr = new FileReader(fileName, SystemAction.Upload, directory, controller, true, unmodifiedFilesInDirectory.get(fileName));
             
                 //Update Hashmap for any modified file or created file before running threads
@@ -111,7 +114,7 @@ public class EventProcessor extends Thread
 
             else if(kind == ENTRY_DELETE)
             {
-                FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, directory, controller, false, unmodifiedFilesInDirectory.get(fileName));
+                FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, directory, controller, false);
 
                 if(unmodifiedFilesInDirectory.containsKey(fileName))
                 {

@@ -25,7 +25,6 @@ public class Client
     public static final int bufferSize = 65507;
     public static TCPManager tcpm;
     public static UDPManager udpm;
-    public static HashMap<String, FileData> unmodifiedFilesInDirectory;
 
     public static void main(String[] args)
     {
@@ -34,6 +33,7 @@ public class Client
         Synchronizer sync = new Synchronizer();
         Synchronizer downloadSync = new Synchronizer();
         Synchronizer uploadSync = new Synchronizer();
+        HashMap<String, FileData> unmodifiedFilesInDirectory;
 
         // Instantiate the UI.
         ClientUI ui = new ClientUI(sync);
