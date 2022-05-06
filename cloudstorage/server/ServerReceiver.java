@@ -53,7 +53,7 @@ public class ServerReceiver extends Thread
         tcpm = new TCPManager(tcpSocket);
         udpm = new UDPManager(udpSocket);
 
-        ui.textfield1.append(" [" + timestamp + "] Client " + ID + " performing " + action + " on " + fileName + "\n");
+        ui.appendToLog(String.format("Client %d performing %s on %s", ID, action, fileName));
 
         switch(action)
         {
