@@ -8,6 +8,7 @@ import cloudstorage.views.*;
 import static java.nio.file.StandardWatchEventKinds.*;
 import java.net.*;
 import java.nio.file.*;
+import java.util.HashMap;
 
 public class EventProcessor extends Thread
 {
@@ -18,8 +19,9 @@ public class EventProcessor extends Thread
     public Synchronizer downloadSync;
     public Synchronizer uploadSync;
     public WatchEvent.Kind<?> kind;
+    public HashMap<String, FileData> unmodifiedFilesInDirectory;
 
-    public EventProcessor(String fn, Synchronizer ds, Synchronizer us, String d, Path sd, WatchEvent.Kind<?> k, FileController fc)
+    public EventProcessor(String fn, Synchronizer ds, Synchronizer us, String d, Path sd, WatchEvent.Kind<?> k, FileController fc, HashMap<String, FileData> ufid)
     {
         fileName = fn;
         downloadSync = ds;
@@ -28,6 +30,7 @@ public class EventProcessor extends Thread
         synchronizedDirectory = sd;
         kind = k;
         controller = fc;
+        unmodifiedFilesInDirectory = ufid;
     }
     
     public void run()
@@ -63,17 +66,57 @@ public class EventProcessor extends Thread
             Thread.sleep(1000);
 
             // If the event is a create or modify event begin "upload" synchronization
-            if(kind == ENTRY_CREATE || kind == ENTRY_MODIFY)
+            if(kind == ENTRY_CREATE)
             {
-                FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, directory, controller);
+                FileReader fr = new FileReader(fileName, SystemAction.Upload, directory, controller, false, unmodifiedFilesInDirectory.get(fileName));
+            
+                //Update Hashmap for any modified file or created file before running threads
+                
+                byte[] sendData = Files.readAllBytes(Paths.get(directory).toAbsolutePath().resolve(fileName));
 
+                FileData fileData = new FileData(sendData, fileName, sendData.length);
+                
+                fileData.createSegments(sendData, 1024 * 1024 * 4, Segment.Block);
+                
+                unmodifiedFilesInDirectory.put(fileName, fileData);
+
+                // run thread
+                fr.start();
+                fr.join();
+            }
+
+            else if (kind == ENTRY_MODIFY)
+            {
+                FileReader fr = new FileReader(fileName, SystemAction.Upload, directory, controller, true, unmodifiedFilesInDirectory.get(fileName));
+            
+                //Update Hashmap for any modified file or created file before running threads
+                
+                byte[] sendData = Files.readAllBytes(Paths.get(directory).toAbsolutePath().resolve(fileName));
+
+                FileData fileData = new FileData(sendData, fileName, sendData.length);
+                
+                fileData.createSegments(sendData, 1024 * 1024 * 4, Segment.Block);
+                
+                if(unmodifiedFilesInDirectory.containsKey(fileName))
+                {
+                    unmodifiedFilesInDirectory.remove(fileName);
+                }
+                
+                unmodifiedFilesInDirectory.put(fileName, fileData);
+
+                // run thread
                 fr.start();
                 fr.join();
             }
 
             else if(kind == ENTRY_DELETE)
             {
-                FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, directory, controller);
+                FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, directory, controller, false, unmodifiedFilesInDirectory.get(fileName));
+
+                if(unmodifiedFilesInDirectory.containsKey(fileName))
+                {
+                    unmodifiedFilesInDirectory.remove(fileName);
+                }
 
                 fr.start();
                 fr.join();

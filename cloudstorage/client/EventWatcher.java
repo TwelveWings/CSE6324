@@ -23,9 +23,10 @@ public class EventWatcher extends Thread
     public Synchronizer downloadSync;
     public Synchronizer uploadSync;
     public BoundedBuffer boundedBuffer;
+    public HashMap<String, FileData> unmodifiedFilesInDirectory;
 
     public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, 
-        Synchronizer s, Synchronizer ds, Synchronizer us, ClientUI u)
+        Synchronizer s, Synchronizer ds, Synchronizer us, ClientUI u, HashMap<String, FileData> ufid)
     {
         tcpm = tcp;
         udpm = udp;
@@ -36,6 +37,7 @@ public class EventWatcher extends Thread
         downloadSync = ds;
         uploadSync = us;
         ui = u;
+        unmodifiedFilesInDirectory = ufid;
     }
 
     /*
@@ -101,7 +103,7 @@ public class EventWatcher extends Thread
                     System.out.println(kind);
 
                     EventProcessor ep = new EventProcessor(fileName.toString(), downloadSync, uploadSync,
-                        directory, clientDirectory, kind, fc);      
+                        directory, clientDirectory, kind, fc, unmodifiedFilesInDirectory);      
                         
                     ep.start();
                 }

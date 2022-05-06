@@ -26,6 +26,8 @@ public class ReceiveThread extends Thread
     public int numPackets;
     public int fileSize;
     public ServerUI sUI;
+    public int deltaSyncStartIndex;
+    public int deltaSyncEndIndex;
 
     public ReceiveThread(TCPManager tcp, ConnectionType ct, Protocol p)
     {
@@ -36,7 +38,7 @@ public class ReceiveThread extends Thread
 
     // Constructor for Server ReceiveThread
     public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
-        List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, ServerUI u)
+        List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, ServerUI u, int dssi, int dsei)
     {
         data = d;
         combinedPackets = cp;
@@ -50,6 +52,8 @@ public class ReceiveThread extends Thread
         numPackets = np;
         boundedBuffer = bb;
         sUI = u;
+        deltaSyncStartIndex = dssi;
+        deltaSyncEndIndex = dsei;
     }
 
     // Constructor for Client ReceiveThread
@@ -144,7 +148,7 @@ public class ReceiveThread extends Thread
         else
         {
             DBWriter writer = new DBWriter(data, combinedPackets, buffer, fileName, fileSize, identifier,
-                scale, numBlocks, numPackets, boundedBuffer, sUI);
+                scale, numBlocks, numPackets, boundedBuffer, sUI, deltaSyncStartIndex, deltaSyncEndIndex);
 
             writer.start();
         }

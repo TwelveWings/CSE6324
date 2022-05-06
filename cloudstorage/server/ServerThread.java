@@ -64,6 +64,8 @@ public class ServerThread extends Thread
 
         while(true)
         {
+            int deltaSyncStartIndex = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
+            int deltaSyncEndIndex = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
             String action = tcpm.receiveMessageFromClient(1000);
             String fileName = tcpm.receiveMessageFromClient(1000);
 

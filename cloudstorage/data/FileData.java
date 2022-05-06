@@ -12,12 +12,25 @@ public class FileData
     public byte[] data;
     public String fileName;
     public int fileSize;
+    public Boolean fileIsModified = false;
+    List<byte[]> unmodifiedBlocks;
+    int deltaSyncStartIndex= 0; 
+    int deltaSyncEndIndex = 0;
 
     public FileData()
     {
         data = null;
         fileName = "";
         fileSize = 0;
+    }
+
+    public FileData(byte[] d, String fn, int fs, Boolean fim, List<byte[]> ub)
+    {
+        data = d;
+        fileName = fn;
+        fileSize = fs;
+        fileIsModified = fim;
+        unmodifiedBlocks = ub;
     }
 
     public FileData(byte[] d, String fn, int fs)
@@ -67,6 +80,16 @@ public class FileData
         blocks = b;
     }
 
+    public List<byte[]> getunmodifiedBlocks()
+    {
+        return unmodifiedBlocks;
+    }
+
+    public void setUnmodifiedBlocks(List<byte[]> b)
+    {
+        unmodifiedBlocks = b;
+    }
+
     public List<byte[]> getPackets()
     {
         return packets;
@@ -77,65 +100,24 @@ public class FileData
         packets = p;
     }
 
-    public int[] findChange(List<byte[]> currData, List<byte[]> newData)
+    public void setDeltaSyncBlocks()
     {
-        int[] maxMin = { -1, -1 };
 
-        if(currData.size() < newData.size())
-        {
-            for(int i = 0; i < (newData.size() - (newData.size() - currData.size())) ; i++)
-            {
-                if(!Arrays.equals(currData.get(i), newData.get(i)) && maxMin[0] == -1)
-                {
-                    maxMin[0] = i;
-                }
+        List<byte[]> differences = new ArrayList<>(unmodifiedBlocks);
 
-                else if(!Arrays.equals(currData.get(i), newData.get(i)))
-                {
-                    maxMin[1] = i;
-                }
-            }
-        }
+        differences.removeAll(blocks);
 
-        else if(currData.size() > newData.size())
-        {
-            for(int i = 0; i < (currData.size() - (currData.size() - newData.size())) ; i++)
-            {
-                if(!Arrays.equals(currData.get(i), newData.get(i)) && maxMin[0] == -1)
-                {
-                    maxMin[0] = i;
-                }
+        deltaSyncStartIndex = blocks.indexOf(differences.get(0));
 
-                else if(!Arrays.equals(currData.get(i), newData.get(i)))
-                {
-                    maxMin[1] = i;
-                }
-            }       
-        }
+        deltaSyncEndIndex = blocks.indexOf(differences.get(differences.size() - 1));
 
-        else
-        {
-            for(int i = 0; i < currData.size() ; i++)
-            {
-                if(!Arrays.equals(currData.get(i), newData.get(i)) && maxMin[0] == -1)
-                {
-                    maxMin[0] = i;
-                }
+        // String stringEditStartIndex = String.valueOf(startIndex);
 
-                else if(!Arrays.equals(currData.get(i), newData.get(i)))
-                {
-                    maxMin[1] = i;
-                }
-            }           
-        }
+        // tcpm.sendMessageToServer(stringEditStartIndex, 5000);
 
-        // If the min value was changed but the max was not only one block changed.
-        if(maxMin[0] != -1 && maxMin[1] == -1)
-        {
-            maxMin[1] = maxMin[0];
-        }
+        blocks.clear();
 
-        return maxMin;
+        blocks.addAll(differences);
     }
     
     public byte[] combinePacketData(byte[][] data, int iterations)
@@ -248,6 +230,11 @@ public class FileData
         if(type == Segment.Block)
         {
             setBlocks(new ArrayList<>(segments));
+
+            if (fileIsModified)
+            {
+                setDeltaSyncBlocks();
+            }
         }
 
         else

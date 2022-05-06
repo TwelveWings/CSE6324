@@ -18,6 +18,8 @@ public class FileReader extends Thread
     public String fileName;
     public int fileSize;
     public volatile SystemAction command;
+    public Boolean fileIsModified;
+    public FileData unmodifiedFileInDirectory;
 
     public FileReader()
     {
@@ -27,13 +29,15 @@ public class FileReader extends Thread
         command = null;
     }
 
-    public FileReader(String fn, SystemAction c, String d, FileController fc)
+    public FileReader(String fn, SystemAction c, String d, FileController fc, Boolean fim, FileData ufid)
     {
         data = getFileData(d + "/" + fn);
         fileName = fn;
         fileSize = data.length;
         command = c;
         controller = fc;
+        fileIsModified = fim;
+        unmodifiedFileInDirectory = ufid;
     }
 
     public void setData(byte[] d)
@@ -43,7 +47,9 @@ public class FileReader extends Thread
 
     public void run()
     {
-        FileData fd = new FileData(data, fileName, fileSize);
+        unmodifiedFileInDirectory.createSegments(unmodifiedFileInDirectory.getData(), 1024 * 1024 * 4, Segment.Block);
+        
+        FileData fd = new FileData(data, fileName, fileSize, fileIsModified, unmodifiedFileInDirectory.blocks);
 
         if(command == SystemAction.Upload)
         {

@@ -110,6 +110,10 @@ public class ServerReceiver extends Thread
     {
         try
         {
+            int deltaSyncStartIndex = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
+
+            int deltaSyncEndIndex = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
+
             int fileSize = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
 
             int numBlocks = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
@@ -129,7 +133,8 @@ public class ServerReceiver extends Thread
                 for(int j = 0; j < numPackets; j++)
                 {
                     ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP,
-                        buffer, data, packets, fileName, fileSize, numBlocks, numPackets, bb, ui);
+                        buffer, data, packets, fileName, fileSize, numBlocks, numPackets, bb, ui, 
+                        deltaSyncStartIndex, deltaSyncEndIndex);
 
                     rt.start();
                 }

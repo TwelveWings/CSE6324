@@ -68,6 +68,8 @@ public class FileController
 
         tcpm.sendMessageToServer("upload", 2000);
         tcpm.sendMessageToServer(fileData.getFileName(), 2000);
+        tcpm.sendMessageToServer(String.valueOf(fileData.deltaSyncStartIndex), 1000);
+        tcpm.sendMessageToServer(String.valueOf(fileData.deltaSyncEndIndex), 1000);
         tcpm.sendMessageToServer(String.valueOf(fileData.getFileSize()), 2000);
         tcpm.sendMessageToServer(String.valueOf(blocksCreated.size()), 2000);
 

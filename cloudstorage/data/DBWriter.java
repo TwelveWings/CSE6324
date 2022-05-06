@@ -28,9 +28,12 @@ public class DBWriter extends Thread
     public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public SQLManager sm;
     public String timestamp = formatter.format(date);
+    public int deltaSyncStartIndex;
+    public int deltaSyncEndIndex;
+    public Boolean fileIsModified;
 
     public DBWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int id, int s, int nb, 
-        int np, BoundedBuffer bb, ServerUI u)
+        int np, BoundedBuffer bb, ServerUI u, int dssi, int dsei)
     {
         data = d;
         combinedPackets = cp;
@@ -44,6 +47,13 @@ public class DBWriter extends Thread
         numPackets = np;
         boundedBuffer = bb;
         ui = u;
+        deltaSyncStartIndex = dssi;
+        deltaSyncEndIndex = dsei;
+        
+        //If the FileData object did not change the deltaSync Indexes, then the file is not a modified file
+        //Otherwise, the file is a modified file and needs the indexes to determine what blocks need to be added
+        //It might be better to just send the boolean value over UDP as a string, but I did not implement that
+        fileIsModified = (deltaSyncStartIndex == 0 && deltaSyncEndIndex == 0) ? false : true;
     }
 
     public void run()
@@ -100,14 +110,38 @@ public class DBWriter extends Thread
         {
             FileData fileData = sm.selectFileByName(fileName);
 
-            if(fileData != null)
+            if (fileIsModified)
             {
+                //In the case that the file is modified, the data sent over is not the complete data
+                //I am using a new variable to make things a little more clear
+                byte[] deltaData = completeData;
+
+                fileData.createSegments(fileData.getData(), 1024 * 1024 * 4, Segment.Block);
+
+                //Remove blocks that need to be repaced with deltaData
+                for (int i = deltaSyncStartIndex; i < deltaSyncEndIndex; i++)
+                {
+                    fileData.blocks.remove(i);
+                }
+
+                //insert delta data into starting index so that you have the following scenario:
+                // - - - old data - - - - - new data replacess the old data removed - - - - old data - - -
+                fileData.blocks.set(deltaSyncStartIndex, deltaData);    
+
                 sm.updateFileByName(fileName, completeData, fileSize);
             }
-
+            
             else
             {
-                sm.insertData(fileName, fileSize, completeData);
+                if(fileData != null)
+                {
+                    sm.updateFileByName(fileName, completeData, fileSize);
+                }
+    
+                else
+                {
+                    sm.insertData(fileName, fileSize, completeData);
+                }
             }
         }
 
