@@ -12,7 +12,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.swing.*;
-import java.text.SimpleDateFormat;
 
 public class Client
 {
@@ -34,12 +33,6 @@ public class Client
 
         // Instantiate the UI.
         ClientUI ui = new ClientUI(sync);
-        SimpleDateFormat formatter= new SimpleDateFormat("HH:mm:ss");
-        Date date = new Date(System.currentTimeMillis());
-        String timestamp = formatter.format(date);
-
-        String action = "";
-        String fileName = "";
 
         buffer = new byte[bufferSize];
 
@@ -49,7 +42,7 @@ public class Client
 
         String directory = ui.selectDirectory();
 
-        ui.textfield1.append(" [" + timestamp + "] Client will synchronize " + directory + "\n");
+        ui.appendToLog(String.format("Client will synchronize with  %s", directory));
 
         try
         {
@@ -66,11 +59,12 @@ public class Client
             tcpm = new TCPManager(tcpSocket);
             udpm = new UDPManager(udpSocket);
 
-            ui.textfield1.append(" [" + timestamp + "] Client connected with Server\n");
+            ui.appendToLog("Client connected with Server");
 
             // Receive a message for the server indicating the number of files stored there
             int filesSent = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
 
+            /*
             // If there are files, send the files to the client.
             if(filesSent > 0)
             {
@@ -78,11 +72,12 @@ public class Client
                 
                 for(int i = 0; i < filesSent; i++)
                 {
-                    action = tcpm.receiveMessageFromServer(1000);
-                    fileName = tcpm.receiveMessageFromServer(1000);
+                    String action = tcpm.receiveMessageFromServer(1000);
+
+                    String[] components = action.split("/");
     
                     ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync, 
-                        downloadSync, action, fileName, ui);
+                        downloadSync, components, ui);
 
                     cr.start();
     
@@ -96,7 +91,7 @@ public class Client
     
                     }
                 }
-            }
+            }*/
 
             // Start event watcher to keep track of directory changes and synchronize with server.
             EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, downloadSync,
@@ -110,13 +105,14 @@ public class Client
             // from the server it creates a ClientReceiver thread to handle the action.
             while(true)
             {
-                action = tcpm.receiveMessageFromServer(1000);
-                fileName = tcpm.receiveMessageFromServer(1000);
+                String message = tcpm.receiveMessageFromServer(1000);
 
-                System.out.printf("ACTION RECEIVED: %s\n", action);
+                System.out.println(message);
+
+                String[] components = message.split("/");
 
                 ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync,
-                    downloadSync, action, fileName, ui);
+                    downloadSync, components, ui);
 
                 cr.start();
 

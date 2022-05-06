@@ -101,10 +101,12 @@ public class ReceiveThread extends Thread
     }
 
     public synchronized void receiveUDP(UDPManager udpm, ConnectionType threadType)
-    {        
+    {
+        System.out.printf("RECEIVE THREAD FOR %s\n", fileName);
         FileData fd = new FileData();
+        
         byte[] packet = udpm.receivePacket(buffer, 75);
-    
+        
         int identifier = packet[1];
         int scale = packet[0];
 
@@ -129,7 +131,6 @@ public class ReceiveThread extends Thread
                 packet = fd.stripPadding(packet, (1024 * 1024 * 4) % (buffer.length - 2));
             }
         }
-
 
         boundedBuffer.deposit(packet);
 

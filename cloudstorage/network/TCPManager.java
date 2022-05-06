@@ -40,6 +40,8 @@ public class TCPManager
         catch(SocketException se)
         {
             System.out.println("Client closed unexpectedly.");
+
+            se.printStackTrace();
         }
 
         catch(Exception e)

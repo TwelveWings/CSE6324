@@ -72,4 +72,12 @@ public class ServerUI
 
         //*********************** Server Actual Logic Section **********************//
     }
+
+    public void appendToLog(String message)
+    {
+        date = new Date(System.currentTimeMillis());
+        timestamp = formatter.format(date);
+        
+        textfield1.append(" [" + timestamp + "] " + message + "\n");
+    }
 }  

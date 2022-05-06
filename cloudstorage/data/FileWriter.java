@@ -52,11 +52,12 @@ public class FileWriter extends Thread
     {
         boolean packetComplete = true;
 
-        ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS : " + String.valueOf(identifier + 1) +
-            " OUT OF " + String.valueOf(numPackets) + "\n");
-        ui.textfield1.append(" [" + timestamp + "] NUM_BLOCKS: " + String.valueOf(fileData.size() + 1) + 
-            " OUT OF " + String.valueOf(numBlocks) + "\n");
-            
+        ui.appendToLog(String.format("NUM_PACKETS: %d OUT OF %d", (identifier + 1), numPackets));
+
+        ui.appendToLog(String.format("NUM_BLOCKS: %d OUT OF %d", (fileData.size() + 1), numBlocks)); 
+
+        sync.checkIfPaused();
+        
         byte[] packet = boundedBuffer.withdraw();
 
         synchronized(this)
@@ -143,6 +144,7 @@ public class FileWriter extends Thread
         }
         
         boundedBuffer.setFileDownloading(false);
-        ui.textfield1.append(String.format("Synchronization complete: %s added/updated!\n", fileName));
+
+        ui.appendToLog(String.format("Synchronization complete: %s added/updated!", fileName));
     }    
 }

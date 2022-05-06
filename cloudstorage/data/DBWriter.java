@@ -51,10 +51,9 @@ public class DBWriter extends Thread
         sm = new SQLManager();
         FileData fd = new FileData();
 
-        ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS : " + String.valueOf(identifier + 1) +
-            " OUT OF " + String.valueOf(numPackets) + "\n");
-        ui.textfield1.append(" [" + timestamp + "] NUM_BLOCKS: " + String.valueOf(data.size() + 1) + 
-            " OUT OF " + String.valueOf(numBlocks) + "\n");
+        ui.appendToLog(String.format("NUM_PACKETS: %d OUT OF %d", (identifier + 1), numPackets));
+
+        ui.appendToLog(String.format("NUM_BLOCKS: %d OUT OF %d", (data.size() + 1), numBlocks));
 
         boolean packetComplete = true;
 
@@ -116,9 +115,11 @@ public class DBWriter extends Thread
             e.printStackTrace();
         }
 
-        ui.textfield1.append(" [" + timestamp + "] " + fileName + " of size " + fileSize + 
-            " bytes have been uploaded succesfully \n");
+        ui.appendToLog(String.format("%s of size %d bytes have been uploaded successfully.", fileName,
+            fileSize));
+
         boundedBuffer.setFileUploading(false);
-        ui.textfield1.append(" [" + timestamp + "] Transmission Complete \n");
+
+        ui.appendToLog("Transmission Complete.");
     }
 }

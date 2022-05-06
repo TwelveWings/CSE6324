@@ -20,15 +20,16 @@ public class ServerReceiver extends Thread
     public Socket tcpSocket;
     public List<ClientData> clients;
     public SQLManager sm;
+    public String[] components;
     public String action;
     public String fileName;
     public String timestamp = formatter.format(date);
     public TCPManager tcpm;
     public UDPManager udpm;
-    public int ID;
     public int bufferSize;
+    public int ID;
 
-    public ServerReceiver(int tID, Socket tcp, DatagramSocket udp, byte[] b, int bs, String a, String fn,
+    public ServerReceiver(int tID, Socket tcp, DatagramSocket udp, byte[] b, int bs, String[] comp, 
         SQLManager sql, List<ClientData> c, ServerUI u)
     {
         tcpSocket = tcp;
@@ -36,20 +37,23 @@ public class ServerReceiver extends Thread
         ID = tID;
         buffer = b;
         bufferSize = bs;
-        action = a;
-        fileName = fn;
         sm = sql;
         clients = c;
         ui = u;
+        components = comp;
     }
 
     public void run()
     {
+        System.out.printf("SERVER RECEIVER THREAD FOR CLIENT %d %s\n", ID, components[1]);
+        action = components[0];
+        fileName = components[1];
+        
         bb = new BoundedBuffer(1, false, false);
         tcpm = new TCPManager(tcpSocket);
         udpm = new UDPManager(udpSocket);
 
-        ui.textfield1.append(" [" + timestamp + "] Client " + ID + " performing " + action + " on " + fileName + "\n");
+        ui.appendToLog(String.format("Client %d performing %s on %s", ID, action, fileName));
 
         switch(action)
         {
@@ -110,14 +114,13 @@ public class ServerReceiver extends Thread
     {
         try
         {
-            int fileSize = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
-
-            int numBlocks = Integer.valueOf(tcpm.receiveMessageFromClient(1000));
+            int fileSize = Integer.valueOf(components[2]);
+            int numBlocks = Integer.valueOf(components[3]);
 
             List<byte[]> data = new ArrayList<byte[]>();
 
-            ui.textfield1.append(" [" + timestamp + "] Receiving data from Client " + String.valueOf(ID) +
-                "...\n");
+
+            ui.appendToLog(String.format("Receiving data from Client %d", ID));
 
             for(int i = 0; i < numBlocks; i++)
             {
@@ -128,6 +131,8 @@ public class ServerReceiver extends Thread
 
                 for(int j = 0; j < numPackets; j++)
                 {
+                    System.out.printf("J: %d\n", j);
+                    System.out.printf("NUM PACKETS: %d\n", numPackets);
                     ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP,
                         buffer, data, packets, fileName, fileSize, numBlocks, numPackets, bb, ui);
 

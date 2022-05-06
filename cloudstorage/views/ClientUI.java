@@ -68,7 +68,8 @@ public class ClientUI
         textfield1.setEditable(false);
         s1 = new JScrollPane(textfield1);
         s1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        s1.setBounds(190,35, 475,300);     
+        s1.setBounds(190,35, 475,300); 
+        s1.setBounds(20,35, 645,300);    
         f.add(s1);  
         
         //Creating instance of Label 
@@ -76,7 +77,7 @@ public class ClientUI
 
         //Label2 - Log
         label2 = new JLabel("Log");  
-        label2.setBounds(200,5, 100,30);
+        label2.setBounds(45,5, 100,30);
         label2.setFont( new Font("Sans",Font.BOLD,15));
         f.add(label2);
 
@@ -189,5 +190,13 @@ public class ClientUI
         }
 
         return absolutepath;
+    }
+
+    public void appendToLog(String message)
+    {
+        date = new Date(System.currentTimeMillis());
+        timestamp = formatter.format(date);
+        
+        textfield1.append(" [" + timestamp + "] " + message + "\n");
     }
 }  

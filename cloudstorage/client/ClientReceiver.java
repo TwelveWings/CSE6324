@@ -7,27 +7,24 @@ import cloudstorage.network.*;
 import cloudstorage.views.*;
 import java.net.*;
 import java.nio.file.*;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class ClientReceiver extends Thread
 {
     public byte[] buffer;
     public ClientUI ui;
-    public Date date = new Date(System.currentTimeMillis());
     public InetAddress address;
-    public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
+    public String[] components;
     public String action;
     public String directory;
     public String fileName;
-    public String timestamp = formatter.format(date);
     public Synchronizer sync;
-    public Synchronizer watcherSync;
+    public Synchronizer downloadSync;
     public TCPManager tcpm;
     public UDPManager udpm;
 
     public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, String dir, 
-        Synchronizer s, Synchronizer ws, String a, String fn, ClientUI u)
+        Synchronizer s, Synchronizer ds, String[] c, ClientUI u)
     {
         tcpm = tcp;
         udpm = udp;
@@ -35,45 +32,49 @@ public class ClientReceiver extends Thread
         buffer = b;
         directory = dir;
         sync = s;
-        watcherSync = ws;
+        downloadSync = ds;
         tcpm = tcp;
         udpm = udp;
-        action = a;
-        fileName = fn;
         ui = u;
+        components = c;
     }
 
     public void run()
     {
+        String action = components[0];
+        String fileName = components[1];
+
         BoundedBuffer boundedBuffer = new BoundedBuffer(1, false, false);
 
-        if(watcherSync.blockedFiles.containsKey(fileName))
+        if(downloadSync.blockedFiles.containsKey(fileName))
         {
-            watcherSync.blockedFiles.replace(fileName, true);
+            downloadSync.blockedFiles.replace(fileName, true);
         }
 
         else
         {
-            watcherSync.blockedFiles.put(fileName, true);
+            downloadSync.blockedFiles.put(fileName, true);
         }
 
         if(action.equals("download"))
         {
             boundedBuffer.setFileDownloading(true);
-            int fileSize = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
-        
-            int numBlocks = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
+            int fileSize = Integer.valueOf(components[2]);
+            int numBlocks = Integer.valueOf(components[3]);
 
             // Send empty packet to establish UDP port connection with server.
             udpm.sendEmptyPacket(1, address, 2023);
 
-            ui.textfield1.append(" [" + timestamp + "] Receiving data from Server...\n");
-
             List<byte[]> data = new ArrayList<byte[]>();
+
+            ui.appendToLog("Receiving data from Server...");
 
             for(int i = 0; i < numBlocks; i++)
             {
                 int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
+                System.out.printf("NUM PACKETS: %d\n", numPackets);
 
                 byte[][] packets = new byte[numPackets][];
 
@@ -106,8 +107,8 @@ public class ClientReceiver extends Thread
         {
             try
             {
+                ui.appendToLog(String.format("Synchronization complete: %s deleted!", fileName));
                 Files.deleteIfExists(Paths.get(directory + "/" + fileName));
-                System.out.printf("Synchronization complete: %s deleted!\n", fileName);
             }
 
             catch(Exception e)
@@ -126,6 +127,6 @@ public class ClientReceiver extends Thread
             
         }
 
-        watcherSync.blockedFiles.replace(fileName, false);
+        downloadSync.blockedFiles.replace(fileName, false);
     }
 }
