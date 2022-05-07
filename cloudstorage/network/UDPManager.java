@@ -23,14 +23,25 @@ public class UDPManager
         DatagramPacket receivedPacket = new DatagramPacket(buffer, buffer.length);
         try
         {
+            udpSocket.setSoTimeout(1000);
+
             // Receive file data from client program.
             udpSocket.receive(receivedPacket);
+
+            // Sleep for specified timeout.
             Thread.sleep(timeout);
         }
+
+        catch(SocketTimeoutException ste)
+        {
+            return null;
+        }
+
         catch(Exception e)
         {
             e.printStackTrace();
         }
+
         return receivedPacket;
     }
 
@@ -43,6 +54,8 @@ public class UDPManager
 
         try
         {
+            udpSocket.setSoTimeout(0);
+
             // Receive file name from client program.
             udpSocket.receive(receivedPacket);
 

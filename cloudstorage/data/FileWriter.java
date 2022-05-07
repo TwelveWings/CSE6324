@@ -15,12 +15,10 @@ public class FileWriter extends Thread
     public byte[][] combinedPackets;
     public byte[] buffer;
     public ClientUI ui;
-    public Date date = new Date(System.currentTimeMillis());
+    public FileController controller;
     public List<byte[]> fileData;
-    public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public String directory;
     public String fileName;
-    public String timestamp = formatter.format(date);
     public Synchronizer sync;
     public int bufferSize;
     public int fileSize;
@@ -30,7 +28,7 @@ public class FileWriter extends Thread
     public int numPackets;
 
     public FileWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int i, int s, int nb,
-        int np, BoundedBuffer bb, String dir, Synchronizer syn, ClientUI u)
+        int np, BoundedBuffer bb, String dir, Synchronizer syn, ClientUI u, FileController fc)
     {
         fileData = d;
         combinedPackets = cp;
@@ -46,6 +44,7 @@ public class FileWriter extends Thread
         boundedBuffer = bb;
         directory = dir;
         ui = u;
+        controller = fc;
     }
 
     public void run()
@@ -60,10 +59,7 @@ public class FileWriter extends Thread
         
         byte[] packet = boundedBuffer.withdraw();
 
-        synchronized(this)
-        {
-            combinedPackets[identifier + (128 * scale) + scale] = packet;
-        }
+        combinedPackets[identifier + (128 * scale) + scale] = packet;
 
         for(int i = 0; i < combinedPackets.length; i++)
         {
@@ -85,7 +81,9 @@ public class FileWriter extends Thread
         {
             byte[] blockData = combineBlockData(fileData, numBlocks);
 
-            downloadFile(blockData);
+            FileData fd = new FileData(blockData, fileName, fileSize);
+
+            controller.download(fd, directory);
         }
     }
 
@@ -129,22 +127,5 @@ public class FileWriter extends Thread
         }
 
         return bos.toByteArray();
-    }
-
-    public void downloadFile(byte[] data)
-    {
-        try(FileOutputStream fos = new FileOutputStream(directory + "/" + fileName))
-        {
-            fos.write(data);
-        }
-       
-        catch(IOException ioe)
-        {
-            ioe.printStackTrace();
-        }
-        
-        boundedBuffer.setFileDownloading(false);
-
-        ui.appendToLog(String.format("Synchronization complete: %s added/updated!", fileName));
-    }    
+    } 
 }

@@ -16,14 +16,12 @@ public class ServerThread extends Thread
 {
     public byte[] buffer;
     public DatagramSocket udpSocket;
-    public Date date = new Date(System.currentTimeMillis());
     public List<ClientData> clients;
     public ServerUI ui;
-    public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public Socket tcpSocket;
     public SQLManager sm;
-    public String timestamp = formatter.format(date);
     public TCPManager tcpm;
+    public UDPManager udpm;
     public int ID;
     public final int blockSize = 1024 * 1024 * 4;
     public int bufferSize;
@@ -42,8 +40,10 @@ public class ServerThread extends Thread
 
     public void run()
     {
+        System.out.println("Testing udp connection.");
         sm = new SQLManager();
         tcpm = new TCPManager(tcpSocket);
+        udpm = new UDPManager(udpSocket);
 
         sm.setDBConnection();
 
@@ -51,30 +51,51 @@ public class ServerThread extends Thread
 
         ConcurrentHashMap<String, FileData> filesInServer = sm.selectAllFiles();
 
+        DataController dc = new DataController(tcpm, udpm, clients.get(ID - 1).getAddress(Protocol.TCP), 
+            clients.get(ID - 1).getPort(Protocol.TCP), clients.get(ID - 1).getAddress(Protocol.UDP),
+            clients.get(ID - 1).getPort(Protocol.UDP), bb, ui, ID, sm);
+
+        ServerController sc = new ServerController(tcpm, udpm, sm, ui, bb, dc, buffer, ID);
+
+        DatagramPacket packet = udpm.receiveDatagramPacket(buffer, 1000);
+
         tcpm.sendMessageToClient(String.valueOf(filesInServer.size()), 1000);
 
-        /*
         if(filesInServer.size() > 0)
         {
             for(String i : filesInServer.keySet())
             {
-                clients.get(ID - 1).synchronizeWithClients(filesInServer.get(i).getFileName(), "download", 
-                    sm, clients.get(ID - 1), bb, ui);
+                ServerReceiver sr = new ServerReceiver(ID, "download", sm, clients, ui, bb, sc);
             }
-        }*/
+        }
 
         while(true)
         {
             String message = tcpm.receiveMessageFromClient(1000);
 
-            System.out.printf("MESSAGE RECEIVED FROM CLIENT%d: %s", ID, message);
+            System.out.println(message);
 
             String[] components = message.split("/");
 
+            bb = new BoundedBuffer(1, false, false);
+
+            dc = new DataController(tcpm, udpm, clients.get(ID - 1).getAddress(Protocol.TCP), 
+                clients.get(ID - 1).getPort(Protocol.TCP), clients.get(ID - 1).getAddress(Protocol.UDP),
+                clients.get(ID - 1).getPort(Protocol.UDP), bb, ui, ID, sm);
+
+            if(components[0].equals("delete"))
+            {
+                sc = new ServerController(tcpm, sm, ui, components, bb, dc, buffer, ID);
+            }
+
+            else
+            {
+                sc = new ServerController(tcpm, udpm, sm, ui, components, bb, dc, buffer, ID);
+            }
+
             ui.appendToLog(String.format("Active Clients: %d", clients.size()));
 
-            ServerReceiver sr = new ServerReceiver(ID, tcpSocket, udpSocket, buffer, bufferSize, components.clone(), sm,
-                clients, ui);
+            ServerReceiver sr = new ServerReceiver(ID, components.clone(), sm, clients, ui, bb, sc, dc);
 
             sr.start();
 

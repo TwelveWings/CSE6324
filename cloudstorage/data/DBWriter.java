@@ -15,7 +15,7 @@ public class DBWriter extends Thread
     public BoundedBuffer boundedBuffer;
     public byte[][] combinedPackets;
     public byte[] buffer;
-    public Date date = new Date(System.currentTimeMillis());
+    public DataController controller;
     public List<byte[]> data;
     public String fileName;
     public int bufferSize;
@@ -25,12 +25,10 @@ public class DBWriter extends Thread
     public int numBlocks;
     public int numPackets;
     public ServerUI ui;
-    public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public SQLManager sm;
-    public String timestamp = formatter.format(date);
 
     public DBWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int id, int s, int nb, 
-        int np, BoundedBuffer bb, ServerUI u)
+        int np, BoundedBuffer bb, ServerUI u, DataController dc)
     {
         data = d;
         combinedPackets = cp;
@@ -44,6 +42,7 @@ public class DBWriter extends Thread
         numPackets = np;
         boundedBuffer = bb;
         ui = u;
+        controller = dc;
     }
 
     public void run()
@@ -82,44 +81,20 @@ public class DBWriter extends Thread
 
         if(data.size() == numBlocks)
         {
-            byte[] blockData = fd.combineBlockData(data, numBlocks);
+            System.out.println("DBWRITER");
+            System.out.println(fileName);
+            fd.setData(fd.combineBlockData(data, numBlocks));
+            fd.setFileName(fileName);
+            fd.setFileSize(fileSize);
+
+            controller.setBytes(fd.getData());
 
             // read from DB to get file currently saved.
             // compare blockData with data in DB
             // update DB data with block data
             // upload updated DB data
 
-            uploadFile(blockData);
+            controller.upload(fd);
         }
-    }
-
-    public synchronized void uploadFile(byte[] completeData)
-    {
-        try
-        {
-            FileData fileData = sm.selectFileByName(fileName);
-
-            if(fileData != null)
-            {
-                sm.updateFileByName(fileName, completeData, fileSize);
-            }
-
-            else
-            {
-                sm.insertData(fileName, fileSize, completeData);
-            }
-        }
-
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-
-        ui.appendToLog(String.format("%s of size %d bytes have been uploaded successfully.", fileName,
-            fileSize));
-
-        boundedBuffer.setFileUploading(false);
-
-        ui.appendToLog("Transmission Complete.");
     }
 }

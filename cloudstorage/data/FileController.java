@@ -5,6 +5,7 @@ import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import cloudstorage.views.*;
+import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.text.SimpleDateFormat;
@@ -25,6 +26,19 @@ public class FileController
     public int targetPort;
     public volatile String token;
 
+    public FileController(TCPManager tcp, UDPManager udp, Synchronizer s, BoundedBuffer bb,
+        InetAddress a, int p, ClientUI u)
+    {
+        tcpm = tcp;
+        udpm = udp;
+        sync = s;
+        boundedBuffer = bb;
+        targetAddress = a;
+        targetPort = p;
+        ui = u;
+        token = "";
+    }
+
     public FileController(TCPManager tcp, UDPManager udp, Synchronizer s, Synchronizer us, BoundedBuffer bb,
         InetAddress a, int p, ClientUI u)
     {
@@ -41,32 +55,25 @@ public class FileController
 
     synchronized public void upload(FileData fileData)
     {
-        System.out.printf("CURR_FILE: %s\n", fileData.getFileName());
-        System.out.printf("TOKEN: %s\n", token);
-        while(!token.equals("") && !fileData.getFileName().equals(token))
-        {
-            try
-            {
-                System.out.printf("%s is waiting\n", fileData.getFileName());
-                wait();
-                Thread.sleep(2000);
-            }
-
-            catch(Exception e)
-            {
-
-            }
-        }
-
-        token = fileData.getFileName();
+        StringBuilder sb = new StringBuilder();
 
         // Split file into blocks
         fileData.createSegments(fileData.getData(), 1024 * 1024 * 4, Segment.Block);
 
         List<byte[]> blocksCreated = fileData.getBlocks();
 
-        tcpm.sendMessageToServer(String.format("upload/%s/%d/%d", fileData.getFileName(), 
-            fileData.getFileSize(), blocksCreated.size()), 2000);
+        sb.append(String.format("upload/%s/%d/%d", fileData.getFileName(), 
+        fileData.getFileSize(), blocksCreated.size()));
+
+        for(int i = 0; i < blocksCreated.size(); i++)
+        {
+            fileData.createSegments(blocksCreated.get(i), 65505, Segment.Packet);
+            sb.append("/" + String.valueOf(fileData.getPackets().size()));           
+        }
+
+        System.out.printf("BUILT STRING: %s\n", sb.toString());
+
+        tcpm.sendMessageToServer(sb.toString(), 1000);
 
         for(int i = 0; i < blocksCreated.size(); i++)
         {
@@ -76,8 +83,6 @@ public class FileController
             fileData.createSegments(blocksCreated.get(i), 65505, Segment.Packet);
 
             List<byte[]> packetsCreated = fileData.getPackets();
-
-            tcpm.sendMessageToServer(String.valueOf(packetsCreated.size()), 1000);
 
             ui.appendToLog("Transmitting data to server...");
 
@@ -110,18 +115,6 @@ public class FileController
         ui.appendToLog(String.format("Data transmission for %s complete.", fileData.getFileName()));
 
         uploadSync.blockedFiles.replace(fileData.getFileName(), false);
-
-        token = "";
-
-        try
-        {
-            notify();
-        }
-
-        catch(Exception e)
-        {
-
-        }
     }
 
     synchronized public void delete(FileData fileData)
@@ -164,4 +157,21 @@ public class FileController
 
         }
     }
+
+    public void download(FileData fileData, String directory)
+    {
+        try(FileOutputStream fos = new FileOutputStream(directory + "/" + fileData.getFileName()))
+        {
+            fos.write(fileData.getData());
+        }
+       
+        catch(IOException ioe)
+        {
+            ioe.printStackTrace();
+        }
+        
+        boundedBuffer.setFileDownloading(false);
+
+        ui.appendToLog(String.format("Synchronization complete: %s added/updated!", fileData.getFileName()));
+    }   
 }
