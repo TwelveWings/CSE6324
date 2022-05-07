@@ -37,6 +37,14 @@ public class ClientController
         directory = dir;
     }
 
+    /*
+     * \brief downloadFile
+     * 
+     * Begins the process of downloading the file from the server. Create a receiver thread for each
+     * packet for each block.
+     * 
+     * \param fileName is the name of the file being downloaded from the server.
+    */
     synchronized public void downloadFile(String fileName)
     {
         boundedBuffer.setFileDownloading(true);
@@ -51,8 +59,6 @@ public class ClientController
         for(int i = 0; i < numBlocks; i++)
         {
             int numPackets = Integer.valueOf(components[4 + i]);
-
-            System.out.printf("NUM PACKETS: %d\n", numPackets);
 
             byte[][] packets = new byte[numPackets][];
 
@@ -91,6 +97,14 @@ public class ClientController
         }
     }
 
+    /*
+     * \brief deleteFile
+     * 
+     * Delete the file from the local directory.
+     * 
+     * \param directory is the directory being synchronized by the client.
+     * \param fileName is the name of the file being deleted.
+     */
     synchronized public void deleteFile(String directory, String fileName)
     {
         try

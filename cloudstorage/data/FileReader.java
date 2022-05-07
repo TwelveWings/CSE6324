@@ -15,6 +15,7 @@ public class FileReader extends Thread
 {
     public byte[] data;
     public FileController controller;
+    public HashMap<String, FileData> filesInDirectory;
     public String fileName;
     public int fileSize;
     public volatile SystemAction command;
@@ -27,13 +28,14 @@ public class FileReader extends Thread
         command = null;
     }
 
-    public FileReader(String fn, SystemAction c, String d, FileController fc)
+    public FileReader(String fn, SystemAction c, String d, FileController fc, HashMap<String, FileData> fid)
     {
         data = getFileData(d + "/" + fn);
         fileName = fn;
         fileSize = data.length;
         command = c;
         controller = fc;
+        filesInDirectory = fid;
     }
 
     public void setData(byte[] d)
@@ -43,16 +45,16 @@ public class FileReader extends Thread
 
     public void run()
     {
-        FileData fd = new FileData(data, fileName, fileSize);
-
         if(command == SystemAction.Upload)
         {
+            FileData fd = filesInDirectory.get(fileName);
+            
             controller.upload(fd);
         }
 
         else if(command == SystemAction.Delete)
         {
-            controller.delete(fd);
+            controller.delete(fileName);
         }
     }  
 

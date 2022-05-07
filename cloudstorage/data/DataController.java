@@ -40,26 +40,61 @@ public class DataController
         token = "";
     }
 
+    /*
+     * \brief getBytes
+     * 
+     * Retrieves the value currently assigned to byteData.
+     * 
+     * Returns the byte[] value of byteData
+    */
     public byte[] getBytes()
     {
         return byteData;
     }
 
+    /*
+     * \brief setBytes
+     * 
+     * Assigns a value to the object's byteData variable.
+     * 
+     * \param fd is the new byte[] value being assigned to byteData.
+    */
     public void setBytes(byte[] fd)
     {
         byteData = fd;
     }
 
+    /*
+     * \brief setTCPManager
+     * 
+     * Assigns a value to the object's tcpm variable.
+     * 
+     * \param tcp is the new TCPManager value being assigned to tcpm.
+    */
     public void setTCPManager(TCPManager tcp)
     {
         tcpm = tcp;
     }
 
+    /*
+     * \brief setUDPAddress
+     * 
+     * Assigns a value to the object's targetUDPAddress variable.
+     * 
+     * \param addr is the new InetAddress value being assigned to targetUDPAddress.
+    */
     public void setUDPAddress(InetAddress addr)
     {
         targetUDPAddress = addr;
     }
 
+    /*
+     * \brief setUDPPort
+     * 
+     * Assigns a value to the object's targetUDPPort variable.
+     * 
+     * \param p is the new int value being assigned to targetUDPPort.
+    */
     public void setUDPPort(int p)
     {
         targetUDPPort = p;
@@ -134,18 +169,6 @@ public class DataController
         }
 
         ui.appendToLog(String.format("Data transmission for %s", fileData.getFileName()));
-
-        token = "";
-
-        try
-        {
-            notify();
-        }
-
-        catch(Exception e)
-        {
-
-        }
     }
 
     /*
@@ -157,58 +180,72 @@ public class DataController
     */
     synchronized public void delete(FileData fileData)
     {
-        System.out.printf("CURR_FILE: %s\n", fileData.getFileName());
-        System.out.printf("TOKEN: %s\n", token);
-        while(!token.equals("") && !fileData.getFileName().equals(token))
-        {
-            try
-            {
-                System.out.printf("%s is waiting\n", fileData.getFileName());
-                wait();
-                Thread.sleep(2000);
-            }
-
-            catch(Exception e)
-            {
-
-            }
-        }
-
-        token = fileData.getFileName();
-
         ui.appendToLog(String.format("%s deleted. Updating Client %d...", fileData.getFileName(), clientID));
 
         tcpm.sendMessageToClient(String.format("delete/%s", fileData.getFileName()), 1000);
 
         ui.appendToLog("Complete.");
-
-        token = "";
-
-        try
-        {
-            notify();
-        }
-
-        catch(Exception e)
-        {
-
-        }
     }
 
-    synchronized public void upload(FileData fileData)
+    synchronized public void upload(FileData fileData, boolean fileIsModified, List<Integer> changedIndices)
     {
+        int fileSize = fileData.getFileSize();
+
         try
         {
             FileData existingFile = sm.selectFileByName(fileData.getFileName());
 
-            if(existingFile != null)
+            if(fileIsModified)
             {
-                sm.updateFileByName(fileData.getFileName(), fileData.getData(), fileData.getFileSize());
+                // In the case that the file is modified, the data sent over is not the complete data
+                // I am using a new variable to make things a little more clear
+                byte[] deltaData = fileData.getData();
+
+                // Segment the existing data into blocks
+                existingFile.createSegments(existingFile.getData(), 1024 * 1024 * 4, Segment.Block);
+
+                List<byte[]> existingBlocks = existingFile.getBlocks();
+
+                // Segment the delta data into blocks
+                fileData.createSegments(deltaData, 1024 * 1024 * 4, Segment.Block);
+
+                List<byte[]> deltaBlocks = fileData.getBlocks();
+
+                System.out.printf("CHANGE TEST: %d\n", deltaBlocks.get(0)[deltaBlocks.get(0).length - 1]);
+
+                for(int i = 0; i < changedIndices.size(); i++)
+                {
+                    // If the changed index is negative, remove it as this denotes a deleted block.
+                    // Otherwise, update the block with the delta block.
+                    if(changedIndices.get(i) < 0)
+                    {
+                        existingBlocks.remove(changedIndices.get(i));
+                    }
+
+                    else
+                    {
+                        existingBlocks.set(changedIndices.get(i), deltaBlocks.get(i));
+                    }
+                }
+
+                byte[] newData = existingFile.combineBlockData(existingBlocks, existingBlocks.size());
+
+                fileSize = newData.length;
+
+                sm.updateFileByName(fileData.getFileName(), newData, fileSize);
             }
 
             else
             {
-                sm.insertData(fileData.getFileName(), fileData.getFileSize(), fileData.getData());
+                if(existingFile != null)
+                {
+                    sm.updateFileByName(fileData.getFileName(), fileData.getData(), fileData.getFileSize());
+                }
+
+                else
+                {
+                    sm.insertData(fileData.getFileName(), fileData.getFileSize(), fileData.getData());
+                }
             }
         }
 
@@ -217,8 +254,16 @@ public class DataController
             e.printStackTrace();
         }
 
-        ui.appendToLog(String.format("%s of size %d bytes have been uploaded successfully.", fileData.getFileName(),
-            fileData.getFileSize()));
+        if(fileIsModified)
+        {
+            ui.appendToLog(String.format("%s has been updated. New file size is %d bytes", fileData.getFileName(), fileSize));
+        }
+
+        else
+        {
+            ui.appendToLog(String.format("%s of size %d bytes have been uploaded successfully.", fileData.getFileName(),
+                fileData.getFileSize()));
+        }
 
         boundedBuffer.setFileUploading(false);
 

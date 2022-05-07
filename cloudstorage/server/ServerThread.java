@@ -49,6 +49,7 @@ public class ServerThread extends Thread
 
         BoundedBuffer bb = new BoundedBuffer(1, false, false);
 
+        /*
         ConcurrentHashMap<String, FileData> filesInServer = sm.selectAllFiles();
 
         DataController dc = new DataController(tcpm, udpm, clients.get(ID - 1).getAddress(Protocol.TCP), 
@@ -56,8 +57,6 @@ public class ServerThread extends Thread
             clients.get(ID - 1).getPort(Protocol.UDP), bb, ui, ID, sm);
 
         ServerController sc = new ServerController(tcpm, udpm, sm, ui, bb, dc, buffer, ID);
-
-        DatagramPacket packet = udpm.receiveDatagramPacket(buffer, 1000);
 
         tcpm.sendMessageToClient(String.valueOf(filesInServer.size()), 1000);
 
@@ -68,6 +67,7 @@ public class ServerThread extends Thread
                 ServerReceiver sr = new ServerReceiver(ID, "download", sm, clients, ui, bb, sc);
             }
         }
+        */
 
         while(true)
         {
@@ -79,7 +79,9 @@ public class ServerThread extends Thread
 
             bb = new BoundedBuffer(1, false, false);
 
-            dc = new DataController(tcpm, udpm, clients.get(ID - 1).getAddress(Protocol.TCP), 
+            ServerController sc = null;
+
+            DataController dc = new DataController(tcpm, udpm, clients.get(ID - 1).getAddress(Protocol.TCP), 
                 clients.get(ID - 1).getPort(Protocol.TCP), clients.get(ID - 1).getAddress(Protocol.UDP),
                 clients.get(ID - 1).getPort(Protocol.UDP), bb, ui, ID, sm);
 

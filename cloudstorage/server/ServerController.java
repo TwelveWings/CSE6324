@@ -19,10 +19,14 @@ public class ServerController
     public SQLManager sm;
     public TCPManager tcpm;
     public UDPManager udpm;
+    public boolean fileIsModified;
     public int clientID;
+    public int deltaSyncStartIndex;
+    public int deltaSyncEndIndex;
     public int fileSize;
     public int numBlocks;
 
+    // Constructor for initial client startup
     public ServerController(TCPManager tcp, UDPManager udp, SQLManager sql, ServerUI u, BoundedBuffer bb,
         DataController dc, byte[] b, int ID)
     {
@@ -36,6 +40,7 @@ public class ServerController
         clientID = ID;
     }
 
+    // Constructor for deleting a file
     public ServerController(TCPManager tcp, SQLManager sql, ServerUI u, String[] comp, BoundedBuffer bb,
         DataController dc, byte[] b, int ID)
     {
@@ -50,6 +55,7 @@ public class ServerController
         components = comp;
     }
 
+    // Constructor for normal application processes
     public ServerController(TCPManager tcp, UDPManager udp, SQLManager sql, ServerUI u, String[] comp,
         BoundedBuffer bb, DataController dc, byte[] b, int ID)
     {
@@ -65,6 +71,7 @@ public class ServerController
         buffer = b;
         clientID = ID;
         components = comp;
+        fileIsModified = comp[4].equals("m");
     }
 
     synchronized public void deleteFile(String fileName)
@@ -82,6 +89,9 @@ public class ServerController
 
     synchronized public void uploadFile(String fileName)
     {
+        int packetStart = determinePacketStart();
+        List<Integer> indices = getChangedIndices();
+
         try
         {
             List<byte[]> data = new ArrayList<byte[]>();
@@ -91,7 +101,7 @@ public class ServerController
             for(int i = 0; i < numBlocks; i++)
             {
                 // Receive a TCP message indicating the number of UDP packets being sent.
-                int numPackets = Integer.valueOf(components[4 + i]);
+                int numPackets = Integer.valueOf(components[packetStart + i]);
 
                 byte[][] packets = new byte[numPackets][];
 
@@ -99,7 +109,7 @@ public class ServerController
                 {
                     ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Server, Protocol.UDP,
                         buffer, data, packets, fileName, fileSize, numBlocks, numPackets, boundedBuffer,
-                        ui, controller);
+                        ui, controller, indices);
 
                     rt.start();
                     rt.join();
@@ -144,5 +154,46 @@ public class ServerController
         {
             e.printStackTrace();
         }
+    }
+
+    public int determinePacketStart()
+    {
+        // 5 -> 6
+        int index = 5;
+        if(fileIsModified)
+        {
+            for(int i = 5; i < components.length; i++)
+            {
+                if(components[i].equals("em"))
+                {
+                    index = i + 1;
+                    break;
+                }
+            }
+        }
+
+        return index;
+    }
+
+    public List<Integer> getChangedIndices()
+    {
+        List<Integer> indices = new ArrayList<Integer>();
+
+        if(!fileIsModified)
+        {
+            return indices;
+        }
+
+        for(int i = 5; i < components.length; i++)
+        {
+            if(components[i].equals("em"))
+            {
+                break;
+            }
+
+            indices.add(Integer.valueOf(components[i]));
+        }
+
+        return indices;
     }
 }
