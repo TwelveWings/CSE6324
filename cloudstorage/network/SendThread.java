@@ -52,6 +52,15 @@ public class SendThread extends Thread
         }
     }
 
+  /*
+     * \brief sendTCP
+     * 
+     * Sends a TCP command.
+     * 
+     * \param tcpm is the TCPManager instance being used.
+     * \param threadType is to determine if the request is coming from a client or server.
+     * \param sendMessage is the message being sent.
+    */
     public synchronized void sendTCP(TCPManager tcpm, ConnectionType threadType, String sendMessage)
     {
         if(threadType == ConnectionType.Client)
@@ -65,6 +74,15 @@ public class SendThread extends Thread
         }
     }
 
+  /*
+     * \brief sendUDP
+     * 
+     * Sends a UDP command.
+     * 
+     * \param udpm is the UDPManager instance being used.
+     * \param threadType is to determine if the request is coming from a client or server.
+     * \param sendPackets is the packets being sent.
+    */
     public synchronized void sendUDP(UDPManager udpm, ConnectionType threadType, List<byte[]> sendPackets)
     {
 

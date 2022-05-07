@@ -12,11 +12,27 @@ public class UDPManager
         udpSocket = socket;
     }
 
+  /*
+     * \brief closeSocket
+     * 
+     * Closes the UDP Socket
+    */
     public void closeSocket()
     {
         udpSocket.close();
     }
     
+  /*
+     * \brief receiveDatagramPacket
+     * 
+     * Receives a datagram packet and sets the socket to timeout. This is used in the startup of the client
+     * to ensure that a UDP socket is received.
+     * 
+     * \param buffer is the size of the buffer for the packet.
+     * \param timeout is the timeout to ensure there are no synchronization issues.
+     * 
+     * Returns the packet
+    */
     public DatagramPacket receiveDatagramPacket(byte[] buffer, int timeout)
     {
         // Instantiate DatagramPacket object based on received data - rBuffer (received Buffer).
@@ -45,6 +61,16 @@ public class UDPManager
         return receivedPacket;
     }
 
+  /*
+     * \brief receivePacket
+     * 
+     * Receives a datagram packet and removes the timeout set in the startup. 
+     * 
+     * \param buffer is the size of the buffer for the packet.
+     * \param timeout is the timeout to ensure there are no synchronization issues.
+     * 
+     * Returns the packet converted to a byte[].
+    */
     public byte[] receivePacket(byte[] buffer, int timeout)
     {
         byte[] data = null;
@@ -72,7 +98,16 @@ public class UDPManager
         return data;
     }
 
-
+  /*
+     * \brief sendPacket
+     * 
+     * Sends a datagram packet
+     * 
+     * \param data is the data being added to the packet.
+     * \param targetAddress is the address the packet is being sent to.
+     * \param targetPort is the port the packet is being sent to.
+     * \param timeout is the timeout to ensure there are no synchronization issues.
+    */
     public void sendPacket(byte[] data, InetAddress targetAddress, int targetPort, int timeout)
     {
         try
@@ -90,6 +125,15 @@ public class UDPManager
         }
     }
 
+  /*
+     * \brief sendEmptyPacket
+     * 
+     * Sends an empty datagram packet. Used in the startup of a client to connect to the server.
+     * 
+     * \param length is the length of the empty packet.
+     * \param serverAddress is the address the packet is being sent to.
+     * \param serverPort is the port the packet is being sent to.
+    */
     public void sendEmptyPacket(int length, InetAddress serverAddress, int serverPort)
     {
         try
