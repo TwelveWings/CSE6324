@@ -172,6 +172,9 @@ public class ClientUI
 
         //making the frame visible 
         f.setVisible(true); 
+
+        //closing the GUI when stopped
+        f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 
     public String selectDirectory()
@@ -187,9 +190,18 @@ public class ClientUI
             absolutepath = j.getSelectedFile().getAbsolutePath().replaceAll("[\\\\]", "\\\\\\\\");  
             System.out.println(absolutepath);
             File filepath = new File(absolutepath);
+            return absolutepath;
         }
 
+        else if (r == JFileChooser.CANCEL_OPTION)
+
+        {
+            selectDirectory();
+
+        }
         return absolutepath;
+
+
     }
 
     public void appendToLog(String message)

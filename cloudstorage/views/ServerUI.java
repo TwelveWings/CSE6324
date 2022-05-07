@@ -70,6 +70,9 @@ public class ServerUI
         //making the frame visible 
         f.setVisible(true); 
 
+        //closing the GUI when stopped
+        f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
         //*********************** Server Actual Logic Section **********************//
     }
 
