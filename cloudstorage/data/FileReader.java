@@ -48,7 +48,7 @@ public class FileReader extends Thread
         if(command == SystemAction.Upload)
         {
             FileData fd = filesInDirectory.get(fileName);
-            
+
             controller.upload(fd);
         }
 
@@ -58,6 +58,15 @@ public class FileReader extends Thread
         }
     }  
 
+    /*
+     * \brief getFileData
+     * 
+     * Gets the data from a file
+     * 
+     * \param fileName is the name of the file being converted to a byte[]
+     * 
+     * Returns the byte[] of the converted file.
+    */
     public byte[] getFileData(String fileName)
     {
         // Get file to transfer.

@@ -40,7 +40,6 @@ public class ServerThread extends Thread
 
     public void run()
     {
-        System.out.println("Testing udp connection.");
         sm = new SQLManager();
         tcpm = new TCPManager(tcpSocket);
         udpm = new UDPManager(udpSocket);

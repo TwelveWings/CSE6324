@@ -94,6 +94,14 @@ public class ReceiveThread extends Thread
         }
     }
 
+  /*
+     * \brief receiveTCP
+     * 
+     * Receive TCP commands
+     * 
+     * \param tcpm is the TCPManager instance being used.
+     * \param threadType is to determine if the request is coming from a client or server.
+    */
     public synchronized void receiveTCP(TCPManager tcpm, ConnectionType threadType)
     {
         if(threadType == ConnectionType.Client)
@@ -107,6 +115,14 @@ public class ReceiveThread extends Thread
         }
     }
 
+  /*
+     * \brief receiveUDP
+     * 
+     * Receive UDP packet
+     * 
+     * \param udpm is the UDPManager instance being used.
+     * \param threadType is to determine if the request is coming from a client or server.
+    */
     public synchronized void receiveUDP(UDPManager udpm, ConnectionType threadType)
     {
         FileData fd = new FileData();

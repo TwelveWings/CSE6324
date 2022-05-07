@@ -31,77 +31,182 @@ public class FileData
         fileIsModified = false;
     }
 
+    /*
+     * \brief getData
+     * 
+     * Retrieves the value currently assigned to data.
+     * 
+     * Returns the byte[] value of data.
+    */
     public byte[] getData()
     {
         return data;
     }
 
+    /*
+     * \brief setData
+     * 
+     * Assigns a value to the object's data variable.
+     * 
+     * \param d is the new byte[] value being assigned to data.
+    */
     public void setData(byte[] d)
     {
         data = d;
     }
 
+    /*
+     * \brief getFileName
+     * 
+     * Retrieves the value currently assigned to fileName
+     * 
+     * Returns the String value of fileName.
+    */
     public String getFileName()
     {
         return fileName;
     }
 
+    /*
+     * \brief setFileName
+     * 
+     * Assigns a value to the object's fileName variable.
+     * 
+     * \param fn is the new String value being assigned to fileName.
+    */
     public void setFileName(String fn)
     {
         fileName = fn;
     }
 
+    /*
+     * \brief getFileSize
+     * 
+     * Retrieves the value currently assigned to fileSize
+     * 
+     * Returns the int value of fileSize.
+    */
     public int getFileSize()
     {
         return fileSize;
     }
 
+    /*
+     * \brief setFileSize
+     * 
+     * Assigns a value to the object's fileSize variable.
+     * 
+     * \param fs is the new int value being assigned to fileize.
+    */
     public void setFileSize(int fs)
     {
         fileSize = fs;
     }
 
+    /*
+     * \brief getBlocks
+     * 
+     * Retrieves the value currently assigned to blocks
+     * 
+     * Returns the List<byte[]> value of blocks.
+    */
     public List<byte[]> getBlocks()
     {
         return blocks;
     }
 
+    /*
+     * \brief setBlocks
+     * 
+     * Assigns a value to the object's blocks variable.
+     * 
+     * \param b is the new List<byte[]> value being assigned to blocks.
+    */
     public void setBlocks(List<byte[]> b)
     {
         blocks = b;
     }
 
+    /*
+     * \brief getUnmodifiedBlocks
+     * 
+     * Retrieves the value currently assigned to unmodifiedBlocks
+     * 
+     * Returns the List<byte[]> value of unmodifiedBlocks
+    */
     public List<byte[]> getUnmodifiedBlocks()
     {
         return unmodifiedBlocks;
     }
 
+    /*
+     * \brief setUnmodifiedBlocks
+     * 
+     * Assigns a value to the object's unmodifiedBlocks variable.
+     * 
+     * \param b is the new List<byte[]> value being assigned to unmodifiedBlocks.
+    */
     public void setUnmodifiedBlocks(List<byte[]> b)
     {
         unmodifiedBlocks = b;
     }
 
-
+    /*
+     * \brief getPackets
+     *
+     * Retrieves the value currently assigned to packets
+     * 
+     * Returns the List<byte[]> value of packets
+    */
     public List<byte[]> getPackets()
     {
         return packets;
     }
 
+    /*
+     * \brief setPackets
+     * 
+     * Assigns a value to the object's packets variable.
+     * 
+     * \param p is the new List<byte[]> value being assigned to packets.
+    */
     public void setPackets(List<byte[]> p)
     {
         packets = p;
     }
 
+    /*
+     * \brief getChanges
+     * 
+     * Retrieves the value currently assigned to changedIndices
+     * 
+     * Returns the List<Integer> value of changedIndices
+    */
     public List<Integer> getChanges()
     {
         return changedIndices;
     }
 
+    /*
+     * \brief isFileModified
+     * 
+     * Retrieves the value currently assigned to fileIsModified
+     * 
+     * Returns the boolean value of fileIsModified
+    */
     public boolean isFileModified()
     {
         return fileIsModified;
     }
 
+    /*
+     * \brief setDeltaSyncBLocks
+     * 
+     * Uses findChange method to determine which indices have changed from file modification and updates
+     * unmodifiedBlocks and blocks based on this.
+     * 
+     * Returns a boolean value to determine if any changes occurred.
+    */
     public boolean setDeltaSyncBlocks()
     {
         changedIndices = findChange(unmodifiedBlocks, blocks);
@@ -133,6 +238,16 @@ public class FileData
         return false;
     }
 
+    /*
+     * \brief findChange
+     * 
+     * Loops through the data of the new file to determine if there has been any changes.
+     * 
+     * \param currData is the List<byte[]> that existed before the registered event.
+     * \param newData is the List<byte[]> that exists after the registered event.
+     * 
+     * Returns a list of indices that have been changed.
+    */
     public List<Integer> findChange(List<byte[]> currData, List<byte[]> newData)
     {
         List<Integer> changes = new ArrayList<Integer>();
@@ -190,6 +305,16 @@ public class FileData
         return changes;
     }
     
+    /*
+     * \brief combinePacketData
+     * 
+     * Combines all packet data after the packets have been received.
+     * 
+     * \param data is a jagged array used to collect the packets into a single data structure.
+     * \param iterations is the number of packets that have been put into data.
+     * 
+     * Returns the data combined into a single byte[]
+    */
     public byte[] combinePacketData(byte[][] data, int iterations)
     {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -210,6 +335,16 @@ public class FileData
         return bos.toByteArray();
     }
 
+    /*
+     * \brief combinePacketData
+     * 
+     * Combines all block data after all the packets in each block have been received.
+     * 
+     * \param data is a List<byte[]> used to collect the blocks into a data structure.
+     * \param iterations is the number of blocks that have been put into data.
+     * 
+     * Returns the data combined into a single byte[]
+    */
     public byte[] combineBlockData(List<byte[]> data, int iterations)
     {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -230,6 +365,16 @@ public class FileData
         return bos.toByteArray();
     }
 
+    /*
+     * \brief createSegments
+     * 
+     * Divides the FileData object's data into their respective segment type based on the size. For example,
+     * if the segment type is Segment.Block, the data will be divided into blocks equal to the size.
+     * 
+     * \param data is the data being segmented.
+     * \param size is the size of the segments that the data will be divided into.
+     * \param type is the type of segment that is being created.
+    */
     public void createSegments(byte[] data, int size, Segment type)
     {
         List<byte[]> segments = new ArrayList<byte[]>();
@@ -310,6 +455,13 @@ public class FileData
         segments.clear();
     }
 
+    /*
+     * \brief stripIdentifier
+     * 
+     * Removes the first two bytes from an array.
+     * 
+     * \param data is the data that is having bytes removed.
+    */
     public byte[] stripIdentifier(byte[] data)
     {
         byte[] temp = new byte[data.length - 2];
@@ -322,6 +474,14 @@ public class FileData
         return temp;
     }
 
+    /*
+     * \brief stripPadding
+     * 
+     * Removes the any excess data based on the newSize.
+     * 
+     * \param data is the data that is having bytes removed.
+     * \param newSize is the size of the data after having data removed.
+    */
     public byte[] stripPadding(byte[] data, int newSize)
     {
         byte[] temp = new byte[newSize];

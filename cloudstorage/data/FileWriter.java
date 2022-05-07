@@ -87,6 +87,17 @@ public class FileWriter extends Thread
         }
     }
 
+    /*
+     * \brief combinePacketData
+     * 
+     * Combines all packet data after the packets have been received. Had to be added separately from
+     * the methods in FileData to account for pause/resume.
+     * 
+     * \param data is a jagged array used to collect the packets into a single data structure.
+     * \param iterations is the number of packets that have been put into data.
+     * 
+     * Returns the data combined into a single byte[]
+    */
     public byte[] combinePacketData(byte[][] data, int iterations)
     {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -108,6 +119,17 @@ public class FileWriter extends Thread
         return bos.toByteArray();
     }
 
+  /*
+     * \brief combinePacketData
+     * 
+     * Combines all block data after all the packets in each block have been received.  Had to be added
+     * separately from the methods in FileData to account for pause/resume.
+     * 
+     * \param data is a List<byte[]> used to collect the blocks into a data structure.
+     * \param iterations is the number of blocks that have been put into data.
+     * 
+     * Returns the data combined into a single byte[]
+    */
     public byte[] combineBlockData(List<byte[]> data, int iterations)
     {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
