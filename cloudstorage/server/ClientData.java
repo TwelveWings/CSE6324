@@ -10,21 +10,26 @@ import java.util.concurrent.*;
 
 public class ClientData 
 {
+    public DataController controller;
     public InetAddress address;
+    public InetAddress udpAddress;
     public String clientAction;
     public String clientFile;
     public boolean processRequest;
     public int clientID;
     public int port;
+    public int udpPort;
     public TCPManager tcpm;
     public UDPManager udpm;
 
-    public ClientData(int cid, int p, InetAddress a, Socket tcp, DatagramSocket udp)
+    public ClientData(int cid, int p, InetAddress a, int udpp, InetAddress udpa, Socket tcp, DatagramSocket udp)
     {
         clientID = cid;
         port = p;
+        udpPort = udpp;
         processRequest = false;
         address = a;
+        udpAddress = udpa;
         tcpm = new TCPManager(tcp);
         udpm = new UDPManager(udp);
     }
@@ -35,14 +40,30 @@ public class ClientData
     }
 
 
-    public int getPort()
+    public int getPort(Protocol proto)
     {
-        return port;
+        if(proto == Protocol.UDP)
+        {
+            return udpPort;
+        }
+
+        else
+        {
+            return port;
+        }
     }
 
-    public InetAddress getAddress()
+    public InetAddress getAddress(Protocol proto)
     {
-        return address;
+        if(proto == Protocol.UDP)
+        {
+            return udpAddress;
+        }
+
+        else
+        {
+            return address;
+        }
     }    
 
     public void setProcessRequest(boolean pr)
@@ -75,39 +96,14 @@ public class ClientData
         return clientFile;
     }
 
-    public void synchronizeWithClients(String fileName, String action, SQLManager sm, ClientData client,
-        BoundedBuffer bb, ServerUI ui)
+    public void applyUDPInfo(DataController dc)
     {
-        ConcurrentHashMap<String, FileData> files = sm.selectAllFiles();
+        dc.setUDPAddress(udpAddress);
+        dc.setUDPPort(udpPort);
+    }
 
-        SystemAction command = (action.equals("delete")) ? SystemAction.Delete : SystemAction.Download;
-
-        DataController dc = new DataController(tcpm, udpm, client.getAddress(), client.getPort(), bb, ui,
-            client.getClientID());
-
-        try
-        {
-            if(files.get(fileName) != null)
-            {
-                DBReader dbr = new DBReader(files.get(fileName).data, fileName, files.get(fileName).fileSize,
-                    command, dc);
-
-                dbr.start();
-                dbr.join();
-            }
-
-            else if(command == SystemAction.Delete)
-            {
-                DBReader dbr = new DBReader(fileName, command, dc);
-
-                dbr.start();
-                dbr.join();
-            }
-        }
-
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
+    public void applyTCPManager(DataController dc)
+    {
+        dc.setTCPManager(tcpm);
     }
 }

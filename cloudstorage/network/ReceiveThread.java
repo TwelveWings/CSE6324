@@ -15,6 +15,8 @@ public class ReceiveThread extends Thread
     public BoundedBuffer boundedBuffer;
     public ConnectionType threadType;
     public ClientUI cUI;
+    public DataController dataController;
+    public FileController fileController;
     public List<byte[]> data;
     public Protocol receiveProtocol;
     public String fileName;
@@ -36,7 +38,8 @@ public class ReceiveThread extends Thread
 
     // Constructor for Server ReceiveThread
     public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
-        List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, ServerUI u)
+        List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, ServerUI u,
+        DataController dc)
     {
         data = d;
         combinedPackets = cp;
@@ -50,12 +53,13 @@ public class ReceiveThread extends Thread
         numPackets = np;
         boundedBuffer = bb;
         sUI = u;
+        dataController = dc;
     }
 
     // Constructor for Client ReceiveThread
     public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
         List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, 
-        String dir, Synchronizer s, ClientUI u)
+        String dir, Synchronizer s, ClientUI u, FileController fc)
     {
         data = d;
         combinedPackets = cp;
@@ -71,6 +75,7 @@ public class ReceiveThread extends Thread
         boundedBuffer = bb;
         directory = dir;
         cUI = u;
+        fileController = fc;
     }
 
     public void run()
@@ -102,7 +107,6 @@ public class ReceiveThread extends Thread
 
     public synchronized void receiveUDP(UDPManager udpm, ConnectionType threadType)
     {
-        System.out.printf("RECEIVE THREAD FOR %s\n", fileName);
         FileData fd = new FileData();
         
         byte[] packet = udpm.receivePacket(buffer, 75);
@@ -137,7 +141,7 @@ public class ReceiveThread extends Thread
         if(threadType == ConnectionType.Client)
         {
             FileWriter writer = new FileWriter(data, combinedPackets, buffer, fileName, fileSize, 
-                identifier, scale, numBlocks, numPackets, boundedBuffer, directory, sync, cUI);
+                identifier, scale, numBlocks, numPackets, boundedBuffer, directory, sync, cUI, fileController);
 
             writer.start();
         }
@@ -145,7 +149,7 @@ public class ReceiveThread extends Thread
         else
         {
             DBWriter writer = new DBWriter(data, combinedPackets, buffer, fileName, fileSize, identifier,
-                scale, numBlocks, numPackets, boundedBuffer, sUI);
+                scale, numBlocks, numPackets, boundedBuffer, sUI, dataController);
 
             writer.start();
         }

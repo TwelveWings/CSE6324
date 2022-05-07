@@ -11,26 +11,58 @@ import java.util.*;
 public class DataController 
 {
     public BoundedBuffer boundedBuffer;
+    public byte[] byteData;
     public InetAddress targetAddress;
+    public InetAddress targetUDPAddress;
     public ServerUI ui;
+    public SQLManager sm;
     public String timestamp;
     public TCPManager tcpm;
     public UDPManager udpm;
     public int clientID;
     public int targetPort;
+    public int targetUDPPort;
     public volatile String token;
     
-    public DataController(TCPManager tcp, UDPManager udp, InetAddress a, int p, BoundedBuffer bb, 
-        ServerUI u, int ID)
+    public DataController(TCPManager tcp, UDPManager udp, InetAddress a, int p, InetAddress udpa, int udpp, 
+        BoundedBuffer bb, ServerUI u, int ID, SQLManager sql)
     {
         tcpm = tcp;
         udpm = udp;
         targetAddress = a;
+        targetUDPAddress = udpa;
         targetPort = p;
+        targetUDPPort = udpp;
         boundedBuffer = bb;
         ui = u;
         clientID = ID;
+        sm = sql;
         token = "";
+    }
+
+    public byte[] getBytes()
+    {
+        return byteData;
+    }
+
+    public void setBytes(byte[] fd)
+    {
+        byteData = fd;
+    }
+
+    public void setTCPManager(TCPManager tcp)
+    {
+        tcpm = tcp;
+    }
+
+    public void setUDPAddress(InetAddress addr)
+    {
+        targetUDPAddress = addr;
+    }
+
+    public void setUDPPort(int p)
+    {
+        targetUDPPort = p;
     }
 
     /* 
@@ -43,41 +75,25 @@ public class DataController
     */
     synchronized public void download(FileData fileData)
     {
+        StringBuilder sb = new StringBuilder();
+
         byte[] buffer = new byte[65507];
-
-        System.out.printf("CURR_FILE: %s\n", fileData.getFileName());
-        System.out.printf("TOKEN: %s\n", token);
-        while(!token.equals("") && !fileData.getFileName().equals(token))
-        {
-            try
-            {
-                System.out.printf("%s is waiting\n", fileData.getFileName());
-                wait();
-                Thread.sleep(2000);
-            }
-
-            catch(Exception e)
-            {
-
-            }
-        }
-
-        token = fileData.getFileName();
 
         // Split file into blocks
         fileData.createSegments(fileData.getData(), 1024 * 1024 * 4, Segment.Block);
 
         List<byte[]> blocksCreated = fileData.getBlocks();
+
+        sb.append(String.format("download/%s/%d/%d", fileData.getFileName(), 
+        fileData.getFileSize(), blocksCreated.size()));
         
-        tcpm.sendMessageToClient(String.format("download/%s/%d/%d", fileData.getFileName(),
-            fileData.getFileSize(), blocksCreated.size()), 2000);
+        for(int i = 0; i < blocksCreated.size(); i++)
+        {
+            fileData.createSegments(blocksCreated.get(i), 65505, Segment.Packet);
+            sb.append("/" + String.valueOf(fileData.getPackets().size()));           
+        }
 
-        // A datagram packet must be received from the client in order to establish which port is being
-        // used.
-        DatagramPacket connector = udpm.receiveDatagramPacket(buffer, 3000);
-
-        targetPort = connector.getPort();
-        targetAddress = connector.getAddress();
+        tcpm.sendMessageToServer(sb.toString(), 1000);
 
         System.out.printf("UDP PORT: %d\n", targetPort);
 
@@ -88,8 +104,6 @@ public class DataController
 
             List<byte[]> packetsCreated = fileData.getPackets();
 
-            tcpm.sendMessageToClient(String.valueOf(packetsCreated.size()), 1000);
-
             ui.appendToLog(String.format("Transmitting data to Client %d...", clientID));
 
             for(int j = 0; j < packetsCreated.size(); j++)
@@ -98,7 +112,7 @@ public class DataController
 
                 // Send the packet
                 SendThread st = new SendThread(udpm, packetsCreated, ConnectionType.Server,
-                    Protocol.UDP, targetPort, targetAddress, boundedBuffer);
+                    Protocol.UDP, targetUDPPort, targetUDPAddress, boundedBuffer);
 
                 st.start();
 
@@ -179,5 +193,35 @@ public class DataController
         {
 
         }
+    }
+
+    synchronized public void upload(FileData fileData)
+    {
+        try
+        {
+            FileData existingFile = sm.selectFileByName(fileData.getFileName());
+
+            if(existingFile != null)
+            {
+                sm.updateFileByName(fileData.getFileName(), fileData.getData(), fileData.getFileSize());
+            }
+
+            else
+            {
+                sm.insertData(fileData.getFileName(), fileData.getFileSize(), fileData.getData());
+            }
+        }
+
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+
+        ui.appendToLog(String.format("%s of size %d bytes have been uploaded successfully.", fileData.getFileName(),
+            fileData.getFileSize()));
+
+        boundedBuffer.setFileUploading(false);
+
+        ui.appendToLog("Transmission Complete.");
     }
 }

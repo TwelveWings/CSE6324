@@ -6,13 +6,13 @@ import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import cloudstorage.views.*;
 import java.net.*;
-import java.nio.file.*;
 import java.util.*;
 
 public class ClientReceiver extends Thread
 {
-    public byte[] buffer;
+    public ClientController controller;
     public ClientUI ui;
+    public FileController Fc;
     public InetAddress address;
     public String[] components;
     public String action;
@@ -23,13 +23,12 @@ public class ClientReceiver extends Thread
     public TCPManager tcpm;
     public UDPManager udpm;
 
-    public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, byte[] b, String dir, 
-        Synchronizer s, Synchronizer ds, String[] c, ClientUI u)
+    public ClientReceiver(TCPManager tcp, UDPManager udp, InetAddress addr, String dir, Synchronizer s,
+        Synchronizer ds, String[] c, ClientUI u, ClientController cc)
     {
         tcpm = tcp;
         udpm = udp;
         address = addr;
-        buffer = b;
         directory = dir;
         sync = s;
         downloadSync = ds;
@@ -37,14 +36,15 @@ public class ClientReceiver extends Thread
         udpm = udp;
         ui = u;
         components = c;
+        controller = cc;
     }
 
     public void run()
     {
+        ui.appendToLog("Connecting with server...");
+
         String action = components[0];
         String fileName = components[1];
-
-        BoundedBuffer boundedBuffer = new BoundedBuffer(1, false, false);
 
         if(downloadSync.blockedFiles.containsKey(fileName))
         {
@@ -56,65 +56,14 @@ public class ClientReceiver extends Thread
             downloadSync.blockedFiles.put(fileName, true);
         }
 
-        if(action.equals("download"))
+        switch(action)
         {
-            boundedBuffer.setFileDownloading(true);
-
-            int fileSize = Integer.valueOf(components[2]);
-            int numBlocks = Integer.valueOf(components[3]);
-
-            // Send empty packet to establish UDP port connection with server.
-            udpm.sendEmptyPacket(1, address, 2023);
-
-            List<byte[]> data = new ArrayList<byte[]>();
-
-            ui.appendToLog("Receiving data from Server...");
-
-            for(int i = 0; i < numBlocks; i++)
-            {
-                int numPackets = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
-
-                System.out.printf("NUM PACKETS: %d\n", numPackets);
-
-                byte[][] packets = new byte[numPackets][];
-
-                for(int j = 0; j < numPackets; j++)
-                {
-                    ReceiveThread rt = new ReceiveThread(udpm, ConnectionType.Client, Protocol.UDP,
-                        buffer, data, packets, fileName, fileSize, numBlocks, numPackets, boundedBuffer, 
-                        directory, sync, ui);
-
-                    rt.start();
-                }
-            }
-
-            while(boundedBuffer.getFileDownloading())
-            {
-                try
-                {
-                    System.out.println("Waiting for file to download...");
-                    Thread.sleep(1000);
-                }
-
-                catch(Exception e)
-                {
-                    
-                }
-            }
-        }
-
-        else if(action.equals("delete"))
-        {
-            try
-            {
-                ui.appendToLog(String.format("Synchronization complete: %s deleted!", fileName));
-                Files.deleteIfExists(Paths.get(directory + "/" + fileName));
-            }
-
-            catch(Exception e)
-            {
-
-            }
+            case "download":
+                controller.downloadFile(fileName);
+                break;
+            case "delete":
+                controller.deleteFile(directory, fileName);
+                break;
         }
 
         try

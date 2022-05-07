@@ -1,6 +1,7 @@
 package cloudstorage.client;
 
 import cloudstorage.control.*;
+import cloudstorage.data.*;
 import cloudstorage.network.*;
 import cloudstorage.views.*;
 import java.awt.event.*;
@@ -59,12 +60,27 @@ public class Client
             tcpm = new TCPManager(tcpSocket);
             udpm = new UDPManager(udpSocket);
 
+            ui.appendToLog("Establishing UDP connection with server...");
+
+            Thread.sleep(5000);
+
+            System.out.println("Sending");
+
+            // Send empty packet to establish UDP port connection with server.
+            udpm.sendEmptyPacket(1, address, 2023);
+
+            int connected = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
+            while(connected == -1)
+            {
+                connected = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+            }
+
             ui.appendToLog("Client connected with Server");
 
             // Receive a message for the server indicating the number of files stored there
             int filesSent = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
 
-            /*
             // If there are files, send the files to the client.
             if(filesSent > 0)
             {
@@ -75,9 +91,16 @@ public class Client
                     String action = tcpm.receiveMessageFromServer(1000);
 
                     String[] components = action.split("/");
-    
-                    ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync, 
-                        downloadSync, components, ui);
+
+                    BoundedBuffer boundedBuffer = new BoundedBuffer(1, false, false);
+
+                    FileController fc = new FileController(tcpm, udpm, sync, boundedBuffer, address, 2023, ui);
+   
+                    ClientController cc = new ClientController(tcpm, udpm, boundedBuffer, ui, components,
+                        sync, fc, buffer, address, directory);
+
+                    ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, directory, sync, 
+                        downloadSync, components, ui, cc);
 
                     cr.start();
     
@@ -91,7 +114,7 @@ public class Client
     
                     }
                 }
-            }*/
+            }
 
             // Start event watcher to keep track of directory changes and synchronize with server.
             EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, downloadSync,
@@ -111,8 +134,15 @@ public class Client
 
                 String[] components = message.split("/");
 
-                ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, directory, sync,
-                    downloadSync, components, ui);
+                BoundedBuffer boundedBuffer = new BoundedBuffer(1, false, false);
+
+                FileController fc = new FileController(tcpm, udpm, sync, boundedBuffer, address, 2023, ui);
+
+                ClientController cc = new ClientController(tcpm, udpm, boundedBuffer, ui, components,
+                    sync, fc, buffer, address, directory);
+
+                ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, directory, sync, 
+                    downloadSync, components, ui, cc);
 
                 cr.start();
 
