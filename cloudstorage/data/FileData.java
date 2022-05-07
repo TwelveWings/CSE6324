@@ -433,7 +433,6 @@ public class FileData
 
                 else
                 {
-                   // System.out.println(remainingData);
                     segments.add(temp);
                     temp = new byte[size];
                 }

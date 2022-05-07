@@ -70,13 +70,9 @@ public class EventProcessor extends Thread
                 // Get the byte data for the file being processed.
                 byte[] sendData = Files.readAllBytes(Paths.get(directory).toAbsolutePath().resolve(fileName));
 
-                System.out.printf("SEND_DATA_LEN: %d\n", sendData.length);
-
                 FileData fileData = new FileData(sendData, fileName, sendData.length);
                 
                 fileData.createSegments(sendData, 1024 * 1024 * 4, Segment.Block);
-
-                System.out.printf("BLOCKS: %d\n", fileData.getBlocks().size());
 
                 fileData.setUnmodifiedBlocks(fileData.getBlocks());
                 

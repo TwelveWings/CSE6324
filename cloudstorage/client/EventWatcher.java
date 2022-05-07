@@ -98,10 +98,6 @@ public class EventWatcher extends Thread
                     WatchEvent<Path> ev = cast(event);
                     Path fileName = ev.context();
 
-                    System.out.println("FILE PROCESSED:");
-                    System.out.println(fileName.toString());
-                    System.out.println(kind);
-
                     EventProcessor ep = new EventProcessor(fileName.toString(), downloadSync, uploadSync,
                         directory, clientDirectory, kind, fc, unmodifiedFilesInDirectory);
                         

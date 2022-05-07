@@ -85,8 +85,6 @@ public class DBWriter extends Thread
 
         if(data.size() == numBlocks)
         {
-            System.out.println("DBWRITER");
-            System.out.println(fileName);
             fd.setData(fd.combineBlockData(data, numBlocks));
             fd.setFileName(fileName);
             fd.setFileSize(fileSize);

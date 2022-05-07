@@ -72,8 +72,6 @@ public class ServerThread extends Thread
         {
             String message = tcpm.receiveMessageFromClient(1000);
 
-            System.out.println(message);
-
             String[] components = message.split("/");
 
             bb = new BoundedBuffer(1, false, false);
