@@ -15,6 +15,7 @@ public class FileController
     public BoundedBuffer boundedBuffer;
     public ClientUI ui;
     public Date date;
+    public HashMap<String, FileData> filesInDirectory;
     public InetAddress targetAddress;
     public String fileName;
     public Synchronizer sync;
@@ -24,8 +25,9 @@ public class FileController
     public int targetPort;
     public volatile String token;
 
+    // ClientReceiver constructor
     public FileController(TCPManager tcp, UDPManager udp, Synchronizer s, BoundedBuffer bb,
-        InetAddress a, int p, ClientUI u)
+        InetAddress a, int p, ClientUI u, HashMap<String, FileData> fid)
     {
         tcpm = tcp;
         udpm = udp;
@@ -34,9 +36,11 @@ public class FileController
         targetAddress = a;
         targetPort = p;
         ui = u;
+        filesInDirectory = fid;
         token = "";
     }
 
+    // EventProcessor constructor
     public FileController(TCPManager tcp, UDPManager udp, Synchronizer s, Synchronizer us, BoundedBuffer bb,
         InetAddress a, int p, ClientUI u)
     {
@@ -94,8 +98,6 @@ public class FileController
             fileData.createSegments(blocksCreated.get(i), 65505, Segment.Packet);
             sb.append(String.format("/%d", fileData.getPackets().size()));  
         }
-
-        System.out.printf("BUILT STRING: %s\n", sb.toString());
 
         tcpm.sendMessageToServer(sb.toString(), 1000);
 
@@ -181,6 +183,16 @@ public class FileController
             ioe.printStackTrace();
         }
         
+        // Split new file into blocks
+        fileData.createSegments(fileData.getData(), 1024 * 1024 * 4, Segment.Block);
+
+        // Save these blocks as unmodified
+        fileData.setUnmodifiedBlocks(fileData.getBlocks());
+
+        // Add these to the hashmap
+        filesInDirectory.put(fileData.getFileName(), fileData);
+        
+        // Allow processes to be performed for new file.
         boundedBuffer.setFileDownloading(false);
 
         ui.appendToLog(String.format("Synchronization complete: %s added/updated!", fileData.getFileName()));

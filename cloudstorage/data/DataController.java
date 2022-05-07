@@ -130,8 +130,6 @@ public class DataController
 
         tcpm.sendMessageToServer(sb.toString(), 1000);
 
-        System.out.printf("UDP PORT: %d\n", targetPort);
-
         for(int i = 0; i < blocksCreated.size(); i++)
         {
             // Read the block and create packets
@@ -210,8 +208,6 @@ public class DataController
                 fileData.createSegments(deltaData, 1024 * 1024 * 4, Segment.Block);
 
                 List<byte[]> deltaBlocks = fileData.getBlocks();
-
-                System.out.printf("CHANGE TEST: %d\n", deltaBlocks.get(0)[deltaBlocks.get(0).length - 1]);
 
                 for(int i = 0; i < changedIndices.size(); i++)
                 {

@@ -74,6 +74,13 @@ public class ServerController
         fileIsModified = comp[4].equals("m");
     }
 
+    /*
+     * \brief deleteFile
+     * 
+     * Deletes a file from the server.
+     * 
+     * \param fileName is the file being deleted.
+    */
     synchronized public void deleteFile(String fileName)
     {
         try
@@ -87,6 +94,14 @@ public class ServerController
         }
     }
 
+
+    /*
+     * \brief uploadFile
+     * 
+     * Initiates the upload operation. Creates ReceiveThreads to capture data packets.
+     * 
+     * \param fileName is the file being uploaded
+    */
     synchronized public void uploadFile(String fileName)
     {
         int packetStart = determinePacketStart();
@@ -123,6 +138,20 @@ public class ServerController
         }
     }
 
+    /*
+     * \brief synchronizeWithClients
+     * 
+     * After deleting or uploading a file, push the change to any other active clients.
+     * 
+     * \param fileName is the file being deleted.
+     * \param action is the action (download/delete) being performed
+     * \param sm is the instance of the SQLManager
+     * \param client is the ClientData to send data to each other active client
+     * \param bb is the BoundedBuffer used between reading the data from the DB and sending it to the
+     * client
+     * \param ui is the instance of the ServerUI
+     * \param dc is the instance of the DataController
+    */
     synchronized public void synchronizeWithClients(String fileName, String action, SQLManager sm, ClientData client,
         BoundedBuffer bb, ServerUI ui, DataController dc)
     {        
@@ -156,6 +185,14 @@ public class ServerController
         }
     }
 
+    /*
+     * \brief determinePacketStart
+     * 
+     * In the received message from the client, the position of the packets is variable since modifications
+     * are also variable. This determines where the packet section begins.
+     * 
+     * Returns the starting index where the packets occur.
+    */
     public int determinePacketStart()
     {
         // 5 -> 6
@@ -175,6 +212,13 @@ public class ServerController
         return index;
     }
 
+    /*
+     * \brief getChanedIndices
+     * 
+     * Compiles a list of all the changed indices.
+     * 
+     * Returns a List<Integer> containing the changed indices.
+    */
     public List<Integer> getChangedIndices()
     {
         List<Integer> indices = new ArrayList<Integer>();

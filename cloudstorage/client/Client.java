@@ -151,13 +151,12 @@ public class Client
             {
                 String message = tcpm.receiveMessageFromServer(1000);
 
-                System.out.println(message);
-
                 String[] components = message.split("/");
 
                 BoundedBuffer boundedBuffer = new BoundedBuffer(1, false, false);
 
-                FileController fc = new FileController(tcpm, udpm, sync, boundedBuffer, address, 2023, ui);
+                FileController fc = new FileController(tcpm, udpm, sync, boundedBuffer, address, 2023, ui,
+                    unmodifiedFilesInDirectory);
 
                 ClientController cc = new ClientController(tcpm, udpm, boundedBuffer, ui, components,
                     sync, fc, buffer, address, directory);

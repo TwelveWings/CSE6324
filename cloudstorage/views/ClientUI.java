@@ -177,6 +177,13 @@ public class ClientUI
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 
+    /*
+     * \brief selectDirectory
+     * 
+     * Allows the user to select a directory through the UI.
+     * 
+     * Returns the directory selected.
+    */
     public String selectDirectory()
     {
         String absolutepath = "";
@@ -194,16 +201,20 @@ public class ClientUI
         }
 
         else if (r == JFileChooser.CANCEL_OPTION)
-
         {
             selectDirectory();
 
         }
         return absolutepath;
-
-
     }
 
+    /*
+     * \brief appendToLog
+     * 
+     * Writes a message to the UI log
+     * 
+     * \param message is the message being written.
+    */
     public void appendToLog(String message)
     {
         date = new Date(System.currentTimeMillis());

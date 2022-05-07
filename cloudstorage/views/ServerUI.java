@@ -76,6 +76,13 @@ public class ServerUI
         //*********************** Server Actual Logic Section **********************//
     }
 
+    /*
+     * \brief appendToLog
+     * 
+     * Writes a message to the UI log
+     * 
+     * \param message is the message being written.
+    */
     public void appendToLog(String message)
     {
         date = new Date(System.currentTimeMillis());

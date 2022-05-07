@@ -137,6 +137,8 @@ public class ReceiveThread extends Thread
         
         int newSize = 0;
 
+        // If its the last packet sent, it may not be equal to the full packet size of 65505. As such,
+        // strip the padding. 
         if(data.size() == numBlocks - 1)
         {
             if(fileSize % buffer.length > 0 && identifier == numPackets - 1)
