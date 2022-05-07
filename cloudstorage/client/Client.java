@@ -2,6 +2,7 @@ package cloudstorage.client;
 
 import cloudstorage.control.*;
 import cloudstorage.data.*;
+import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import cloudstorage.views.*;
 import java.awt.event.*;
@@ -23,6 +24,7 @@ public class Client
     public static final int bufferSize = 65507;
     public static TCPManager tcpm;
     public static UDPManager udpm;
+    public static HashMap<String, FileData> unmodifiedFilesInDirectory;
 
     public static void main(String[] args)
     {
@@ -36,8 +38,6 @@ public class Client
         ClientUI ui = new ClientUI(sync);
 
         buffer = new byte[bufferSize];
-
-        Scanner sc = new Scanner(System.in);
 
         System.out.println("Opening Client GUI...");
 
@@ -62,10 +62,6 @@ public class Client
 
             ui.appendToLog("Establishing UDP connection with server...");
 
-            Thread.sleep(5000);
-
-            System.out.println("Sending");
-
             // Send empty packet to establish UDP port connection with server.
             udpm.sendEmptyPacket(1, address, 2023);
 
@@ -78,6 +74,7 @@ public class Client
 
             ui.appendToLog("Client connected with Server");
 
+            /*
             // Receive a message for the server indicating the number of files stored there
             int filesSent = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
 
@@ -114,11 +111,35 @@ public class Client
     
                     }
                 }
+            }*/
+
+            Path clientDirectory = Paths.get(directory);
+
+            unmodifiedFilesInDirectory = new HashMap<String, FileData>();
+
+            //Get all files in directory
+            List<File> filesInFolder = Files.walk(clientDirectory)
+                                            .filter(Files::isRegularFile)
+                                            .map(Path::toFile)
+                                            .collect(Collectors.toList());
+
+            //Load files into original files HashMap
+            for (File file : filesInFolder)
+            {
+                String name = file.getName();
+
+                byte[] sendData = Files.readAllBytes(file.toPath());
+
+                FileData tempFileData = new FileData(sendData, name, sendData.length);
+
+                tempFileData.createSegments(sendData, 1024 * 1024 * 4, Segment.Block);
+                
+                unmodifiedFilesInDirectory.put(name, tempFileData);
             }
 
             // Start event watcher to keep track of directory changes and synchronize with server.
             EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, downloadSync,
-                uploadSync, ui);
+                uploadSync, ui, unmodifiedFilesInDirectory);
 
             ew.start();
 

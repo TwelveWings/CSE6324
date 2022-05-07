@@ -17,18 +17,20 @@ public class DBWriter extends Thread
     public byte[] buffer;
     public DataController controller;
     public List<byte[]> data;
+    public List<Integer> indices;
     public String fileName;
+    public ServerUI ui;
+    public SQLManager sm;
+    public boolean fileIsModified;
     public int bufferSize;
     public int fileSize;
     public int identifier;
-    public int scale;
     public int numBlocks;
     public int numPackets;
-    public ServerUI ui;
-    public SQLManager sm;
+    public int scale;
 
     public DBWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int id, int s, int nb, 
-        int np, BoundedBuffer bb, ServerUI u, DataController dc)
+        int np, BoundedBuffer bb, ServerUI u, DataController dc, List<Integer> i)
     {
         data = d;
         combinedPackets = cp;
@@ -43,6 +45,8 @@ public class DBWriter extends Thread
         boundedBuffer = bb;
         ui = u;
         controller = dc;
+        indices = i;
+        fileIsModified = (indices.size() > 0);
     }
 
     public void run()
@@ -89,12 +93,7 @@ public class DBWriter extends Thread
 
             controller.setBytes(fd.getData());
 
-            // read from DB to get file currently saved.
-            // compare blockData with data in DB
-            // update DB data with block data
-            // upload updated DB data
-
-            controller.upload(fd);
+            controller.upload(fd, fileIsModified, indices);
         }
     }
 }

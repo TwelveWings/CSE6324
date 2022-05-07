@@ -16,9 +16,7 @@ public class FileController
     public ClientUI ui;
     public Date date;
     public InetAddress targetAddress;
-    public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public String fileName;
-    public String timestamp;
     public Synchronizer sync;
     public Synchronizer uploadSync;
     public TCPManager tcpm;
@@ -53,22 +51,48 @@ public class FileController
         token = "";
     }
 
+    /* 
+     * \brief upload
+     * 
+     * Sends the bytes of a file to the server. Bytes are sent in blocks, which are broken into packets
+     * before transmission.
+     * 
+     * \param fileData is the an instance of FileData which stores relevant information about the file.
+    */
     synchronized public void upload(FileData fileData)
     {
         StringBuilder sb = new StringBuilder();
 
-        // Split file into blocks
-        fileData.createSegments(fileData.getData(), 1024 * 1024 * 4, Segment.Block);
-
         List<byte[]> blocksCreated = fileData.getBlocks();
 
-        sb.append(String.format("upload/%s/%d/%d", fileData.getFileName(), 
-        fileData.getFileSize(), blocksCreated.size()));
+        sb.append(String.format("upload/%s/%d/%d", fileData.getFileName(), fileData.getFileSize(), blocksCreated.size()));
+
+        if(fileData.isFileModified())
+        {
+            List<Integer> changedIndices = fileData.getChanges();
+
+            // Denotes file has been modified
+            sb.append("/m");
+
+            for(int i = 0; i < changedIndices.size(); i++)
+            {
+                sb.append(String.format("/%d", changedIndices.get(i)));
+            }
+
+            // Denotes end of modification
+            sb.append("/em");
+        }
+
+        else
+        {
+            // Denotes file is unmodified
+            sb.append("/u");
+        }
 
         for(int i = 0; i < blocksCreated.size(); i++)
         {
             fileData.createSegments(blocksCreated.get(i), 65505, Segment.Packet);
-            sb.append("/" + String.valueOf(fileData.getPackets().size()));           
+            sb.append(String.format("/%d", fileData.getPackets().size()));  
         }
 
         System.out.printf("BUILT STRING: %s\n", sb.toString());
@@ -117,47 +141,34 @@ public class FileController
         uploadSync.blockedFiles.replace(fileData.getFileName(), false);
     }
 
-    synchronized public void delete(FileData fileData)
+    /* 
+     * \brief delete
+     * 
+     * Deletes the file in the local directory
+     * 
+     * \param fileName is the name of the file that will be deleted.
+    */
+    synchronized public void delete(String fileName)
     {
-        while(!token.equals("") && !fileData.getFileName().equals(token))
-        {
-            try
-            {
-                wait();
-                Thread.sleep(2000);
-            }
+        ui.appendToLog(String.format("%s deleted. Updating server.", fileName));
 
-            catch(Exception e)
-            {
-
-            }
-        }
-
-        token = fileData.getFileName();   
-
-        date = new Date(System.currentTimeMillis());
-        timestamp = formatter.format(date);
-        ui.appendToLog(String.format("%s deleted. Updating server.", fileData.getFileName()));
-
-        tcpm.sendMessageToServer(String.format("delete/%s", fileData.getFileName()), 1000);
+        tcpm.sendMessageToServer(String.format("delete/%s", fileName), 1000);
 
         ui.appendToLog("Complete.");
 
-        uploadSync.blockedFiles.replace(fileData.getFileName(), false);
-
-        token = "";
-
-        try
-        {
-            notify();
-        }
-        
-        catch(Exception e)
-        {
-
-        }
+        uploadSync.blockedFiles.replace(fileName, false);
     }
 
+
+    /* 
+     * \brief download
+     * 
+     * After receiving the bytes from the sever, the client combines them into a data packet. A FileOutputStream 
+     * is used to recombine them. The recombined data is written to a file in the local directory.
+     * 
+     * \param fileData is the an instance of FileData which stores relevant information about the file.
+     * \param directory is the directory the file will be written to.
+    */
     public void download(FileData fileData, String directory)
     {
         try(FileOutputStream fos = new FileOutputStream(directory + "/" + fileData.getFileName()))

@@ -11,6 +11,9 @@ public class FileData
     public List<Integer> packetMap;
     public byte[] data;
     public String fileName;
+    public List<byte[]> unmodifiedBlocks;
+    public List<Integer> changedIndices;
+    public boolean fileIsModified;
     public int fileSize;
 
     public FileData()
@@ -25,6 +28,7 @@ public class FileData
         data = d;
         fileName = fn;
         fileSize = fs;
+        fileIsModified = false;
     }
 
     public byte[] getData()
@@ -67,6 +71,17 @@ public class FileData
         blocks = b;
     }
 
+    public List<byte[]> getUnmodifiedBlocks()
+    {
+        return unmodifiedBlocks;
+    }
+
+    public void setUnmodifiedBlocks(List<byte[]> b)
+    {
+        unmodifiedBlocks = b;
+    }
+
+
     public List<byte[]> getPackets()
     {
         return packets;
@@ -77,65 +92,102 @@ public class FileData
         packets = p;
     }
 
-    public int[] findChange(List<byte[]> currData, List<byte[]> newData)
+    public List<Integer> getChanges()
     {
-        int[] maxMin = { -1, -1 };
+        return changedIndices;
+    }
 
-        if(currData.size() < newData.size())
+    public boolean isFileModified()
+    {
+        return fileIsModified;
+    }
+
+    public boolean setDeltaSyncBlocks()
+    {
+        changedIndices = findChange(unmodifiedBlocks, blocks);
+
+        // If there are no changes return false to indicate as such. Otherwise, change blocks
+        // to use only the changes.
+        if(changedIndices.size() > 0)
         {
-            for(int i = 0; i < (newData.size() - (newData.size() - currData.size())) ; i++)
-            {
-                if(!Arrays.equals(currData.get(i), newData.get(i)) && maxMin[0] == -1)
-                {
-                    maxMin[0] = i;
-                }
+            fileIsModified = true;
+            List<byte[]> changedBlocks = new ArrayList<byte[]>();
 
-                else if(!Arrays.equals(currData.get(i), newData.get(i)))
+            // Loop through all the changed indices and add them to changedBlocks. Use the absolute
+            // value, since numbers can be negative.
+            for(int i = 0; i < changedIndices.size(); i++)
+            {
+                changedBlocks.add(blocks.get(Math.abs(changedIndices.get(i))));
+            }
+
+            // Set the unmodified blocks to be the blocks of the new file before blocks get overridden
+            // with the changed blocks.
+            setUnmodifiedBlocks(blocks);
+
+            // Set blocks to use only the changed blocks.
+            blocks = changedBlocks;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public List<Integer> findChange(List<byte[]> currData, List<byte[]> newData)
+    {
+        List<Integer> changes = new ArrayList<Integer>();
+
+        if(currData.size() > newData.size())
+        {
+            // If the current data is greater than the new data (file size has decreased), loop through
+            // the current data bound by the size of the new data to see if tehre are any changes.
+            for(int i = 0; i < newData.size(); i++)
+            {
+                if(!Arrays.equals(currData.get(i), newData.get(i)))
                 {
-                    maxMin[1] = i;
-                }
+                    changes.add(i);
+                }                  
+            }
+
+            // Add all the deleted blocks to the list of changes. Make them negative to denote deletion.
+            for(int i = newData.size(); i < currData.size(); i++)
+            {
+                changes.add(i * -1);
             }
         }
 
-        else if(currData.size() > newData.size())
+        else if(currData.size() < newData.size())
         {
-            for(int i = 0; i < (currData.size() - (currData.size() - newData.size())) ; i++)
+            // If the current data is smaller than the new data (file size has increased), loop through
+            // the current data to see if there are any changes. 
+            for(int i = 0; i < currData.size(); i++)
             {
-                if(!Arrays.equals(currData.get(i), newData.get(i)) && maxMin[0] == -1)
+                if(!Arrays.equals(currData.get(i), newData.get(i)))
                 {
-                    maxMin[0] = i;
-                }
+                    changes.add(i);
+                }                 
+            }
 
-                else if(!Arrays.equals(currData.get(i), newData.get(i)))
-                {
-                    maxMin[1] = i;
-                }
-            }       
+            // Add all the new blocks to the list of changes.
+            for(int i = currData.size(); i < newData.size(); i++)
+            {
+                changes.add(i);
+            }
         }
 
         else
         {
-            for(int i = 0; i < currData.size() ; i++)
+            // If the size is unchanged, loop through data to see which block differ.
+            for(int i = 0; i < currData.size(); i++)
             {
-                if(!Arrays.equals(currData.get(i), newData.get(i)) && maxMin[0] == -1)
+                if(!Arrays.equals(currData.get(i), newData.get(i)))
                 {
-                    maxMin[0] = i;
-                }
-
-                else if(!Arrays.equals(currData.get(i), newData.get(i)))
-                {
-                    maxMin[1] = i;
-                }
-            }           
+                    changes.add(i);
+                }               
+            }
         }
 
-        // If the min value was changed but the max was not only one block changed.
-        if(maxMin[0] != -1 && maxMin[1] == -1)
-        {
-            maxMin[1] = maxMin[0];
-        }
-
-        return maxMin;
+        return changes;
     }
     
     public byte[] combinePacketData(byte[][] data, int iterations)

@@ -35,7 +35,7 @@ public class BoundedBuffer
     /*
      * \brief getFileUploaded
      * 
-     * Retreives the value currently assigned to fileUploading.
+     * Retrieves the value currently assigned to fileUploading.
      * 
      * Returns the boolean value of fileUploading.
     */
@@ -59,7 +59,7 @@ public class BoundedBuffer
     /*
      * \brief getFileDownloading
      * 
-     * Retreives the value currently assigned to fileDownloading.
+     * Retrieves the value currently assigned to fileDownloading.
      * 
      * Returns the boolean value of fileDownloading
     */
