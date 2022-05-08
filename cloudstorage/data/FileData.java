@@ -222,7 +222,16 @@ public class FileData
             // value, since numbers can be negative.
             for(int i = 0; i < changedIndices.size(); i++)
             {
-                changedBlocks.add(blocks.get(Math.abs(changedIndices.get(i))));
+                if(unmodifiedBlocks.size() <= blocks.size())
+                {
+                    changedBlocks.add(blocks.get(Math.abs(changedIndices.get(i))));
+                }
+
+                else
+                {
+                    changedBlocks.add(unmodifiedBlocks.get(Math.abs(changedIndices.get(i))));                    
+                }
+
             }
 
             // Set the unmodified blocks to be the blocks of the new file before blocks get overridden

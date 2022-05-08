@@ -61,7 +61,7 @@ public class Client
             tcpm = new TCPManager(tcpSocket);
             udpm = new UDPManager(udpSocket);
 
-            ui.appendToLog("Establishing UDP connection with server...");
+            ui.appendToLog("Establishing UDP connection with server. Please wait...");
 
             // Send empty packet to establish UDP port connection with server.
             udpm.sendEmptyPacket(1, address, 2023);
@@ -75,7 +75,8 @@ public class Client
 
             ui.appendToLog("Client connected with Server");
 
-            /*
+            /* 
+            TO DO:
             // Receive a message for the server indicating the number of files stored there
             int filesSent = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
 

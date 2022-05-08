@@ -51,15 +51,23 @@ public class FileWriter extends Thread
     {
         boolean packetComplete = true;
 
-        ui.appendToLog(String.format("NUM_PACKETS: %d OUT OF %d", (identifier + 1), numPackets));
+        ui.changeSyncStatus("In Progress");
 
-        ui.appendToLog(String.format("NUM_BLOCKS: %d OUT OF %d", (fileData.size() + 1), numBlocks)); 
+        ui.progress1.setMaximum(numPackets);
+        ui.progress1.setValue(identifier + 1);
+        ui.progress1.setString(String.format("Packets transmitted (%d/%d)", (identifier + 1), numPackets));
+
+        ui.progress2.setMaximum(numBlocks);
+        ui.progress2.setValue((fileData.size() + 1));
+        ui.progress2.setString(String.format("Blocks transmitted (%d/%d)", (fileData.size() + 1), numBlocks));
+
+        sync.checkIfPaused();
         
         byte[] packet = boundedBuffer.withdraw();
 
         combinedPackets[identifier + (128 * scale) + scale] = packet;
 
-        
+
         for(int i = 0; i < combinedPackets.length; i++)
         {
             if(combinedPackets[i] == null)

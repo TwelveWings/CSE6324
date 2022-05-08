@@ -137,7 +137,7 @@ public class FileController
 
             List<byte[]> packetsCreated = fileData.getPackets();
 
-            ui.appendToLog("Transmitting data to server...");
+            ui.appendToLog(String.format("Transmitting %s data to server...", fileData.getFileName()));
 
             for(int j = 0; j < packetsCreated.size(); j++)
             {
