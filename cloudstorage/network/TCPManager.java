@@ -25,6 +25,15 @@ public class TCPManager
         }
     }
 
+  /*
+     * \brief receiveMessageFromClient
+     * 
+     * Receives a TCP message
+     * 
+     * \param timeout is the timeout to ensure there are no synchronization issues.
+     * 
+     * Returns the message received.
+    */
     public String receiveMessageFromClient(int timeout)
     {
         String message = "";
@@ -40,6 +49,8 @@ public class TCPManager
         catch(SocketException se)
         {
             System.out.println("Client closed unexpectedly.");
+
+            se.printStackTrace();
         }
 
         catch(Exception e)
@@ -50,6 +61,14 @@ public class TCPManager
         return message;
     }    
 
+  /*
+     * \brief sendMessageToClient
+     * 
+     * Sends a TCP message
+     * 
+     * \param message is the message being sent.
+     * \param timeout is the timeout to ensure there are no synchronization issues.
+    */
     public void sendMessageToClient(String message, int timeout)
     {
         try
@@ -69,6 +88,15 @@ public class TCPManager
         }
     }
 
+  /*
+     * \brief receiveMessageFromServer
+     * 
+     * Receives a TCP message
+     * 
+     * \param timeout is the timeout to ensure there are no synchronization issues.
+     * 
+     * Returns the message received.
+    */
     public String receiveMessageFromServer(int timeout)
     {
         String message = "";
@@ -94,6 +122,14 @@ public class TCPManager
         return message;
     }
 
+  /*
+     * \brief sendMessageToServer
+     * 
+     * Sends a TCP message
+     * 
+     * \param message is the message being sent.
+     * \param timeout is the timeout to ensure there are no synchronization issues.
+    */
     public void sendMessageToServer(String message, int timeout)
     {
         try

@@ -16,6 +16,11 @@ public class SQLManager
         setDBConnection();
     }
 
+    /*
+     * \brief setDBConnection
+     * 
+     * Connects to the database
+    */
     public void setDBConnection()
     {
         try 
@@ -30,6 +35,11 @@ public class SQLManager
         }
     }
 
+    /*
+     * \brief createTable
+     * 
+     * Creates the table that will be written to by the server.
+    */
     public void createTable()
     {
         try 
@@ -52,6 +62,12 @@ public class SQLManager
         }
     }
 
+  /*
+     * \brief closeConnection
+     * 
+     * Closes the connection to the DB.
+     * 
+    */
     public void closeConnection()
     {
         try 
@@ -65,6 +81,11 @@ public class SQLManager
         }
     }
 
+  /*
+     * \brief dropTable
+     * 
+     * Drops the table in the server. Used mainly for clean startup.
+    */
     public void dropTable()
     {
         try 
@@ -84,6 +105,15 @@ public class SQLManager
         }
     }
 
+  /*
+     * \brief deleteFile
+     * 
+     * Deletes a file from the DB
+     * 
+     * \param fileName is the file being deleted.
+     * 
+     * Returns an int to determine if the delete was successful.
+    */
     public int deleteFile(String fileName)
     {
         FileData fd = selectFileByName(fileName);
@@ -121,6 +151,17 @@ public class SQLManager
 
     }
 
+  /*
+     * \brief insertData
+     * 
+     * Inserts data received from the client into the DB.
+     * 
+     * \param fileName is the fileName being added.
+     * \param fileSize is the size of the file being added.
+     * \param data is the data for the file being added.
+     * 
+     * Returns an int to determine if the insert was successful.
+    */
     public int insertData(String fileName, int fileSize, byte[] data)
     {
 
@@ -161,6 +202,13 @@ public class SQLManager
         return success;
     }
 
+  /*
+     * \brief selectAllFileNames
+     * 
+     * Gathers a list of all file names in the DB.
+     * 
+     * Returns a List<String> with all the file names.
+    */
     public List<String> selectAllFileNames()
     {
         List<String> fileNames = new ArrayList<String>();
@@ -185,6 +233,13 @@ public class SQLManager
         return fileNames;
     }
 
+  /*
+     * \brief selectAllFiles
+     * 
+     * Gathers a list of all files assigned to FileData in the DB.
+     * 
+     * Returns a ConcurrentHashMap<String, FileData> with all the files.
+    */
     public ConcurrentHashMap<String, FileData> selectAllFiles()
     {
         ConcurrentHashMap<String, FileData> files = new ConcurrentHashMap<String, FileData>();
@@ -212,6 +267,15 @@ public class SQLManager
         return files;
     }
 
+  /*
+     * \brief selectFileByName
+     * 
+     * Selects a specific file and puts it into a File object.
+     * 
+     * \param fileName is the name of the file being selected.
+     * 
+     * Returns the FileData object with the file information.
+    */
     public FileData selectFileByName(String fileName)
     {
         ResultSet rs = null;
@@ -236,6 +300,15 @@ public class SQLManager
         return fd;
     }
 
+  /*
+     * \brief selectFileByID
+     * 
+     * Selects a specific file and puts it into a ResultSet
+     * 
+     * \param fileID is the ID of the file being selected.
+     * 
+     * Returns a ResultSet for the selected file.
+    */
     public ResultSet selectFileByID(String fileID)
     {
         ResultSet rs = null;
@@ -254,6 +327,15 @@ public class SQLManager
         return rs;
     }
 
+  /*
+     * \brief updateFileByName
+     * 
+     * Update a file in the database.
+     * 
+     * \param fileName is the name of the file being updated.
+     * \param data is the new data for the file
+     * \param fileSize is the new size of the data.
+    */
     public void updateFileByName(String fileName, byte[] data, int fileSize)
     {
         String sql = "UPDATE Files SET Data = ?, FileSize = ? WHERE FileName = ?";

@@ -1,14 +1,11 @@
 package cloudstorage.client;
 
 import cloudstorage.control.*;
-import cloudstorage.data.FileData;
-import cloudstorage.enums.Segment;
+import cloudstorage.data.*;
+import cloudstorage.enums.*;
 import cloudstorage.network.*;
-import cloudstorage.client.view.*;
-import java.sql.Date;
-import java.text.SimpleDateFormat;
+import cloudstorage.views.*;
 import java.awt.event.*;
-
 import java.io.File;
 import java.net.*;
 import java.nio.file.Files;
@@ -16,7 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-
+import javax.swing.*;
 
 public class Client
 {
@@ -25,62 +22,31 @@ public class Client
     public static int port;
     public static final int blockSize = 1024 * 1024 * 4;
     public static final int bufferSize = 65507;
-    public static Scanner sc;
     public static TCPManager tcpm;
     public static UDPManager udpm;
-    public static HashMap<String, FileData> originalFilesInDirectory;
+    public static HashMap<String, FileData> unmodifiedFilesInDirectory;
 
     public static void main(String[] args)
     {
-        ClientUI ui = new ClientUI();
-        SimpleDateFormat formatter= new SimpleDateFormat("HH:mm:ss");
-        Date date = new Date(System.currentTimeMillis());
-        String timestamp = formatter.format(date);
-
-        ui.textfield1.append(" [" + timestamp + "] Client connected with Server\n");
-        
-        BoundedBuffer bb = new BoundedBuffer(1, false);
+        // Instantiate the Bounded Buffer and Synchronization objects
+        BoundedBuffer bb = new BoundedBuffer(1, false, false);
         Synchronizer sync = new Synchronizer();
-        Synchronizer watcherSync = new Synchronizer();
+        Synchronizer downloadSync = new Synchronizer();
+        Synchronizer uploadSync = new Synchronizer();
 
-        sc = new Scanner(System.in);
+        // Instantiate the UI.
+        ClientUI ui = new ClientUI(sync);
 
         buffer = new byte[bufferSize];
 
         System.out.println("Opening Client GUI...");
-        System.out.println("Please specify which directory you want to synchronize:");
 
-        // String getfromclientui = ui.absolutepath;
-        // String directory = getfromclientui;
-        String directory = sc.nextLine();
-        System.out.println(directory);
+        String directory = ui.selectDirectory();
+
+        ui.appendToLog(String.format("Client will synchronize with  %s", directory));
+
         try
         {
-            // Local directory converted to a Path.
-            Path clientDirectory = Paths.get(directory);
-
-            originalFilesInDirectory= new HashMap<String, FileData>();
-
-            //Get all files in directory
-            List<File> filesInFolder = Files.walk(clientDirectory)
-                                            .filter(Files::isRegularFile)
-                                            .map(Path::toFile)
-                                            .collect(Collectors.toList());
-
-            //Load files into original files HashMap
-            for (File file : filesInFolder)
-            {
-                String fileName = file.getName();
-
-                byte[] sendData = Files.readAllBytes(file.toPath());
-
-                FileData tempFileData = new FileData(sendData, fileName, sendData.length);
-
-                tempFileData.createSegments(sendData, 1024 * 1024 * 4, Segment.Block);
-                
-                originalFilesInDirectory.put(fileName, tempFileData);
-            }
-
             // Get address of local host.
             address = InetAddress.getLocalHost();
             
@@ -94,39 +60,123 @@ public class Client
             tcpm = new TCPManager(tcpSocket);
             udpm = new UDPManager(udpSocket);
 
-            // Start event watcher to keep track of directory changes and synchronize with server.
-            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, originalFilesInDirectory, watcherSync);
-            ew.start();
+            ui.appendToLog("Establishing UDP connection with server...");
 
-            ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, buffer, bb, directory, sync, originalFilesInDirectory, watcherSync);
-            cr.start();
+            // Send empty packet to establish UDP port connection with server.
+            udpm.sendEmptyPacket(1, address, 2023);
+
+            int connected = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
+            while(connected == -1)
+            {
+                connected = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+            }
+
+            ui.appendToLog("Client connected with Server");
+
+            /*
+            // Receive a message for the server indicating the number of files stored there
+            int filesSent = Integer.valueOf(tcpm.receiveMessageFromServer(1000));
+
+            // If there are files, send the files to the client.
+            if(filesSent > 0)
+            {
+                System.out.println("Synchronizing with server, please wait...");
+                
+                for(int i = 0; i < filesSent; i++)
+                {
+                    String action = tcpm.receiveMessageFromServer(1000);
+
+                    String[] components = action.split("/");
+
+                    BoundedBuffer boundedBuffer = new BoundedBuffer(1, false, false);
+
+                    FileController fc = new FileController(tcpm, udpm, sync, boundedBuffer, address, 2023, ui);
+   
+                    ClientController cc = new ClientController(tcpm, udpm, boundedBuffer, ui, components,
+                        sync, fc, buffer, address, directory);
+
+                    ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, directory, sync, 
+                        downloadSync, components, ui, cc);
+
+                    cr.start();
+    
+                    try
+                    {
+                        cr.join();
+                    }
+    
+                    catch(Exception e)
+                    {
+    
+                    }
+                }
+            }*/
+
+            Path clientDirectory = Paths.get(directory);
+
+            unmodifiedFilesInDirectory = new HashMap<String, FileData>();
+
+            //Get all files in directory
+            List<File> filesInFolder = Files.walk(clientDirectory)
+                                            .filter(Files::isRegularFile)
+                                            .map(Path::toFile)
+                                            .collect(Collectors.toList());
+
+            //Load files into original files HashMap
+            for (File file : filesInFolder)
+            {
+                String name = file.getName();
+
+                byte[] sendData = Files.readAllBytes(file.toPath());
+
+                FileData tempFileData = new FileData(sendData, name, sendData.length);
+
+                tempFileData.createSegments(sendData, 1024 * 1024 * 4, Segment.Block);
+                
+                unmodifiedFilesInDirectory.put(name, tempFileData);
+            }
+
+            // Start event watcher to keep track of directory changes and synchronize with server.
+            EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, downloadSync,
+                uploadSync, ui, unmodifiedFilesInDirectory);
+
+            ew.start();
 
             System.out.println("Client running...");
 
-            //Suspend Button Function - (Log Message)
-            ui.button2.addActionListener(new ActionListener()
-            {  
-                public void actionPerformed(ActionEvent e)
-                {  
-                    Date date = new Date(System.currentTimeMillis());
-                    String timestamp = formatter.format(date);
-                    sync.setIsPaused(true);
-                    ui.textfield1.append(" [" + timestamp + "] File Transmission Suspended\n");
-                }  
-            });
+            // This is for the data synchronization from the server. Once the client receives a message
+            // from the server it creates a ClientReceiver thread to handle the action.
+            while(true)
+            {
+                String message = tcpm.receiveMessageFromServer(1000);
 
-            //Resume Button Function - (Log Message)
-            ui.button3.addActionListener(new ActionListener()
-            {  
-                public void actionPerformed(ActionEvent e)
-                {  
-                    Date date = new Date(System.currentTimeMillis());
-                    String timestamp = formatter.format(date);
-                    sync.setIsPaused(false);
-                    sync.resumeThread();
-                    ui.textfield1.append(" [" + timestamp + "] File Transmission Resumed\n");
-                }  
-            });
+                System.out.println(message);
+
+                String[] components = message.split("/");
+
+                BoundedBuffer boundedBuffer = new BoundedBuffer(1, false, false);
+
+                FileController fc = new FileController(tcpm, udpm, sync, boundedBuffer, address, 2023, ui);
+
+                ClientController cc = new ClientController(tcpm, udpm, boundedBuffer, ui, components,
+                    sync, fc, buffer, address, directory);
+
+                ClientReceiver cr = new ClientReceiver(tcpm, udpm, address, directory, sync, 
+                    downloadSync, components, ui, cc);
+
+                cr.start();
+
+                try
+                {
+                    cr.join();
+                }
+
+                catch(Exception e)
+                {
+
+                }
+            }
         }
 
         catch(Exception e)

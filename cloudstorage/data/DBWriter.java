@@ -2,35 +2,35 @@ package cloudstorage.data;
 
 import cloudstorage.control.BoundedBuffer;
 import cloudstorage.enums.*;
+import cloudstorage.views.*;
 import java.io.*;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 import javax.swing.*;
-import cloudstorage.server.view.*;
-import java.text.SimpleDateFormat;
 
 public class DBWriter extends Thread
 {
     public BoundedBuffer boundedBuffer;
     public byte[][] combinedPackets;
     public byte[] buffer;
+    public DataController controller;
     public List<byte[]> data;
+    public List<Integer> indices;
     public String fileName;
+    public ServerUI ui;
+    public SQLManager sm;
+    public boolean fileIsModified;
     public int bufferSize;
     public int fileSize;
     public int identifier;
-    public int scale;
     public int numBlocks;
     public int numPackets;
-    public SQLManager sm;
-    public ServerUI ui;
-    public SimpleDateFormat formatter= new SimpleDateFormat("HH:mm:ss");
-    public Date date = new Date(System.currentTimeMillis());
-    public String timestamp = formatter.format(date);
+    public int scale;
 
     public DBWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int id, int s, int nb, 
-        int np, BoundedBuffer bb, ServerUI u)
+        int np, BoundedBuffer bb, ServerUI u, DataController dc, List<Integer> i)
     {
         data = d;
         combinedPackets = cp;
@@ -42,8 +42,11 @@ public class DBWriter extends Thread
         scale = s;
         numBlocks = nb;
         numPackets = np;
-        ui = u;
         boundedBuffer = bb;
+        ui = u;
+        controller = dc;
+        indices = i;
+        fileIsModified = (indices.size() > 0);
     }
 
     public void run()
@@ -51,19 +54,13 @@ public class DBWriter extends Thread
         sm = new SQLManager();
         FileData fd = new FileData();
 
-        ui.textfield1.append(" [" + timestamp + "] ID: " + identifier + "\n");
-        ui.textfield1.append(" [" + timestamp + "] SCALE: " + scale + "\n");
-        ui.textfield1.append(" [" + timestamp + "] NUM_PACKETS: " + numPackets + "\n");
-        
+        ui.appendToLog(String.format("NUM_PACKETS: %d OUT OF %d", (identifier + 1), numPackets));
+
+        ui.appendToLog(String.format("NUM_BLOCKS: %d OUT OF %d", (data.size() + 1), numBlocks));
+
         boolean packetComplete = true;
 
-        System.out.printf("ID: %d\n", identifier);
-        //System.out.printf("SCALE: %d\n", scale);
-        System.out.printf("NUM_PACKETS: %d\n", numPackets);
-
         byte[] packet = boundedBuffer.withdraw();
-
-        //System.out.printf("PACKET_LEN: %d\n", packet.length);
 
         synchronized(this)
         {
@@ -81,54 +78,22 @@ public class DBWriter extends Thread
 
         if(packetComplete)
         {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
             byte[] packetData = fd.combinePacketData(combinedPackets, numPackets);
-
-            //System.out.printf("PACKET SIZE: %d\n", packetData.length);
 
             data.add(packetData);
         }
 
         if(data.size() == numBlocks)
         {
-            byte[] blockData = fd.combineBlockData(data, numBlocks);
+            System.out.println("DBWRITER");
+            System.out.println(fileName);
+            fd.setData(fd.combineBlockData(data, numBlocks));
+            fd.setFileName(fileName);
+            fd.setFileSize(fileSize);
 
-            // read from DB to get file currently saved.
-            // compare blockData with data in DB
-            // update DB data with block data
-            // upload updated DB data
+            controller.setBytes(fd.getData());
 
-           // System.out.printf("Data Before Upload: %d\n", blockData.length);
-
-            uploadFile(blockData);
+            controller.upload(fd, fileIsModified, indices);
         }
-    }
-
-    public synchronized void uploadFile(byte[] completeData)
-    {
-        try
-        {
-            FileData fileData = sm.selectFileByName(fileName);
-
-            if(fileData != null)
-            {
-                sm.updateFileByName(fileName, completeData, fileSize);
-            }
-
-            else
-            {
-                sm.insertData(fileName, fileSize, completeData);
-            }
-        }
-
-        catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-        ui.textfield1.append(" [" + timestamp + "] " + fileName + " of size " + fileSize + " bytes has been uploaded succesfully \n");
-        boundedBuffer.setFileUploaded(true);
-        System.out.println(boundedBuffer.getFileUploaded());
-        ui.textfield1.append(" [" + timestamp + "] Transmission Complete \n");
-        System.out.println("Complete");
     }
 }

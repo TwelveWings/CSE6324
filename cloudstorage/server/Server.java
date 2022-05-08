@@ -3,13 +3,13 @@ package cloudstorage.server;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
-import cloudstorage.server.view.*;
+import cloudstorage.views.*;
 import java.net.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
-
-public class Server {  
-
+public class Server
+{
     public static DatagramSocket udpSocket;
     public static byte[] buffer;
     public static int port;
@@ -17,13 +17,14 @@ public class Server {
     public static ServerSocket serverSocket;
     public static Socket tcpSocket;
 
-    public static void main(String[] args) {  
-
+    public static void main(String[] args)
+    {
         ServerUI ui = new ServerUI();
 
-        ui.textfield1.append(" [" + ui.timestamp + "] Server is running\n");
-
         System.out.println("Opening Server GUI...");
+
+        ui.appendToLog("Server is running...");
+
         port = 2023;
 
         List<ClientData> clients = new ArrayList<ClientData>();
@@ -53,20 +54,46 @@ public class Server {
             // Establish UPD connection with port
             udpSocket = new DatagramSocket(port);
 
+            UDPManager udpm = new UDPManager(udpSocket);
+
             int i = 0;
 
             while(true)
             {
                 tcpSocket = serverSocket.accept();
 
-                System.out.println(tcpSocket.getPort());
-                System.out.println(tcpSocket.getInetAddress());
+                TCPManager tcpm = new TCPManager(tcpSocket);
 
+                ui.appendToLog(String.format("TCP Connection with (port/address): %d/%s", tcpSocket.getPort(), tcpSocket.getInetAddress()));
+                
+                // A datagram packet must be received from the client in order to establish which port
+                // is being used.
+                DatagramPacket connector = null;
+                
+                while(connector == null)
+                {
+                    connector = udpm.receiveDatagramPacket(buffer, 1000);
+
+                    if(connector == null)
+                    {
+                        tcpm.sendMessageToClient("-1", 1000);
+                    }
+                }
+
+                tcpm.sendMessageToClient("1", 1000);
+
+                int udpPort = connector.getPort();
+                InetAddress udpAddress = connector.getAddress();
+
+                ui.appendToLog(String.format("UDP Connection with (port/address): %d/%s", udpPort, udpAddress));
+                
                 i++;
 
-                clients.add(new ClientData(i, tcpSocket.getPort(), tcpSocket.getInetAddress(), tcpSocket, udpSocket));
+                clients.add(new ClientData(i, tcpSocket.getPort(), tcpSocket.getInetAddress(), udpPort,
+                    udpAddress, tcpSocket, udpSocket));
 
-                ServerThread st = new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, i, clients, ui);
+                ServerThread st = new ServerThread(tcpSocket, udpSocket, buffer, bufferSize, i, clients,
+                    ui);
 
                 st.start();
             }
@@ -76,6 +103,5 @@ public class Server {
         {
             e.printStackTrace();
         }
-
-    }  
-}  
+    }
+}

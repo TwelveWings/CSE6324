@@ -4,30 +4,29 @@ import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
-
-import java.io.File;
+import cloudstorage.views.*;
 import java.io.IOException;
 import java.net.*;
 import static java.nio.file.StandardWatchEventKinds.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
 public class EventWatcher extends Thread
 {
+    public BoundedBuffer boundedBuffer;
+    public ClientUI ui;
+    public HashMap<String, FileData> unmodifiedFilesInDirectory;
     public TCPManager tcpm;
     public UDPManager udpm;
     public InetAddress address;
     public String directory;
     public Synchronizer sync;
-    public Synchronizer watcherSync;
-    public BoundedBuffer boundedBuffer;
-    public HashMap<String, FileData> originalFilesInDirectory;
+    public Synchronizer downloadSync;
+    public Synchronizer uploadSync;
 
-
-    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, Synchronizer s, HashMap<String, FileData> ofid, 
-                        Synchronizer ws)
+    public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, 
+        Synchronizer s, Synchronizer ds, Synchronizer us, ClientUI u, HashMap<String, FileData> ufid)
     {
         tcpm = tcp;
         udpm = udp;
@@ -35,10 +34,22 @@ public class EventWatcher extends Thread
         directory = d;
         boundedBuffer = bb;
         sync = s;
-        originalFilesInDirectory = ofid;
-        watcherSync = ws;
+        downloadSync = ds;
+        uploadSync = us;
+        ui = u;
+        unmodifiedFilesInDirectory = ufid;
     }
 
+    /*
+     * \brief cast
+     * 
+     * Casts WatchEvent<Path> to WatchEvent<T>. The standard cast causes the Java compiler to throw a
+     * warning. @SuppressWarnings bypasses this.
+     * 
+     * \param event is the WatchEvent<Path> that is being cast to WatchEvent<T>
+     * 
+     * Returns the object that has been cast as WatchEvent<T>
+     */
     @SuppressWarnings("unchecked")
     static<T> WatchEvent<T> cast(WatchEvent<?> event)
     {
@@ -47,7 +58,6 @@ public class EventWatcher extends Thread
 
     public void run()
     {
-        Set<String> fileEvents = new HashSet<String>();
         try
         {
             // Watcher service to be used to watch changes in the specified directory.
@@ -62,7 +72,7 @@ public class EventWatcher extends Thread
             // Watch key will keep track of ENTRY_CREATE, ENTRY_DELETE, and ENTRY MODIFY events.
             WatchKey key = null;
 
-            FileData lastModified = null;
+            FileController fc = new FileController(tcpm, udpm, sync, uploadSync, boundedBuffer, address, 2023, ui);
 
             while(true)
             {
@@ -78,8 +88,6 @@ public class EventWatcher extends Thread
 
                 for(WatchEvent<?> event : key.pollEvents())
                 {
-
-                    watcherSync.checkIfDownloading();
                     WatchEvent.Kind<?> kind = event.kind();
 
                     if(kind == OVERFLOW)
@@ -90,74 +98,14 @@ public class EventWatcher extends Thread
                     WatchEvent<Path> ev = cast(event);
                     Path fileName = ev.context();
 
-                    System.out.println("EVENT THAT WAS FIRED");
-
+                    System.out.println("FILE PROCESSED:");
+                    System.out.println(fileName.toString());
                     System.out.println(kind);
 
-                    if(originalFilesInDirectory.containsKey(fileName.toString()) && originalFilesInDirectory.get(fileName.toString()).getSystemCreated())
-                    {
-                        System.out.println("EVENT IN IF STATEMENT");
-                        System.out.println(kind);
-//                        originalFilesInDirectory.get(fileName.toString()).setSystemCreated(false);
-                        continue;
-                    }
-
-                    else
-                    {
-                        if(lastModified != null)
-                        {
-                            lastModified.setSystemCreated(false);
-                        }
-
-                        lastModified = originalFilesInDirectory.get(fileName.toString());
-                    }
-
-
-                    try
-                    {
-                        Path child = clientDirectory.resolve(fileName);
-
-                        Thread.sleep(1000);
-
-                        // If the event is a create or modify event begin "upload" synchronization
-                        if((kind == ENTRY_MODIFY))
-                        {   
-                            FileReader fr = new FileReader(fileName.toString(), SystemAction.Upload, tcpm, udpm, 2023, address, directory, boundedBuffer, sync, originalFilesInDirectory.get(fileName.toString()));
-
-                            //Update Hashmap for any modified file or created file before running threads
-                            
-                            byte[] sendData = Files.readAllBytes(fileName);
-
-                            FileData fileData = new FileData(sendData, fileName.toString(), sendData.length);
-                            
-                            fileData.createSegments(sendData, 1024 * 1024 * 4, Segment.Block);
-                            
-                            if(originalFilesInDirectory.containsKey(fileName.toString()))
-                            {
-                                originalFilesInDirectory.remove(fileName.toString());
-                            }
-                            
-                            originalFilesInDirectory.put(fileName.toString(), fileData);
-
-                            // run thread
-                            fr.start();
-                            fr.join();
-                        }
-
-                        else if(kind == ENTRY_DELETE)
-                        {
-                            originalFilesInDirectory.remove(fileName.toString());
-
-                            FileReader fr = new FileReader(fileName.toString(), SystemAction.Delete, tcpm, udpm, 2023, address, directory, boundedBuffer, sync);
-                            fr.start();
-                            fr.join();
-                        }
-                    }
-
-                    catch(Exception e)
-                    {
-                        e.printStackTrace();
-                    }
+                    EventProcessor ep = new EventProcessor(fileName.toString(), downloadSync, uploadSync,
+                        directory, clientDirectory, kind, fc, unmodifiedFilesInDirectory);
+                        
+                    ep.start();
                 }
 
                 // Reset the key. This is essential according to Oracle API.

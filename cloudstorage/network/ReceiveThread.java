@@ -4,7 +4,7 @@ import cloudstorage.control.*;
 import cloudstorage.data.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
-import cloudstorage.server.view.*;
+import cloudstorage.views.*;
 import java.net.*;
 import java.util.*;
 
@@ -14,9 +14,13 @@ public class ReceiveThread extends Thread
     public byte[] buffer;
     public BoundedBuffer boundedBuffer;
     public ConnectionType threadType;
-    public HashMap<String, FileData> filesInDirectory;
+    public ClientUI cUI;
+    public DataController dataController;
+    public FileController fileController;
     public List<byte[]> data;
+    public List<Integer> indices;
     public Protocol receiveProtocol;
+    public ServerUI sUI;
     public String fileName;
     public String directory;
     public Synchronizer sync;
@@ -25,7 +29,6 @@ public class ReceiveThread extends Thread
     public int numBlocks;
     public int numPackets;
     public int fileSize;
-    public ServerUI ui;
 
     public ReceiveThread(TCPManager tcp, ConnectionType ct, Protocol p)
     {
@@ -34,8 +37,10 @@ public class ReceiveThread extends Thread
         receiveProtocol = p;
     }
 
+    // Constructor for Server ReceiveThread
     public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
-        List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, ServerUI u)
+        List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, ServerUI u,
+        DataController dc, List<Integer> i)
     {
         data = d;
         combinedPackets = cp;
@@ -47,13 +52,16 @@ public class ReceiveThread extends Thread
         fileSize = fs;
         numBlocks = nb;
         numPackets = np;
-        ui = u;
         boundedBuffer = bb;
+        sUI = u;
+        dataController = dc;
+        indices = i;
     }
 
+    // Constructor for Client ReceiveThread
     public ReceiveThread(UDPManager udp, ConnectionType ct, Protocol p, byte[] b,
-        List<byte[]> d, byte[][] cp, String fn, int fs, HashMap<String, FileData> fid, 
-        int nb, int np, BoundedBuffer bb, String dir, Synchronizer s)
+        List<byte[]> d, byte[][] cp, String fn, int fs, int nb, int np, BoundedBuffer bb, 
+        String dir, Synchronizer s, ClientUI u, FileController fc)
     {
         data = d;
         combinedPackets = cp;
@@ -68,6 +76,8 @@ public class ReceiveThread extends Thread
         numPackets = np;
         boundedBuffer = bb;
         directory = dir;
+        cUI = u;
+        fileController = fc;
     }
 
     public void run()
@@ -84,6 +94,14 @@ public class ReceiveThread extends Thread
         }
     }
 
+  /*
+     * \brief receiveTCP
+     * 
+     * Receive TCP commands
+     * 
+     * \param tcpm is the TCPManager instance being used.
+     * \param threadType is to determine if the request is coming from a client or server.
+    */
     public synchronized void receiveTCP(TCPManager tcpm, ConnectionType threadType)
     {
         if(threadType == ConnectionType.Client)
@@ -97,20 +115,25 @@ public class ReceiveThread extends Thread
         }
     }
 
+  /*
+     * \brief receiveUDP
+     * 
+     * Receive UDP packet
+     * 
+     * \param udpm is the UDPManager instance being used.
+     * \param threadType is to determine if the request is coming from a client or server.
+    */
     public synchronized void receiveUDP(UDPManager udpm, ConnectionType threadType)
-    {        
+    {
         FileData fd = new FileData();
-        byte[] packet = udpm.receivePacket(buffer, 300);
-
-        //System.out.printf("RP: %d\n", packet[1]);
-        //System.out.printf("NUM BLOCKS: %d\n", numBlocks);
-    
+        
+        byte[] packet = udpm.receivePacket(buffer, 75);
+        
         int identifier = packet[1];
         int scale = packet[0];
 
+        // Remove 2 byte identifier from byte array.
         packet = fd.stripIdentifier(packet);
-
-        //System.out.printf("BUFFER_LEN: %d\n", buffer.length);
         
         int newSize = 0;
 
@@ -118,7 +141,8 @@ public class ReceiveThread extends Thread
         {
             if(fileSize % buffer.length > 0 && identifier == numPackets - 1)
             {
-                packet = fd.stripPadding(packet, (fileSize - ((numBlocks - 1) * ((1024 * 1024 * 4) % (buffer.length - 2)))) % (buffer.length - 2));
+                packet = fd.stripPadding(packet, (fileSize - ((numBlocks - 1) * 
+                    ((1024 * 1024 * 4) % (buffer.length - 2)))) % (buffer.length - 2));
             }    
         }
 
@@ -130,18 +154,21 @@ public class ReceiveThread extends Thread
             }
         }
 
-
         boundedBuffer.deposit(packet);
 
         if(threadType == ConnectionType.Client)
         {
-            FileWriter writer = new FileWriter(data, combinedPackets, buffer, fileName, fileSize, identifier, scale, numBlocks, numPackets, boundedBuffer, directory, sync);
+            FileWriter writer = new FileWriter(data, combinedPackets, buffer, fileName, fileSize, 
+                identifier, scale, numBlocks, numPackets, boundedBuffer, directory, sync, cUI, fileController);
+
             writer.start();
         }
 
         else
         {
-            DBWriter writer = new DBWriter(data, combinedPackets, buffer, fileName, fileSize, identifier, scale, numBlocks, numPackets, boundedBuffer, ui);
+            DBWriter writer = new DBWriter(data, combinedPackets, buffer, fileName, fileSize, identifier,
+                scale, numBlocks, numPackets, boundedBuffer, sUI, dataController, indices);
+
             writer.start();
         }
     }

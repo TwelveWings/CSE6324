@@ -1,71 +1,49 @@
 package cloudstorage.control;
 
+import java.util.*;
 import javax.swing.*;
 
 public class Synchronizer 
 {
     public volatile boolean isPaused;
-    public volatile boolean stopWatcher;
+    public HashMap<String, Boolean> blockedFiles;
 
     public Synchronizer()
     {
         isPaused = false;
-        stopWatcher = false;
+        blockedFiles = new HashMap<String, Boolean>();
     }
 
+    /*
+     * \brief setIsPaused
+     * 
+     * Assigns a value to the object's isPaused variable.
+     * 
+     * \param p is the new boolean value being assigned to isPaused.
+    */
     public void setIsPaused(boolean p)
     {
         isPaused = p;
     }
 
+    /*
+     * \brief getIsPaused
+     * 
+     * Retreives the value currently assigned to isPaused.
+     * 
+     * Returns the boolean value of isPaused
+    */
     public boolean getIsPaused()
     {
         return isPaused;
     }
 
-    public void checkIfDownloading()
-    {
-        if(stopWatcher)
-        {
-            JOptionPane.showMessageDialog(null, "Synchronization paused");
-            synchronized(this)
-            {
-                while(stopWatcher)
-                {
-                    try
-                    {
-                        wait();
-                    }
-                    catch(InterruptedException ie)
-                    {
-                    }
-                }
-            }
-        }
-    }
-
-    public void resumeThread(boolean wakeThreads)
-    {
-        if(wakeThreads)
-        {
-            synchronized(this)
-            {
-                notifyAll();
-            }
-            System.out.println("Synchronization resumed");
-        }
-    }
-
-    public void setStopWatcher(boolean sw)
-    {
-        stopWatcher = sw;
-    }
-
-    public boolean getStopWatcher()
-    {
-        return stopWatcher;
-    }
-
+    /*
+     * \brief checkIfPaused
+     * 
+     * Whenever the isPaused boolean is set to true, this will make the thread wait until notified by
+     * a resume command.
+    */
     public void checkIfPaused()
     {
         if(isPaused)
@@ -89,6 +67,12 @@ public class Synchronizer
         }
     }
 
+    /*
+     * \brief resumeThread
+     * 
+     * Whenever the resume button is clicked int the UI, the isPaused boolean will be set to false and
+     * this will fire notfiying the threads to resume progress.
+    */
     public void resumeThread()
     {
         if(!isPaused)

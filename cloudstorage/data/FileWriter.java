@@ -3,8 +3,10 @@ package cloudstorage.data;
 import cloudstorage.control.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
+import cloudstorage.views.*;
 import java.io.*;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class FileWriter extends Thread
@@ -12,6 +14,8 @@ public class FileWriter extends Thread
     public BoundedBuffer boundedBuffer;
     public byte[][] combinedPackets;
     public byte[] buffer;
+    public ClientUI ui;
+    public FileController controller;
     public List<byte[]> fileData;
     public String directory;
     public String fileName;
@@ -23,8 +27,8 @@ public class FileWriter extends Thread
     public int numBlocks;
     public int numPackets;
 
-    public FileWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int i, int s, int nb, int np, BoundedBuffer bb, 
-        String dir, Synchronizer syn)
+    public FileWriter(List<byte[]> d, byte[][] cp, byte[] b, String fn, int fs, int i, int s, int nb,
+        int np, BoundedBuffer bb, String dir, Synchronizer syn, ClientUI u, FileController fc)
     {
         fileData = d;
         combinedPackets = cp;
@@ -39,17 +43,14 @@ public class FileWriter extends Thread
         numPackets = np;
         boundedBuffer = bb;
         directory = dir;
+        ui = u;
+        controller = fc;
     }
 
     public void run()
     {
         boolean packetComplete = true;
 
-<<<<<<< Updated upstream
-        System.out.printf("ID: %d\n", identifier);
-        System.out.printf("NUM_PACKETS: %d\n", numPackets);
-
-=======
         ui.changeSyncStatus("In Progress");
 
         ui.progress1.setMaximum(numPackets);
@@ -66,13 +67,9 @@ public class FileWriter extends Thread
 
         sync.checkIfPaused();
         
->>>>>>> Stashed changes
         byte[] packet = boundedBuffer.withdraw();
 
-        synchronized(this)
-        {
-            combinedPackets[identifier + (128 * scale) + scale] = packet;
-        }
+        combinedPackets[identifier + (128 * scale) + scale] = packet;
 
         for(int i = 0; i < combinedPackets.length; i++)
         {
@@ -94,10 +91,23 @@ public class FileWriter extends Thread
         {
             byte[] blockData = combineBlockData(fileData, numBlocks);
 
-            downloadFile(blockData);
+            FileData fd = new FileData(blockData, fileName, fileSize);
+
+            controller.download(fd, directory);
         }
     }
 
+    /*
+     * \brief combinePacketData
+     * 
+     * Combines all packet data after the packets have been received. Had to be added separately from
+     * the methods in FileData to account for pause/resume.
+     * 
+     * \param data is a jagged array used to collect the packets into a single data structure.
+     * \param iterations is the number of packets that have been put into data.
+     * 
+     * Returns the data combined into a single byte[]
+    */
     public byte[] combinePacketData(byte[][] data, int iterations)
     {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -119,6 +129,17 @@ public class FileWriter extends Thread
         return bos.toByteArray();
     }
 
+  /*
+     * \brief combinePacketData
+     * 
+     * Combines all block data after all the packets in each block have been received.  Had to be added
+     * separately from the methods in FileData to account for pause/resume.
+     * 
+     * \param data is a List<byte[]> used to collect the blocks into a data structure.
+     * \param iterations is the number of blocks that have been put into data.
+     * 
+     * Returns the data combined into a single byte[]
+    */
     public byte[] combineBlockData(List<byte[]> data, int iterations)
     {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -138,24 +159,5 @@ public class FileWriter extends Thread
         }
 
         return bos.toByteArray();
-    }
-
-    public void downloadFile(byte[] data)
-    {
-        try(FileOutputStream fos = new FileOutputStream(directory + "/" + fileName))
-        {
-            fos.write(data);
-
-
-            System.out.printf("Synchronization complete: %s added/updated!\n", fileName);
-        }
-       
-        catch(IOException ioe)
-        {
-            ioe.printStackTrace();
-        }
-
-        boundedBuffer.setFileUploaded(true);
-        System.out.println(boundedBuffer.getFileUploaded());
-    }    
+    } 
 }

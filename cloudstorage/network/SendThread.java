@@ -27,7 +27,8 @@ public class SendThread extends Thread
         address = a;
     }
 
-    public SendThread(UDPManager udp, List<byte[]> dp, ConnectionType ct, Protocol proto, int p, InetAddress a, BoundedBuffer bb)
+    public SendThread(UDPManager udp, List<byte[]> dp, ConnectionType ct, Protocol proto, int p, InetAddress a,
+        BoundedBuffer bb)
     {
         udpm = udp;
         packets = dp;
@@ -51,6 +52,15 @@ public class SendThread extends Thread
         }
     }
 
+  /*
+     * \brief sendTCP
+     * 
+     * Sends a TCP command.
+     * 
+     * \param tcpm is the TCPManager instance being used.
+     * \param threadType is to determine if the request is coming from a client or server.
+     * \param sendMessage is the message being sent.
+    */
     public synchronized void sendTCP(TCPManager tcpm, ConnectionType threadType, String sendMessage)
     {
         if(threadType == ConnectionType.Client)
@@ -64,14 +74,20 @@ public class SendThread extends Thread
         }
     }
 
+  /*
+     * \brief sendUDP
+     * 
+     * Sends a UDP command.
+     * 
+     * \param udpm is the UDPManager instance being used.
+     * \param threadType is to determine if the request is coming from a client or server.
+     * \param sendPackets is the packets being sent.
+    */
     public synchronized void sendUDP(UDPManager udpm, ConnectionType threadType, List<byte[]> sendPackets)
     {
 
         byte[] packet = boundedBuffer.withdraw();
 
-       // System.out.printf("SP: %d\n", packet[1]);
-       // System.out.println(port);
-       // System.out.println(address);
-        udpm.sendPacket(packet, address, port, 300);
+        udpm.sendPacket(packet, address, port, 75);
     }
 }
