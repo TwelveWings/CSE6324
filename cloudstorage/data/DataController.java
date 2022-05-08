@@ -128,7 +128,7 @@ public class DataController
 
         try
         {
-            Thread.sleep(5000);
+            Thread.sleep(1500);
         }
 
         catch(Exception e)
@@ -194,6 +194,16 @@ public class DataController
     */
     synchronized public void delete(FileData fileData)
     {
+        try
+        {
+            Thread.sleep(1500);
+        }
+
+        catch(Exception e)
+        {
+            
+        }
+
         ui.appendToLog(String.format("%s deleted. Updating Client %d...", fileData.getFileName(), clientID));
 
         tcpm.sendMessageToClient(String.format("delete/%s", fileData.getFileName()), 1000);

@@ -84,7 +84,7 @@ public class FileController
 
         try
         {
-            Thread.sleep(3000);
+            Thread.sleep(1500);
         }
 
         catch(Exception e)
@@ -169,7 +169,7 @@ public class FileController
 
         try
         {
-            Thread.sleep(3000);
+            Thread.sleep(1500);
         }
 
         catch(Exception e)

@@ -76,8 +76,10 @@ public class ServerThread extends Thread
 
             String[] components = message.split("/");
 
+            // If the command is not a delete check to see if an upload can be processed.
             if(!components[0].equals("delete"))
             {
+                // Wait until upload can be processed.
                 while(sync.getIsSending())
                 {
                     tcpm.sendMessageToClient("wait", 5000);
