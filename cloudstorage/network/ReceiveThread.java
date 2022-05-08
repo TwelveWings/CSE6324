@@ -23,6 +23,7 @@ public class ReceiveThread extends Thread
     public ServerUI sUI;
     public String fileName;
     public String directory;
+    public Splitter splitter;
     public Synchronizer sync;
     public UDPManager udpm;
     public TCPManager tcpm;
@@ -30,11 +31,12 @@ public class ReceiveThread extends Thread
     public int numPackets;
     public int fileSize;
 
-    public ReceiveThread(TCPManager tcp, ConnectionType ct, Protocol p)
+    public ReceiveThread(TCPManager tcp, ConnectionType ct, Protocol p, Splitter split)
     {
         tcpm = tcp;
         threadType = ct;
         receiveProtocol = p;
+        splitter = split;
     }
 
     // Constructor for Server ReceiveThread
@@ -106,7 +108,12 @@ public class ReceiveThread extends Thread
     {
         if(threadType == ConnectionType.Client)
         {
-            tcpm.receiveMessageFromServer(1000);
+            while(true)
+            {
+                String message = tcpm.receiveMessageFromServer(1000);
+
+                splitter.setCommand(message);
+            }
         }
 
         else

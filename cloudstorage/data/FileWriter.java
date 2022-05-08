@@ -54,13 +54,12 @@ public class FileWriter extends Thread
         ui.appendToLog(String.format("NUM_PACKETS: %d OUT OF %d", (identifier + 1), numPackets));
 
         ui.appendToLog(String.format("NUM_BLOCKS: %d OUT OF %d", (fileData.size() + 1), numBlocks)); 
-
-        sync.checkIfPaused();
         
         byte[] packet = boundedBuffer.withdraw();
 
         combinedPackets[identifier + (128 * scale) + scale] = packet;
 
+        
         for(int i = 0; i < combinedPackets.length; i++)
         {
             if(combinedPackets[i] == null)

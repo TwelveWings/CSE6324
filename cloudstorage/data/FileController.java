@@ -18,6 +18,7 @@ public class FileController
     public HashMap<String, FileData> filesInDirectory;
     public InetAddress targetAddress;
     public String fileName;
+    public Splitter splitter;
     public Synchronizer sync;
     public Synchronizer uploadSync;
     public TCPManager tcpm;
@@ -42,7 +43,7 @@ public class FileController
 
     // EventProcessor constructor
     public FileController(TCPManager tcp, UDPManager udp, Synchronizer s, Synchronizer us, BoundedBuffer bb,
-        InetAddress a, int p, ClientUI u)
+        InetAddress a, int p, ClientUI u, Splitter split)
     {
         tcpm = tcp;
         udpm = udp;
@@ -52,6 +53,7 @@ public class FileController
         targetAddress = a;
         targetPort = p;
         ui = u;
+        splitter = split;
         token = "";
     }
 
@@ -65,6 +67,31 @@ public class FileController
     */
     synchronized public void upload(FileData fileData)
     {
+        System.out.println("");
+
+        tcpm.sendMessageToServer("request", 1000);
+
+        String message = "";
+
+        while(true)
+        {
+            System.out.printf("");
+            if(splitter.getCommand().equals("ready"))
+            {
+                break;
+            }
+        }
+
+        try
+        {
+            Thread.sleep(1500);
+        }
+
+        catch(Exception e)
+        {
+            
+        }
+
         StringBuilder sb = new StringBuilder();
 
         List<byte[]> blocksCreated = fileData.getBlocks();
@@ -136,6 +163,18 @@ public class FileController
 
                 }
             }
+        }
+
+        splitter.setCommand("");
+
+        try
+        {
+            Thread.sleep(1500);
+        }
+
+        catch(Exception e)
+        {
+
         }
 
         ui.appendToLog(String.format("Data transmission for %s complete.", fileData.getFileName()));

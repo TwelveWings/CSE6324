@@ -107,6 +107,8 @@ public class ClientController
      */
     synchronized public void deleteFile(String directory, String fileName)
     {
+        sync.checkIfPaused();
+
         try
         {
             ui.appendToLog(String.format("Synchronization complete: %s deleted!", fileName));

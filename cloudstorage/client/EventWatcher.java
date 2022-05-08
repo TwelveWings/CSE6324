@@ -24,9 +24,11 @@ public class EventWatcher extends Thread
     public Synchronizer sync;
     public Synchronizer downloadSync;
     public Synchronizer uploadSync;
+    public Splitter splitter;
 
     public EventWatcher(TCPManager tcp, UDPManager udp, InetAddress addr, String d, BoundedBuffer bb, 
-        Synchronizer s, Synchronizer ds, Synchronizer us, ClientUI u, HashMap<String, FileData> ufid)
+        Synchronizer s, Synchronizer ds, Synchronizer us, ClientUI u, HashMap<String, FileData> ufid,
+        Splitter split)
     {
         tcpm = tcp;
         udpm = udp;
@@ -38,6 +40,7 @@ public class EventWatcher extends Thread
         uploadSync = us;
         ui = u;
         unmodifiedFilesInDirectory = ufid;
+        splitter = split;
     }
 
     /*
@@ -72,7 +75,7 @@ public class EventWatcher extends Thread
             // Watch key will keep track of ENTRY_CREATE, ENTRY_DELETE, and ENTRY MODIFY events.
             WatchKey key = null;
 
-            FileController fc = new FileController(tcpm, udpm, sync, uploadSync, boundedBuffer, address, 2023, ui);
+            FileController fc = new FileController(tcpm, udpm, sync, uploadSync, boundedBuffer, address, 2023, ui, splitter);
 
             while(true)
             {
