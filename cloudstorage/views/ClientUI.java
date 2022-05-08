@@ -24,10 +24,11 @@ public class ClientUI
     public JButton button3;
     public JButton button4;
     public JProgressBar progress1, progress2, progress3;
-    public String iconsPath = "C:\\Users\\rydin\\OneDrive\\Documents\\GitHub\\CSE6324\\cloudstorage\\views\\icons";
+    public String iconsPath;
 
     public ClientUI(Synchronizer sync) 
     {
+        iconsPath = System.getProperty("user.dir") + "/cloudstorage/views/icons";
         absolutepath = "";
 
         //*********************** Application Appearance Section **********************//

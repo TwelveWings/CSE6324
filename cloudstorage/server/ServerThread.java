@@ -51,6 +51,7 @@ public class ServerThread extends Thread
         Synchronizer sync = new Synchronizer(false);
 
         /*
+        TO DO:
         ConcurrentHashMap<String, FileData> filesInServer = sm.selectAllFiles();
 
         DataController dc = new DataController(tcpm, udpm, clients.get(ID - 1).getAddress(Protocol.TCP), 

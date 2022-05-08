@@ -13,12 +13,13 @@ public class ServerUI
     public SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
     public Date date = new Date(System.currentTimeMillis());
     public String timestamp = formatter.format(date);
-    public String iconsPath = "C:\\Users\\rydin\\OneDrive\\Documents\\GitHub\\CSE6324\\cloudstorage\\views\\icons";
+    public String iconsPath;
 
     public ServerUI() 
     {
         //*********************** Server GUI Appearance Section **********************//
  
+        iconsPath = System.getProperty("user.dir") + "/cloudstorage/views/icons";
         //Creating an instance of JFrame
         f = new JFrame("Server");  
         Image icon = Toolkit.getDefaultToolkit().getImage(iconsPath + "\\icon.png");    

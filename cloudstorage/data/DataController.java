@@ -238,10 +238,16 @@ public class DataController
                 for(int i = 0; i < changedIndices.size(); i++)
                 {
                     // If the changed index is negative, remove it as this denotes a deleted block.
+                    // If the changed index is greater than the maximum index of the current data add it.
                     // Otherwise, update the block with the delta block.
                     if(changedIndices.get(i) < 0)
                     {
-                        existingBlocks.remove(changedIndices.get(i));
+                        existingBlocks.remove(changedIndices.get(i) * -1);
+                    }
+
+                    else if(changedIndices.get(i) > existingBlocks.size() - 1)
+                    {
+                        existingBlocks.add(deltaBlocks.get(i));
                     }
 
                     else
