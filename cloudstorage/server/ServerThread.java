@@ -1,6 +1,6 @@
 package cloudstorage.server;
 
-import cloudstorage.control.BoundedBuffer;
+import cloudstorage.control.*;
 import cloudstorage.enums.*;
 import cloudstorage.data.*;
 import cloudstorage.network.*;
@@ -22,9 +22,9 @@ public class ServerThread extends Thread
     public SQLManager sm;
     public TCPManager tcpm;
     public UDPManager udpm;
+    public int bufferSize;
     public int ID;
     public final int blockSize = 1024 * 1024 * 4;
-    public int bufferSize;
 
     public ServerThread(Socket tcp, DatagramSocket udp, byte[] b, int bs, int tID, List<ClientData> cd,
         ServerUI u)
@@ -47,6 +47,8 @@ public class ServerThread extends Thread
         sm.setDBConnection();
 
         BoundedBuffer bb = new BoundedBuffer(1, false, false);
+
+        Synchronizer sync = new Synchronizer(false);
 
         /*
         ConcurrentHashMap<String, FileData> filesInServer = sm.selectAllFiles();
@@ -74,13 +76,27 @@ public class ServerThread extends Thread
 
             String[] components = message.split("/");
 
+            if(!components[0].equals("delete"))
+            {
+                while(sync.getIsSending())
+                {
+                    tcpm.sendMessageToClient("wait", 5000);
+                }
+    
+                tcpm.sendMessageToClient("ready", 1000);
+
+                message = tcpm.receiveMessageFromClient(1000);
+
+                components = message.split("/");
+            }
+
             bb = new BoundedBuffer(1, false, false);
 
             ServerController sc = null;
 
             DataController dc = new DataController(tcpm, udpm, clients.get(ID - 1).getAddress(Protocol.TCP), 
                 clients.get(ID - 1).getPort(Protocol.TCP), clients.get(ID - 1).getAddress(Protocol.UDP),
-                clients.get(ID - 1).getPort(Protocol.UDP), bb, ui, ID, sm);
+                clients.get(ID - 1).getPort(Protocol.UDP), bb, ui, ID, sm, sync);
 
             if(components[0].equals("delete"))
             {

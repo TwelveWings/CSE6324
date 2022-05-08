@@ -33,6 +33,7 @@ public class Client
         Synchronizer sync = new Synchronizer();
         Synchronizer downloadSync = new Synchronizer();
         Synchronizer uploadSync = new Synchronizer();
+        Splitter splitter = new Splitter();
 
         // Instantiate the UI.
         ClientUI ui = new ClientUI(sync);
@@ -139,17 +140,25 @@ public class Client
 
             // Start event watcher to keep track of directory changes and synchronize with server.
             EventWatcher ew = new EventWatcher(tcpm, udpm, address, directory, bb, sync, downloadSync,
-                uploadSync, ui, unmodifiedFilesInDirectory);
+                uploadSync, ui, unmodifiedFilesInDirectory, splitter);
 
             ew.start();
 
             System.out.println("Client running...");
 
+            ReceiveThread rt = new ReceiveThread(tcpm, ConnectionType.Client, Protocol.TCP, splitter);
+            rt.start();
+
             // This is for the data synchronization from the server. Once the client receives a message
             // from the server it creates a ClientReceiver thread to handle the action.
             while(true)
             {
-                String message = tcpm.receiveMessageFromServer(1000);
+                while(splitter.getCommand().equals("") || splitter.getCommand().equals("wait") || splitter.getCommand().equals("ready"))
+                {
+                    Thread.sleep(150);
+                }
+
+                String message = splitter.getCommand();
 
                 String[] components = message.split("/");
 
@@ -175,6 +184,8 @@ public class Client
                 {
 
                 }
+
+                splitter.setCommand("");
             }
         }
 

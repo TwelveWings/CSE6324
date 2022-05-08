@@ -1,6 +1,6 @@
 package cloudstorage.data;
 
-import cloudstorage.control.BoundedBuffer;
+import cloudstorage.control.*;
 import cloudstorage.enums.*;
 import cloudstorage.network.*;
 import cloudstorage.views.*;
@@ -17,15 +17,17 @@ public class DataController
     public ServerUI ui;
     public SQLManager sm;
     public String timestamp;
+    public Synchronizer sync;
     public TCPManager tcpm;
     public UDPManager udpm;
+    public boolean isSending;
     public int clientID;
     public int targetPort;
     public int targetUDPPort;
     public volatile String token;
     
     public DataController(TCPManager tcp, UDPManager udp, InetAddress a, int p, InetAddress udpa, int udpp, 
-        BoundedBuffer bb, ServerUI u, int ID, SQLManager sql)
+        BoundedBuffer bb, ServerUI u, int ID, SQLManager sql, Synchronizer s)
     {
         tcpm = tcp;
         udpm = udp;
@@ -37,6 +39,7 @@ public class DataController
         ui = u;
         clientID = ID;
         sm = sql;
+        sync = s;
         token = "";
     }
 
@@ -110,6 +113,7 @@ public class DataController
     */
     synchronized public void download(FileData fileData)
     {
+        sync.setIsSending(true);
         StringBuilder sb = new StringBuilder();
 
         byte[] buffer = new byte[65507];
@@ -121,6 +125,16 @@ public class DataController
 
         sb.append(String.format("download/%s/%d/%d", fileData.getFileName(), 
         fileData.getFileSize(), blocksCreated.size()));
+
+        try
+        {
+            Thread.sleep(5000);
+        }
+
+        catch(Exception e)
+        {
+            
+        }
         
         for(int i = 0; i < blocksCreated.size(); i++)
         {
@@ -166,7 +180,9 @@ public class DataController
             }
         }
 
-        ui.appendToLog(String.format("Data transmission for %s", fileData.getFileName()));
+        sync.setIsSending(false);
+
+        ui.appendToLog(String.format("Data transmission for %s complete.", fileData.getFileName()));
     }
 
     /*

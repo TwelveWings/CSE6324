@@ -6,12 +6,18 @@ import javax.swing.*;
 public class Synchronizer 
 {
     public volatile boolean isPaused;
+    public volatile boolean isSending;
     public HashMap<String, Boolean> blockedFiles;
 
     public Synchronizer()
     {
         isPaused = false;
         blockedFiles = new HashMap<String, Boolean>();
+    }
+
+    public Synchronizer(boolean is)
+    {
+        isSending = is;
     }
 
     /*
@@ -36,6 +42,17 @@ public class Synchronizer
     public boolean getIsPaused()
     {
         return isPaused;
+    }
+
+
+    public void setIsSending(boolean is)
+    {
+        isSending = is;
+    }
+
+    public boolean getIsSending()
+    {
+        return isSending;
     }
 
     /*
